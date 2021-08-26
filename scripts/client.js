@@ -2,9 +2,12 @@ let Fury = require('../fury/src/fury');
 const { vec3, quat } = require('../fury/src/maths');
 let VoxelShader = require('../vorld/core/shader');
 let VorldHelper = require('./vorldHelper');
+let Player = require('./player');
 
 let scene, camera, cameraRatio = 16 / 9;
+let world = { boxes: [] }, vorld = null;
 let material;
+let player, spawnPlayer = true;
 
 let initialBounds = {
 	iMin: -6, iMax: 6,
@@ -12,16 +15,11 @@ let initialBounds = {
 	kMin: -6, kMax: 6
 };
 
-// Camera config
-let rotateRate = 0.1 * Math.PI;
-let zoomRate = 16;
+let freeLookCameraUpdate = (function(){
+	// TODO: Extract into free look camera
+	let rotateRate = 0.1 * Math.PI;
+	let zoomRate = 16;
 
-let loop = (elapsed) => {
-	handleInput(elapsed);
-	scene.render();
-};
-
-let handleInput = (function(){
 	let Input = Fury.Input;
 	let localx = vec3.create();
 	let localy = vec3.create();
@@ -75,6 +73,42 @@ let handleInput = (function(){
 	};
 })();
 
+let start = () => {
+	// Create camera and scene
+	camera = Fury.Camera.create({
+		near: 0.1,
+		far: 1000000.0,
+		fov: 1.0472,
+		ratio: cameraRatio,
+		position: vec3.fromValues(53.0, 55.0, 123.0),
+		rotation: quat.fromValues(-0.232, 0.24, 0.06, 0.94)
+	});
+	scene = Fury.Scene.create({ camera: camera, enableFrustumCulling: true });
+
+	Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
+	Fury.GameLoop.start();
+	vorld = VorldHelper.init({ scene: scene, material: material, bounds: initialBounds }, (data) => {
+		// Spawn Player
+		if (spawnPlayer) {
+			player = Player.create({
+				world: world,
+				vorld: vorld,
+				position: vec3.fromValues(12, 32, 12),
+				camera: camera
+			});
+		}
+	});
+};
+
+let loop = (elapsed) => {
+	if (player) {
+		player.update(elapsed);
+	} else {
+		freeLookCameraUpdate(elapsed);
+	}
+	scene.render();
+};
+
 window.addEventListener('load', (event) => {
 	let glCanvasId = 'fury';
 	
@@ -94,23 +128,6 @@ window.addEventListener('load', (event) => {
 	updateCanvasSize();
 
 	Fury.init({ canvasId: glCanvasId });
-
-	// Create camera and scene
-	camera = Fury.Camera.create({
-		near: 0.1,
-		far: 1000000.0,
-		fov: 1.0472,
-		ratio: cameraRatio,
-		position: vec3.fromValues(53.0, 55.0, 123.0),
-		rotation: quat.fromValues(-0.232, 0.24, 0.06, 0.94)
-	});
-	scene = Fury.Scene.create({ camera: camera, enableFrustumCulling: true });
-
-	let start = () => {
-		Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
-		Fury.GameLoop.start();
-		VorldHelper.init({ scene: scene, material: material, bounds: initialBounds });
-	};
 
 	// Load Atlas Texture
 	let image = new Image();
