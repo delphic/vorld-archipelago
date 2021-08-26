@@ -116,6 +116,8 @@ module.exports = (function(){
 			() => {
 				meshVorld(vorld, bounds, callback);
 			});
+
+		return vorld;
 	};
 	
 	let meshVorld = (vorld, bounds, callback) => {	
@@ -127,12 +129,12 @@ module.exports = (function(){
 				meshingConfig.bounds = sectionBounds;
 				meshingConfig.vorld = Vorld.createSlice(
 					vorld,
-					sectionBounds.iMin,
-					sectionBounds.iMax,
-					sectionBounds.jMin,
-					sectionBounds.jMax,
-					sectionBounds.kMin,
-					sectionBounds.kMax);
+					sectionBounds.iMin - 1,
+					sectionBounds.iMax + 1,
+					sectionBounds.jMin - 1,
+					sectionBounds.jMax + 1,
+					sectionBounds.kMin - 1,
+					sectionBounds.kMax + 1);
 				return meshingConfig;
 			},
 			(data) => {
@@ -151,7 +153,7 @@ module.exports = (function(){
 	exports.init = (parameters, callback) => {
 		scene = parameters.scene;
 		material = parameters.material;
-		generate(parameters.bounds, callback);
+		return generate(parameters.bounds, callback);
 	};
 
 	return exports;
