@@ -104,8 +104,7 @@ let Player = module.exports = (function(){
 			let inputX = Input.getAxis("d", "a", 0.05, Maths.Ease.inQuad);
 
 			if (!attemptSprint && Input.keyDown("w", true)) {
-				let time = Date.now(); 
-				console.log("Current time " + time + " Last Time " + lastForwardPress + " Difference " + (time - lastForwardPress));
+				let time = Date.now();
 				if ((time - lastForwardPress) < sprintDoubleTapMaxDuration * 1000) {
 					attemptSprint = true;
 				}
