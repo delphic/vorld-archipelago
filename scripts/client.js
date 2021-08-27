@@ -94,7 +94,13 @@ let start = () => {
 				world: world,
 				vorld: vorld,
 				position: vec3.fromValues(12, 32, 12),
-				camera: camera
+				camera: camera,
+				// Normal sized player
+				size: vec3.fromValues(1,2,1),
+				stepHeight: 0.51
+				/* // Massive Player!
+				size: vec3.fromValues(4,8,4),
+				stepHeight: 2.01 */
 			});
 		}
 	});

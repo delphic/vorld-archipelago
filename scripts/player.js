@@ -45,7 +45,11 @@ let Player = module.exports = (function(){
 		
 		// Reference link box center and player position, i.e. player position at center of box
 		player.box = Physics.Box.create({ center: player.position, size: size });
-		let stepHeight = 0.51;
+		let stepHeight = 0;
+		if (parameters.stepHeight) {
+			stepHeight = parameters.stepHeight;
+		}
+
 		let characterController = CharacterController.create({
 			world: parameters.world,
 			vorld: parameters.vorld,
@@ -56,8 +60,12 @@ let Player = module.exports = (function(){
 		player.velocity = vec3.create();
 
 		let camera = player.camera = parameters.camera;
+		let cameraOffset = 0.75 * 0.5 * size[1];
+		let cameraTargetPosition = vec3.create();
+
 		vec3.copy(camera.position, player.position);
 		quat.fromEuler(camera.rotation, 0, 180, 0); // Set look for player forward
+		vec3.scaleAndAdd(camera.position, camera.position, Maths.vec3Y, cameraOffset);
 
 		let localX = vec3.create(), localZ = vec3.create();
 		let contacts = vec3.create();
@@ -131,8 +139,7 @@ let Player = module.exports = (function(){
 		};
 
 		// Movement Variables
-		let grounded = false, lastGroundedTime = 0, canCayote = true, lastJumpAttemptTime = 0;
-		let cameraTargetPosition = vec3.create();
+		let grounded = false, lastGroundedTime = 0, canCoyote = true, lastJumpAttemptTime = 0;
 
 		let jump = () => {
 			grounded = false;
@@ -320,7 +327,7 @@ let Player = module.exports = (function(){
 			// Arguably the change due to falling if there is any, we should just do,
 			// as that should always be smooth
 			vec3.copy(cameraTargetPosition, player.position);
-			vec3.scaleAndAdd(cameraTargetPosition, cameraTargetPosition, Maths.vec3Y, 0.75);	// 0.5 offset
+			vec3.scaleAndAdd(cameraTargetPosition, cameraTargetPosition, Maths.vec3Y, cameraOffset);
 			if (vec3.squaredLength(cameraTargetPosition) < 0.1) {
 				vec3.copy(camera.position, cameraTargetPosition);
 			} else {
