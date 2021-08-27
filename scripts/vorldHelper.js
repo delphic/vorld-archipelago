@@ -19,7 +19,25 @@ module.exports = (function(){
 			neutralNoise: true,	// Setting this to false just results in a single line of voxels... not really the intent
 			thresholds: [ 0.5, 0.8 ],
 			blocksByThreshold: [ 0, 2, 1 ],	// 0 = Air, 1 = Stone, 2 = Soil, 3 = Grass 
-			verticalTransforms: [[ 2, 3 ]],
+			verticalTransforms: [/*{
+					conditions: [ "blockValue", "yMax" ],
+					block: 0,
+					yMax: -15,
+					targetBlock: 1
+				}, {
+					conditions: [ "blockValue", "yRange" ],
+					block: 0,
+					yMin: -14,
+					yMax: -14,
+					targetBlock: 2
+				},*/ {
+					conditions: [ "blockValue", "blockAboveValue", "yMin" ],
+					blockAbove: 0,
+					block: 2,
+					targetBlock: 3,
+					yMin: 0
+				}
+			],
 			shapingFunction: {
 				name: "inverse_y",
 				numerator: 100,
