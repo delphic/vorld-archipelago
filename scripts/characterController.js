@@ -157,7 +157,13 @@ let CharacterController = module.exports = (() => {
 
 	exports.create = (parameters) => {
 		let controller = {};
-	
+
+		// public variables
+		controller.stepHeight = 0;
+		if (parameters.stepHeight) {
+			controller.stepHeight = parameters.stepHeight;
+		}
+
 		// private variables
 		let targetPosition = vec3.create();	
 		let lastPosition = vec3.create();
@@ -165,10 +171,6 @@ let CharacterController = module.exports = (() => {
 		let vorld = parameters.vorld;
 		let playerPosition = parameters.playerPosition;
 		let playerBox = parameters.playerBox;
-		let stepHeight = 0;
-		if (parameters.stepHeight) {
-			stepHeight = parameters.stepHeight;
-		}
 
 		// private methods 
 		let tryStep = (axis, maxStepHeight, elapsed) => {
@@ -262,7 +264,7 @@ let CharacterController = module.exports = (() => {
 			return collisionCount;
 		};
 
-		// Public Methods
+		// public Methods
 		let teleport = controller.teleport = (targetPosition) => {
 			vec3.copy(playerPosition, targetPosition);
 			// playerBox.center has changed because it's set to the playerPosition ref
@@ -270,14 +272,14 @@ let CharacterController = module.exports = (() => {
 			playerBox.recalculateMinMax();
 		};
 
-		controller.moveXZ = (velocity, elapsed) => {
+		controller.moveXZ = (contacts, velocity, elapsed, inputVector) => {
 			vec3.copy(lastPosition, playerPosition);
 			vec3.copy(targetPosition, playerPosition);
 			vec3.scaleAndAdd(targetPosition, targetPosition, Maths.vec3X, velocity[0] * elapsed);
 			vec3.scaleAndAdd(targetPosition, targetPosition, Maths.vec3Z, velocity[2] * elapsed);
 
 			// As we might be checking collision repeatedly sweep out maximal set first
-			sweepForRevelantBoxes(relevantBoxes, vorld, world.boxes, playerBox, targetPosition, playerPosition, stepHeight);
+			sweepForRevelantBoxes(relevantBoxes, vorld, world.boxes, playerBox, targetPosition, playerPosition, controller.stepHeight);
 			// TODO: ^^ This could be replaced by a World partitioning system and a method to retrieve locally revelant collision boxes 
 
 			checkForPlayerCollisions(playerCollisionInfo, relevantBoxes, elapsed);
@@ -287,7 +289,7 @@ let CharacterController = module.exports = (() => {
 			let minTime = playerCollisionInfo.minTime;
 			let minIndex = playerCollisionInfo.minIndex;
 		
-			let maxStepHeight = playerBox.min[1] + stepHeight; 
+			let maxStepHeight = playerBox.min[1] + controller.stepHeight; 
 			let resolvedX = minIndex[0] == -1, resolvedZ = minIndex[2] == -1;
 		
 			if (!resolvedX && !resolvedZ) {
@@ -296,16 +298,22 @@ let CharacterController = module.exports = (() => {
 				// Prioritise moving along the axis with the highest delta 
 				// (for inanimate objects should prioritse move along first collision axis, however for a character intent is important)
 				// (this allow us to slide into tight spaces more easily)
-				let absDeltaZ = Math.abs(targetPosition[2] - playerPosition[0]);
+				let absDeltaZ = Math.abs(targetPosition[2] - playerPosition[2]);
 				let absDeltaX = Math.abs(targetPosition[0] - playerPosition[0]);
+				// If inputVector provided - prioritise against this (when sliding velocity is not a good guide for intent)
+				if (inputVector) {
+					absDeltaZ = Math.abs(inputVector[2]);
+					absDeltaX = Math.abs(inputVector[0]);
+				}
 				let pma = absDeltaZ < absDeltaX ? 0 : 2; // Primary movement axis
 				let sma = absDeltaZ < absDeltaX ? 2 : 0; // Secondary movement axis
 		
 				if (!tryStep(fca, maxStepHeight, elapsed)) {
 					// Try moving along pma first
 					let targetPosCache = targetPosition[sma];
+					contacts[sma] = Math.sign(targetPosition[sma] - playerPosition[sma]);
 					targetPosition[sma] = getTouchPointTarget(collisionsBuffer[minIndex[sma]], playerBox, sma, targetPosition[sma] - playerPosition[sma]);
-					
+
 					checkForPlayerCollisions(playerCollisionInfo, relevantBoxes, elapsed);
 					
 					if (minIndex[pma] != -1) {
@@ -313,15 +321,18 @@ let CharacterController = module.exports = (() => {
 						if (!tryStep(pma, maxStepHeight, elapsed)) {
 							// Step did not resolve all collision
 							// No more sliding along in prioritised collision axis
+							contacts[pma] = Math.sign(targetPosition[pma] - playerPosition[pma]);
 							targetPosition[pma] = getTouchPointTarget(collisionsBuffer[minIndex[pma]], playerBox, pma, targetPosition[pma] - playerPosition[pma]);
-		
+
 							// Try sliding the deprioritised collisation axis instead (with minimal movement in prioritised collision axis)
+							contacts[sma] = 0;
 							targetPosition[sma] = targetPosCache;
 							checkForPlayerCollisions(playerCollisionInfo, relevantBoxes, elapsed);
 		
 							if (minIndex[sma] != -1) {
 								if (!tryStep(sma, maxStepHeight, elapsed)) {
 									// No dice really in a corner
+									contacts[sma] = Math.sign(targetPosition[sma] - playerPosition[sma]);
 									targetPosition[sma] = getTouchPointTarget(collisionsBuffer[minIndex[sma]], playerBox, sma, targetPosition[sma] - playerPosition[sma]);
 								}
 							}
@@ -335,15 +346,19 @@ let CharacterController = module.exports = (() => {
 				
 				if (!tryStep(fca, maxStepHeight, elapsed)) { 
 					// Try step failed, move up to object instead
+					contacts[fca] = Math.sign(targetPosition[fca] - playerPosition[fca]);
 					targetPosition[fca] = getTouchPointTarget(collisionsBuffer[minIndex[fca]], playerBox, fca, targetPosition[fca] - playerPosition[fca]);
 					checkForPlayerCollisions(playerCollisionInfo, relevantBoxes, elapsed);
 					
 					if (minIndex[sca] != -1) {
 						// Oh no now that we're not moving in fca we're hitting something in sca
+						contacts[sca] = Math.sign(targetPosition[sca] - playerPosition[sca]);
 						targetPosition[sca] = getTouchPointTarget(collisionsBuffer[minIndex[sca]], playerBox, sca, targetPosition[sca] - playerPosition[sca]);
 					}
 				}
-			} 
+			} else {
+				contacts[0] = contacts[2] = 0;
+			}
 		
 			// Finally move the player to the approved target position
 			teleport(targetPosition);
@@ -353,7 +368,7 @@ let CharacterController = module.exports = (() => {
 			velocity[2] = (playerPosition[2] - lastPosition[2]) / elapsed;	
 		};
 
-		controller.moveY = (velocity, elapsed) => {
+		controller.moveY = (contacts, velocity, elapsed) => {
 			vec3.copy(lastPosition, playerPosition);	
 			vec3.scaleAndAdd(targetPosition, playerPosition, Maths.vec3Y, velocity[1] * elapsed);
 			
@@ -368,18 +383,18 @@ let CharacterController = module.exports = (() => {
 					playerPosition[1] = closestBox.max[1] + playerBox.extents[1];
 					playerBox.recalculateMinMax();
 					velocity[1] = (playerPosition[1] - lastPosition[1]) / elapsed;
-					return true; // Hit Ground
+					contacts[1] = -1;
 				} else {
 					// Moving up, move playerPosition so player is extents below  closestBox.min[1]
 					playerPosition[1] = closestBox.min[1] - playerBox.extents[1];
 					playerBox.recalculateMinMax();
 					velocity[1] = (playerPosition[1] - lastPosition[1]) / elapsed;
-					return false; // TODO: Contact point top would be nice to differentitate from no collision
+					contacts[1] = 1;
 				}
 			} else {
 				playerPosition[1] = targetPosition[1];
 				playerBox.recalculateMinMax();
-				return false;
+				contacts[1] = 0;
 			}
 		};
 

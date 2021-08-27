@@ -40,12 +40,13 @@ let Player = module.exports = (function(){
 		
 		// Reference link box center and player position, i.e. player position at center of box
 		player.box = Physics.Box.create({ center: player.position, size: size });
+		let stepHeight = 0.51;
 		let characterController = CharacterController.create({
 			world: parameters.world,
 			vorld: parameters.vorld,
 			playerPosition: player.position,
 			playerBox: player.box,
-			stepHeight: 0.51
+			stepHeight: stepHeight
 		});
 		player.velocity = vec3.create();
 
@@ -54,12 +55,15 @@ let Player = module.exports = (function(){
 		quat.fromEuler(camera.rotation, 0, 180, 0); // Set look for player forward
 
 		let localX = vec3.create(), localZ = vec3.create();
+		let contacts = vec3.create();
 
 		// Input Variables
 		let ry = 0, rx = 0;
 		let inputVector = vec3.create();
 		let attemptJump = false; 
 		let verticalLookAngle = 0;
+		let maxContactSpeedFactor = 1.5; // Just limiting it 1:1 feels bad
+		let maxContactSpeed = [movementSpeed, 0, movementSpeed];
 
 		let detectInput = (elapsed) => {
 			// Calculate Local Axes
@@ -85,7 +89,15 @@ let Player = module.exports = (function(){
 				inputX /= Math.SQRT2;
 				inputZ /= Math.SQRT2;
 				// TODO: Test inputVector.sqrMagnitude > 1 => normalize(inputVector)
+				maxContactSpeed[0] = Math.min(movementSpeed, maxContactSpeed[2] = maxContactSpeedFactor * movementSpeed / Math.SQRT2);
+			} else if (inputX !== 0) {
+				maxContactSpeed[0] = Math.min(movementSpeed, Math.abs(localX[0]) * movementSpeed * maxContactSpeedFactor);
+				maxContactSpeed[2] = Math.min(movementSpeed, Math.abs(localX[2]) * movementSpeed * maxContactSpeedFactor);
+			} else if (inputZ !== 0) {
+				maxContactSpeed[0] = Math.min(movementSpeed, Math.abs(localZ[0]) * movementSpeed * maxContactSpeedFactor);
+				maxContactSpeed[2] = Math.min(movementSpeed, Math.abs(localZ[2]) * movementSpeed * maxContactSpeedFactor);
 			}
+			// Q: ^^ Does this work niavely or do we need to compensate for current movement direction?
 
 			vec3.zero(inputVector);
 			vec3.scaleAndAdd(inputVector, inputVector, localX, inputX);
@@ -105,15 +117,13 @@ let Player = module.exports = (function(){
 			player.velocity[1] = jumpDeltaV;
 		};
 
+		// Potential Bug:
+		// Without reducing step when not grounded if you jump whilst facing into a corner with 2 height blocks in front, adjacent blocks height one,
+		// You reliably get a bigger jump than normal as the player steps up the double height voxel. 
+		// This be the controller working as intended, but it would require a confluence of values which merits investigation
+
 		// TODO: Replace use of Date.now() with Fury.Time or similar
-		// BUG: When jumping against a voxel of height one on one side and a voxel of 2 height jump in front, sometimes get a big jump! 
-			// TODO: Try reduced stepHeight when in air (start at 0)?
-		// BUG: Way too slidey when moving along side - feels like it should be naturally capped based on look direction but feels like you get up to full speed
-			// Well it's acceleration based so it'll still accelerate up to max speed reducing acceleration makes this less bad but always going to happen
-			// Could reduce max speed per axis based on view direction.
-			// That feels wierd... perhaps if we had proper contact points we could clamp it ourselves
-			// Of course if we just set velocity to input vector this problem goes away
-		// TODO: Backport these fixes to character controller demo
+		// Nigh on impossible to drop into a space of one voxel - as the passes are separated - and if you did you'd just step out
 		player.update = (elapsed) => {
 			detectInput(elapsed);
 
@@ -146,8 +156,18 @@ let Player = module.exports = (function(){
 				let groundSpeed = Math.sqrt(player.velocity[0] * player.velocity[0] + player.velocity[2] * player.velocity[2]);
 				let anyInput = !!vec3.squaredLength(inputVector);
 				
-				if (groundSpeed > movementSpeed && !isSliding && anyInput) {
-					vec3ScaleXZ(player.velocity, player.velocity, movementSpeed / groundSpeed);
+				if (!isSliding && anyInput) {
+					// Limit Free movement speed if necessary
+					if (groundSpeed > movementSpeed) {
+						vec3ScaleXZ(player.velocity, player.velocity, movementSpeed / groundSpeed);
+					} 
+					// If in contact - limit speed on axis, to clamp sliding velocity
+					if (contacts[0] !== 0) {
+						player.velocity[2] = Math.sign(player.velocity[2]) * Math.min(Math.abs(player.velocity[2]), maxContactSpeed[2]);
+					}
+					if (contacts[2] !== 0) {
+						player.velocity[0] = Math.sign(player.velocity[0]) * Math.min(Math.abs(player.velocity[0]), maxContactSpeed[0]);
+					}
 				} else if (groundSpeed > 0 && (!anyInput || isSliding)) {
 					// Apply slow down force
 					// This tries to model someone at a run deciding to stop if in the 0 to max movement speed range
@@ -220,7 +240,8 @@ let Player = module.exports = (function(){
 			}
 
 			// Move Character By Velocity
-			characterController.moveXZ(player.velocity, elapsed);
+			characterController.stepHeight = grounded ? stepHeight : 0; // No stepping whilst not grounded
+			characterController.moveXZ(contacts, player.velocity, elapsed, inputVector);
 
 			// Now Gravity / Jumping
 			player.velocity[1] -= gravity * elapsed;
@@ -233,8 +254,9 @@ let Player = module.exports = (function(){
 				}
 			}
 
-			// Y Move - returns true if hit ground
-			if (characterController.moveY(player.velocity, elapsed)) {
+			// Y Move - contacts[1] will be -1 if touches ground
+			characterController.moveY(contacts, player.velocity, elapsed)
+			if (contacts[1] == -1) {
 				lastGroundedTime = Date.now();
 				if (!grounded && lastGroundedTime - lastJumpAttemptTime < 1000 * coyoteTime) {
 					jump();
