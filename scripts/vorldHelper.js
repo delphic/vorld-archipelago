@@ -11,6 +11,27 @@ module.exports = (function(){
 	let generationWorkerPool = WorkerPool.create({ src: 'scripts/generator-worker.js', maxWorkers: 8 });
 	let mesherWorkerPool = WorkerPool.create({ src: 'scripts/mesher-worker.js', maxWorkers: 4 });
 
+	let gaussianShapingConfig = {
+		name: "gaussian",
+		// amplitude, sdx, sdz, denominator
+		amplitude: 32,
+		denominator: 8,
+		sdx: 128,
+		sdz: 256
+	};
+	let negativeYShapingConfig = {
+		name: "negative_y",
+		yDenominator: 32,
+		yOffset: 128,
+	};
+
+	// Do not use with negative vertical extents unless you want insanity.
+	let inverseYShapingConfig = {
+		name: "inverse_y",
+		numerator: 100,
+		yOffset: 0,
+	};
+
 	let generationConfig = {
 		generationRules: {
 			seed: "XUVNREAZOZJFPQMSAKEMSDJURTQPWEORHZMD",
@@ -19,7 +40,7 @@ module.exports = (function(){
 			neutralNoise: true,	// Setting this to false just results in a single line of voxels... not really the intent
 			thresholds: [ 0.5, 0.8 ],
 			blocksByThreshold: [ 0, 2, 1 ],	// 0 = Air, 1 = Stone, 2 = Soil, 3 = Grass 
-			verticalTransforms: [/*{
+			verticalTransforms: [{
 					conditions: [ "blockValue", "yMax" ],
 					block: 0,
 					yMax: -15,
@@ -30,7 +51,7 @@ module.exports = (function(){
 					yMin: -14,
 					yMax: -14,
 					targetBlock: 2
-				},*/ {
+				}, {
 					conditions: [ "blockValue", "blockAboveValue", "yMin" ],
 					blockAbove: 0,
 					block: 2,
@@ -38,11 +59,7 @@ module.exports = (function(){
 					yMin: 0
 				}
 			],
-			shapingFunction: {
-				name: "inverse_y",
-				numerator: 100,
-				yOffset: 0,
-			}
+			shapingFunction: gaussianShapingConfig
 		}
 	};
 
