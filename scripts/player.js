@@ -8,8 +8,13 @@ let Player = module.exports = (function(){
 	let prototype = { };
 
 	let mouseLookSpeed = 0.25;
-	let acceleration = 50;
-	let movementSpeed = 6;
+	let acceleration = 80;
+
+	let maxWalkSpeed = 2;
+	let maxRunSpeed = 5.5;
+	let maxSprintSpeed = 8;
+
+	let maxMovementSpeed = maxRunSpeed;
 	let stopSpeed = 1.5;
 	let airMovementSpeed = 4;
 	let airAcceleration = 10;
@@ -60,11 +65,16 @@ let Player = module.exports = (function(){
 		// Input Variables
 		let ry = 0, rx = 0;
 		let inputVector = vec3.create();
+		let isWalking = false;
 		let attemptJump = false; 
+		let attemptSprint = false;
 		let verticalLookAngle = 0;
 		let maxContactSpeedFactor = 1.5; // Just limiting it 1:1 feels bad
-		let maxContactSpeed = [movementSpeed, 0, movementSpeed];
+		let maxContactSpeed = [maxMovementSpeed, 0, maxMovementSpeed];
+		let lastForwardPress = 0;
+		let sprintDoubleTapMaxDuration = 0.25;
 
+		// TODO: Replace use of Date.now() with Fury.Time.now
 		let detectInput = (elapsed) => {
 			// Calculate Local Axes
 			vec3.transformQuat(localX, Maths.vec3X, camera.rotation);
@@ -84,25 +94,39 @@ let Player = module.exports = (function(){
 			}
 			let inputZ = Input.getAxis("s", "w", 0.05, Maths.Ease.inQuad);
 			let inputX = Input.getAxis("d", "a", 0.05, Maths.Ease.inQuad);
+
+			if (!attemptSprint && Input.keyDown("w", true)) {
+				let time = Date.now(); 
+				console.log("Current time " + time + " Last Time " + lastForwardPress + " Difference " + (time - lastForwardPress));
+				if ((time - lastForwardPress) < sprintDoubleTapMaxDuration * 1000) {
+					attemptSprint = true;
+				}
+				lastForwardPress = Date.now();
+			} else if (attemptSprint && !Input.keyDown("w")) {
+				attemptSprint = false;
+			}
+
+			// Q: Does maxContactSpeed work niavely or do we need to compensate for current movement direction?
 			if (inputX !== 0 && inputZ !== 0) {
 				// Normalize input vector if moving in more than one direction
 				inputX /= Math.SQRT2;
 				inputZ /= Math.SQRT2;
 				// TODO: Test inputVector.sqrMagnitude > 1 => normalize(inputVector)
-				maxContactSpeed[0] = Math.min(movementSpeed, maxContactSpeed[2] = maxContactSpeedFactor * movementSpeed / Math.SQRT2);
+
+				maxContactSpeed[0] = Math.min(maxMovementSpeed, maxContactSpeed[2] = maxContactSpeedFactor * maxMovementSpeed / Math.SQRT2);
 			} else if (inputX !== 0) {
-				maxContactSpeed[0] = Math.min(movementSpeed, Math.abs(localX[0]) * movementSpeed * maxContactSpeedFactor);
-				maxContactSpeed[2] = Math.min(movementSpeed, Math.abs(localX[2]) * movementSpeed * maxContactSpeedFactor);
+				maxContactSpeed[0] = Math.min(maxMovementSpeed, Math.abs(localX[0]) * maxMovementSpeed * maxContactSpeedFactor);
+				maxContactSpeed[2] = Math.min(maxMovementSpeed, Math.abs(localX[2]) * maxMovementSpeed * maxContactSpeedFactor);
 			} else if (inputZ !== 0) {
-				maxContactSpeed[0] = Math.min(movementSpeed, Math.abs(localZ[0]) * movementSpeed * maxContactSpeedFactor);
-				maxContactSpeed[2] = Math.min(movementSpeed, Math.abs(localZ[2]) * movementSpeed * maxContactSpeedFactor);
+				maxContactSpeed[0] = Math.min(maxMovementSpeed, Math.abs(localZ[0]) * maxMovementSpeed * maxContactSpeedFactor);
+				maxContactSpeed[2] = Math.min(maxMovementSpeed, Math.abs(localZ[2]) * maxMovementSpeed * maxContactSpeedFactor);
 			}
-			// Q: ^^ Does this work niavely or do we need to compensate for current movement direction?
 
 			vec3.zero(inputVector);
 			vec3.scaleAndAdd(inputVector, inputVector, localX, inputX);
 			vec3.scaleAndAdd(inputVector, inputVector, localZ, inputZ);
 
+			isWalking = Input.keyDown("Shift");
 			attemptJump = Input.keyDown("Space", true);
 		};
 
@@ -127,6 +151,16 @@ let Player = module.exports = (function(){
 		player.update = (elapsed) => {
 			detectInput(elapsed);
 
+			if (isWalking) {
+				maxMovementSpeed = maxWalkSpeed;
+			} else {
+				if (attemptSprint) {
+					maxMovementSpeed = maxSprintSpeed;
+				} else {
+					maxMovementSpeed = maxRunSpeed;
+				}
+			}
+
 			// Directly rotate camera
 			Maths.quatRotate(camera.rotation, camera.rotation, ry, Maths.vec3Y);
 			let clampAngle = 0.5 * Math.PI - 10 * Math.PI/180;
@@ -134,10 +168,11 @@ let Player = module.exports = (function(){
 			verticalLookAngle = Fury.Maths.clamp(verticalLookAngle + rx, -clampAngle, clampAngle);
 			quat.rotateX(camera.rotation, camera.rotation, verticalLookAngle - lastVerticalLookAngle);
 
+			let lastX = player.position[0], lastY = player.position[1], lastZ = player.position[2]; // Cache last positions for walk restore 
 			// Calculate Movement
 			if (grounded) {
 				let vSqr = player.velocity[0] * player.velocity[0] + player.velocity[2] * player.velocity[2];
-				let isSliding = vSqr > movementSpeed * movementSpeed + 0.001; // Fudge factor for double precision when scaling
+				let isSliding = vSqr > maxMovementSpeed * maxMovementSpeed + 0.001; // Fudge factor for double precision when scaling
 
 				if (isSliding) {
 					// Only deceleration
@@ -158,8 +193,8 @@ let Player = module.exports = (function(){
 				
 				if (!isSliding && anyInput) {
 					// Limit Free movement speed if necessary
-					if (groundSpeed > movementSpeed) {
-						vec3ScaleXZ(player.velocity, player.velocity, movementSpeed / groundSpeed);
+					if (groundSpeed > maxMovementSpeed) {
+						vec3ScaleXZ(player.velocity, player.velocity, maxMovementSpeed / groundSpeed);
 					} 
 					// If in contact - limit speed on axis, to clamp sliding velocity
 					if (contacts[0] !== 0) {
@@ -266,7 +301,17 @@ let Player = module.exports = (function(){
 				}
 			} else {
 				if (grounded && player.velocity[1] < 0) {
-					grounded = false;
+					// Walked off edge
+					if (isWalking) {
+						// Dont' allow walk of edge
+						vec3.zero(player.velocity);
+						vec3.set(player.position, lastX, lastY, lastZ);
+						// BUG: It's still occasionally possible to walk off edges
+						// A better check would probably be if raycast down from center didn't hit voxel
+						// that way we can't walk more than half way off
+					} else {
+						grounded = false;
+					}
 				}
 			}
 
