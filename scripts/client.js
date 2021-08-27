@@ -9,12 +9,20 @@ let world = { boxes: [] }, vorld = null;
 let material;
 let player, spawnPlayer = true;
 
+/*
 let initialBounds = {
+	iMin: -32, iMax: 32,
+	jMin: -1, jMax: 3,
+	kMin: -32, kMax: 32
+};
+*/
+let initialBounds = {	// Testing bounds
 	iMin: -6, iMax: 6,
-	jMin: 0, jMax: 3,
+	jMin: -1, jMax: 3,
 	kMin: -6, kMax: 6
 };
 
+// TODO: Extract to Fury Utils
 let freeLookCameraUpdate = (function(){
 	// TODO: Extract into free look camera
 	let rotateRate = 0.1 * Math.PI;

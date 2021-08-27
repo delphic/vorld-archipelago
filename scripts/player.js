@@ -2,6 +2,8 @@ const Fury = require('../fury/src/fury');
 const { Input, Physics, Maths } = require('../fury/src/fury');
 const { vec3, quat } = require('../fury/src/maths');
 const CharacterController = require ('./characterController.js');
+const Vorld = require('../vorld/core/vorld');
+const VorldPhysics = require('../vorld/core/physics');
 
 let Player = module.exports = (function(){
 	let exports = {};
@@ -22,11 +24,59 @@ let Player = module.exports = (function(){
 	let coyoteTime = 0.1;
 	let gravity = 2 * 9.8;
 
+	let hitPoint = vec3.create();
+	let castDirection = vec3.fromValues(0, -1, 0);
+	// TODO: ^^ vec3Ext.Up / Down / Left / Right / Forward / Back (just be sure which way is right? +x?) 
+
 	let vec3ScaleXZ = (out, a, scale) => {
 		let y = a[1];
 		a[1] = 0;
 		vec3.scale(out, a, scale);
 		a[1] = out[1] = y;
+	};
+
+	let tryGetClosestGroundVoxelCoords = (out, vorld, box) => {
+		// Searches the voxels directly below the box
+		let closestSqrDistance = Number.POSITIVE_INFINITY;
+		let origin = Maths.vec3Pool.request();
+		let voxelCenter = Maths.vec3Pool.request();
+
+		vec3.set(origin, box.center[0], box.min[1], box.center[2]);
+		let xMin = Math.floor(box.min[0]), xMax = Math.floor(box.max[0]);
+		let zMin = Math.floor(box.min[2]), zMax = Math.floor(box.max[2]);
+
+		let y = Math.floor(origin[1]) - 1;
+		voxelCenter[1] = y + 0.5;
+
+		// Could be smarter could start from the center and loop out
+		for (let x = xMin; x <= xMax; x++) {
+			for (let z = zMin; z <= zMax; z++) {
+				if (Vorld.getBlock(vorld, x, y, z)) {
+					// TODO: Will have to check it's solid if we make non-solid voxels
+
+					// Check there is space above for the player box
+					let isSpaceAbove = true;
+					for (let j = 1, l = Math.ceil(box.size[1]); j <= l && isSpaceAbove; j++) {
+						isSpaceAbove = !Vorld.getBlock(vorld, x, y + j, z); 
+					}
+
+					if (isSpaceAbove) {
+						voxelCenter[0] = x + 0.5;
+						voxelCenter[2] = z + 0.5;
+						let sqrDistance = vec3.sqrDist(voxelCenter, origin);
+						if (sqrDistance < closestSqrDistance) {
+							closestSqrDistance = sqrDistance;
+							vec3.set(out, x, y, z);
+						}
+					}
+				}
+			}
+		}
+
+		Maths.vec3Pool.return(origin);
+		Maths.vec3Pool.return(voxelCenter);
+
+		return closestSqrDistance != Number.POSITIVE_INFINITY;
 	};
 
 	exports.create = (parameters) => {
@@ -50,9 +100,11 @@ let Player = module.exports = (function(){
 			stepHeight = parameters.stepHeight;
 		}
 
+		let world = parameters.world;
+		let vorld = parameters.vorld;
 		let characterController = CharacterController.create({
-			world: parameters.world,
-			vorld: parameters.vorld,
+			world: world,
+			vorld: vorld,
 			playerPosition: player.position,
 			playerBox: player.box,
 			stepHeight: stepHeight
@@ -93,9 +145,10 @@ let Player = module.exports = (function(){
 			vec3.normalize(localZ, localZ);
 
 			ry = rx = 0;
-			if (!Input.isPointerLocked() && Input.mouseDown(0)) {
+			if (!Input.isPointerLocked() && Input.mouseDown(0, true)) {
 				Input.requestPointerLock();
 			}
+
 			if (Input.isPointerLocked()) {
 				ry -= mouseLookSpeed * elapsed * Input.MouseDelta[0];
 				rx -= mouseLookSpeed * elapsed * Input.MouseDelta[1];
@@ -174,7 +227,6 @@ let Player = module.exports = (function(){
 			verticalLookAngle = Fury.Maths.clamp(verticalLookAngle + rx, -clampAngle, clampAngle);
 			quat.rotateX(camera.rotation, camera.rotation, verticalLookAngle - lastVerticalLookAngle);
 
-			let lastX = player.position[0], lastY = player.position[1], lastZ = player.position[2]; // Cache last positions for walk restore 
 			// Calculate Movement
 			if (grounded) {
 				let vSqr = player.velocity[0] * player.velocity[0] + player.velocity[2] * player.velocity[2];
@@ -284,6 +336,35 @@ let Player = module.exports = (function(){
 			characterController.stepHeight = grounded ? stepHeight : 0; // No stepping whilst not grounded
 			characterController.moveXZ(contacts, player.velocity, elapsed, inputVector);
 
+			// Don't allow walking off edges
+			if (grounded && isWalking 
+				&& VorldPhysics.raycast(hitPoint, vorld, player.position, castDirection, player.box.extents[1] + 0.5) == 0) {
+				// Note this doesn't have the MC "peer over the edge" benefit / terror
+				// which we'd want if we put block placement in
+				let closestVoxelCoord = Maths.vec3Pool.request();
+				if (tryGetClosestGroundVoxelCoords(closestVoxelCoord, vorld, player.box)) {
+					// If you're outside the bounds of the closest voxel on each axis
+					// snap back to inside and adjust - NOTE: player.velocity is no longer 
+					// an accurate measure of distance travelled in the frame
+					if (player.position[0] < closestVoxelCoord[0]) {
+						player.position[0] = closestVoxelCoord[0];
+						player.velocity[0] = 0;
+					} else if (player.position[0] > closestVoxelCoord[0] + 1) {
+						player.position[0] = closestVoxelCoord[0] + 1;
+						player.velocity[0] = 0;
+					}
+					if (player.position[2] < closestVoxelCoord[2]) {
+						player.position[2] = closestVoxelCoord[2];
+						player.velocity[2] = 0;
+					} else if (player.position[2] > closestVoxelCoord[2] + 1) {
+						player.position[2] = closestVoxelCoord[2] + 1;
+						player.velocity[2] = 0;
+					}
+				}
+				// else I guess you just fall off anyway
+				Maths.vec3Pool.return(closestVoxelCoord);
+			}
+
 			// Now Gravity / Jumping
 			player.velocity[1] -= gravity * elapsed;
 
@@ -308,16 +389,7 @@ let Player = module.exports = (function(){
 			} else {
 				if (grounded && player.velocity[1] < 0) {
 					// Walked off edge
-					if (isWalking) {
-						// Dont' allow walk of edge
-						vec3.zero(player.velocity);
-						vec3.set(player.position, lastX, lastY, lastZ);
-						// BUG: It's still occasionally possible to walk off edges
-						// A better check would probably be if raycast down from center didn't hit voxel
-						// that way we can't walk more than half way off
-					} else {
-						grounded = false;
-					}
+					grounded = false;
 				}
 			}
 
