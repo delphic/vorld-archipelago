@@ -1,3 +1,7 @@
+body {
+	background-color: black;
+}
+
 .furyGUI {
 	font-family: 'Courier New', Courier, monospace;
 	font-size: 14px;
