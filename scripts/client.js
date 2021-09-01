@@ -3,6 +3,7 @@ const { vec3, quat } = require('../fury/src/maths');
 let VoxelShader = require('../vorld/core/shader');
 let VorldHelper = require('./vorldHelper');
 let Player = require('./player');
+let GUI = require('./gui');
 
 let scene, camera, cameraRatio = 16 / 9;
 let world = { boxes: [] }, vorld = null;
@@ -20,6 +21,17 @@ let initialBounds = {	// Testing bounds
 	iMin: -6, iMax: 6,
 	jMin: -1, jMax: 3,
 	kMin: -6, kMax: 6
+};
+
+let playerMovementConfig = {
+	mouseLookSpeed: 0.25,	// TODO: This should be in player facing settings object
+	acceleration: 80,
+	maxWalkSpeed: 2,
+	maxRunSpeed: 5.5,
+	maxSprintSpeed: 8,
+	stopSpeed: 1.5,
+	airAcceleration: 10,
+	airMaxMovementSpeed: 4
 };
 
 // TODO: Extract to Fury Utils
@@ -103,20 +115,37 @@ let start = () => {
 				vorld: vorld,
 				position: vec3.fromValues(12, 32, 12),
 				camera: camera,
+				config: playerMovementConfig,
 				// Normal sized player
 				size: vec3.fromValues(1,2,1),
 				stepHeight: 0.51
-				/* // Massive Player!
-				size: vec3.fromValues(4,8,4),
-				stepHeight: 2.01 */
+				// Massive Player!
+				//size: vec3.fromValues(4,8,4),
+				//stepHeight: 2.01
+				// Tiny Player
+				//size: vec3.fromValues(0.25,0.5,0.25),
+				//stepHeight: 0.25
 			});
+			Fury.Input.requestPointerLock();
 		}
 	});
 };
 
 let loop = (elapsed) => {
 	if (player) {
-		player.update(elapsed);
+		// Unlocking the pointer is pausing the game
+		if (!Fury.Input.isPointerLocked() && Fury.Input.mouseDown(0, true)) {
+			Fury.Input.requestPointerLock();
+		}	
+		// Only update player / world if have locked pointer i.e. have focused the element focus
+		// TODO: This isn't enough you can change focus with tab
+		if (Fury.Input.isPointerLocked()) {
+			player.update(elapsed);
+		}
+		
+		// Note after having the same tab open for a long time with multiple refreshes:
+		// a short time after refresh and generation long system tasks would block the main thread  
+		// for over a second however closing that tab and openning a new one made it disappear
 	} else {
 		freeLookCameraUpdate(elapsed);
 	}
@@ -142,6 +171,8 @@ window.addEventListener('load', (event) => {
 	updateCanvasSize();
 
 	Fury.init({ canvasId: glCanvasId });
+	GUI.init(glCanvas);
+	// GUI.Inspector.create("Inspector", playerMovementConfig, 20, 20, 200, "auto");
 
 	// Load Atlas Texture
 	let image = new Image();

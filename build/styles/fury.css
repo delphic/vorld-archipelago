@@ -1,0 +1,47 @@
+.furyGUI {
+	font-family: 'Courier New', Courier, monospace;
+	font-size: 14px;
+	color: rgba(255,255,255,1);
+}
+
+.furyGUI p {
+	margin: 3px 5px;
+}
+
+.furyGUI .box h1 {
+	font-size: 1.5em;
+	margin: 0;
+	padding: 3px 5px;
+}
+
+.furyGUI .box .content {
+	margin: 0;
+}
+
+.furyGUI .inspector {
+	background-color: rgba(0,0,0,0.5);
+	border-style: solid;
+	border-width: 1px;
+	border-color: rgba(255,255,255,0.5);
+	border-radius: 5px;
+}
+
+.furyGUI .inspector h1 {
+	background-color: rgba(255,0,102,1);
+	border-radius: 4px 4px 0 0;	/* One less than box border radius */
+}
+
+.furyGUI .inspector .control {
+	margin: 3px 0;
+}
+
+.furyGUI .inspector .control label, .furyGUI .inspector .control input {
+	margin: 3px 5px;
+	font-family: 'Courier New', Courier, monospace;
+}
+
+.furyGUI .inspector .control input {
+	background-color: rgba(0,0,0,0);
+	border: 1px solid rgba(255,255,255,0.5);
+	color: rgba(255,255,255,1)
+}

@@ -7,19 +7,8 @@ const VorldPhysics = require('../vorld/core/physics');
 
 let Player = module.exports = (function(){
 	let exports = {};
-	let prototype = { };
+	let prototype = {};
 
-	let mouseLookSpeed = 0.25;
-	let acceleration = 80;
-
-	let maxWalkSpeed = 2;
-	let maxRunSpeed = 5.5;
-	let maxSprintSpeed = 8;
-
-	let maxMovementSpeed = maxRunSpeed;
-	let stopSpeed = 1.5;
-	let airMovementSpeed = 4;
-	let airAcceleration = 10;
 	let jumpDeltaV = 7.5;
 	let coyoteTime = 0.1;
 	let gravity = 2 * 9.8;
@@ -88,6 +77,9 @@ let Player = module.exports = (function(){
 			player.position = vec3.create();
 		}
 
+		player.config = parameters.config;
+		let maxMovementSpeed = player.config.maxRunSpeed;
+
 		let size = parameters.size;
 		if (!size) {
 			size = vec3.fromValues(1,2,1);
@@ -145,13 +137,9 @@ let Player = module.exports = (function(){
 			vec3.normalize(localZ, localZ);
 
 			ry = rx = 0;
-			if (!Input.isPointerLocked() && Input.mouseDown(0, true)) {
-				Input.requestPointerLock();
-			}
-
 			if (Input.isPointerLocked()) {
-				ry -= mouseLookSpeed * elapsed * Input.MouseDelta[0];
-				rx -= mouseLookSpeed * elapsed * Input.MouseDelta[1];
+				ry -= player.config.mouseLookSpeed * elapsed * Input.MouseDelta[0];
+				rx -= player.config.mouseLookSpeed * elapsed * Input.MouseDelta[1];
 			}
 			let inputZ = Input.getAxis("s", "w", 0.05, Maths.Ease.inQuad);
 			let inputX = Input.getAxis("d", "a", 0.05, Maths.Ease.inQuad);
@@ -211,12 +199,12 @@ let Player = module.exports = (function(){
 			detectInput(elapsed);
 
 			if (isWalking) {
-				maxMovementSpeed = maxWalkSpeed;
+				maxMovementSpeed = player.config.maxWalkSpeed;
 			} else {
 				if (attemptSprint) {
-					maxMovementSpeed = maxSprintSpeed;
+					maxMovementSpeed = player.config.maxSprintSpeed;
 				} else {
-					maxMovementSpeed = maxRunSpeed;
+					maxMovementSpeed = player.config.maxRunSpeed;
 				}
 			}
 
@@ -231,6 +219,7 @@ let Player = module.exports = (function(){
 			if (grounded) {
 				let vSqr = player.velocity[0] * player.velocity[0] + player.velocity[2] * player.velocity[2];
 				let isSliding = vSqr > maxMovementSpeed * maxMovementSpeed + 0.001; // Fudge factor for double precision when scaling
+				let acceleration = player.config.acceleration;
 
 				if (isSliding) {
 					// Only deceleration
@@ -280,7 +269,7 @@ let Player = module.exports = (function(){
 					}
 					deltaV = Math.min(groundSpeed, deltaV);
 		
-					if(groundSpeed <= stopSpeed) {
+					if(groundSpeed <= player.config.stopSpeed) {
 						// Stop below a certain speed if not trying to move
 						vec3.zero(player.velocity);
 					} else if (groundSpeed != 0) {
@@ -320,10 +309,12 @@ let Player = module.exports = (function(){
 					vec3.zero(player.velocity);
 				}	
 				
+				let airAcceleration = player.config.airAcceleration;
 				let targetX = player.velocity[0] + airAcceleration * elapsed * inputVector[0];
 				let targetZ = player.velocity[2] + airAcceleration * elapsed * inputVector[2];
 
-				let canAccelerate = targetX * targetX + targetZ * targetZ < airMovementSpeed * airMovementSpeed;
+				let maxAirSpeedSqr = player.config.airMaxMovementSpeed * player.config.airMaxMovementSpeed;
+				let canAccelerate = targetX * targetX + targetZ * targetZ < maxAirSpeedSqr;
 				if (canAccelerate || Math.abs(targetX) < Math.abs(player.velocity[0])) {
 					player.velocity[0] = targetX;
 				}
