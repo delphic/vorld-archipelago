@@ -37,7 +37,7 @@ module.exports = (function(){
 			seed: "XUVNREAZOZJFPQMSAKEMSDJURTQPWEORHZMD",
 			baseWavelength: 128,
 			octaveWeightings: [0.5, 0.5, 1, 0.1],
-			neutralNoise: true,	// Setting this to false just results in a single line of voxels... not really the intent
+			neutralNoise: true,
 			thresholds: [ 0.5, 0.8 ],
 			blocksByThreshold: [ 0, 2, 1 ],	// 0 = Air, 1 = Stone, 2 = Soil, 3 = Grass 
 			verticalTransforms: [{
