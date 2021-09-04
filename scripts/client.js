@@ -4,19 +4,21 @@ let VoxelShader = require('../vorld/core/shader');
 let VorldHelper = require('./vorldHelper');
 let Player = require('./player');
 let GUI = require('./gui');
+let Audio = require('./audio');
 
 let scene, camera, cameraRatio = 16 / 9;
 let world = { boxes: [] }, vorld = null;
 let material;
 let player, spawnPlayer = true;
+let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 
 /*
 let initialBounds = {
-	iMin: -32, iMax: 32,
+	iMin: -20, iMax: 20,
 	jMin: -1, jMax: 3,
-	kMin: -32, kMax: 32
-};
-*/
+	kMin: -20, kMax: 20
+};*/
+
 let initialBounds = {	// Testing bounds
 	iMin: -6, iMax: 6,
 	jMin: -1, jMax: 3,
@@ -104,6 +106,7 @@ let start = () => {
 		rotation: quat.fromValues(-0.232, 0.24, 0.06, 0.94)
 	});
 	scene = Fury.Scene.create({ camera: camera, enableFrustumCulling: true });
+	Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2]);
 
 	Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
 	Fury.GameLoop.start();
@@ -131,7 +134,9 @@ let start = () => {
 	});
 };
 
+let time = 0;
 let loop = (elapsed) => {
+	time += elapsed;
 	if (player) {
 		// Unlocking the pointer is pausing the game
 		if (!Fury.Input.isPointerLocked() && Fury.Input.mouseDown(0, true)) {
@@ -141,8 +146,10 @@ let loop = (elapsed) => {
 		// TODO: This isn't enough you can change focus with tab
 		if (Fury.Input.isPointerLocked()) {
 			player.update(elapsed);
+			Audio.setListenerPosition(player.position);
+			// TODO: Orientation
 		}
-		
+
 		// Note after having the same tab open for a long time with multiple refreshes:
 		// a short time after refresh and generation long system tasks would block the main thread  
 		// for over a second however closing that tab and openning a new one made it disappear
@@ -166,6 +173,9 @@ window.addEventListener('load', (event) => {
 		glCanvas.height = resolutionFactor * glCanvas.clientHeight;
 		cameraRatio = glCanvas.clientWidth  / glCanvas.clientHeight;
 		if (camera && camera.ratio) camera.ratio = cameraRatio;
+		// TODO: Bug - when using the inspector calculated width doesn't match ratio everything looks squished on y axis
+		// things pop in and out as you do more extreme scaling etc (very wide seems to be the issue)
+		// setting force sphere culling doesn't help so it's an issue with the fustrum calculation itself
 	};
 	window.addEventListener('resize', updateCanvasSize);
 	updateCanvasSize();
@@ -174,18 +184,33 @@ window.addEventListener('load', (event) => {
 	GUI.init(glCanvas);
 	// GUI.Inspector.create("Inspector", playerMovementConfig, 20, 20, 200, "auto");
 
+	let assetLoadingCount = 0;
+	let loadingCallback = () => {
+		assetLoadingCount--;
+		if (assetLoadingCount == 0) {
+			start();
+		}
+	};
+
+	assetLoadingCount++;
+	let uris = [ "audio/bgm/Retro Mystic.ogg", "audio/sfx/ui/click1.ogg", "audio/sfx/ui/click2.ogg", "audio/sfx/ui/click3.ogg", "audio/sfx/ui/click4.ogg", "audio/sfx/ui/click5.ogg", "audio/sfx/ui/mouseclick1.ogg", "audio/sfx/ui/mouserelease1.ogg" ];
+	Audio.fetchAudio(uris, ()=>{
+		loadingCallback();
+	});
+
 	// Load Atlas Texture
+	assetLoadingCount++;
 	let image = new Image();
 	image.onload = function() {
 		let shaderConfig = VoxelShader.create();
 		let shader = Fury.Shader.create(shaderConfig);
-		material = Fury.Material.create({ shader: shader });
+		material = Fury.Material.create({ shader: shader, properties: { "fogColor": skyColor, "fogDensity": 0.005 }});
 
 		let upscaled = Fury.Utils.createScaledImage({ image: image, scale: 8 });
 		let textureSize = upscaled.width, textureCount = Math.round(upscaled.height / upscaled.width);
 		let textureArray = Fury.Renderer.createTextureArray(upscaled, textureSize, textureSize, textureCount, "pixel", true);
 		material.setTexture(textureArray);
-		start();
+		loadingCallback();
 	};
 	image.src = "images/atlas_array.png";
 });
