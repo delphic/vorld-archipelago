@@ -194,7 +194,10 @@ window.addEventListener('load', (event) => {
 
 	assetLoadingCount++;
 	let uris = [ "audio/bgm/Retro Mystic.ogg", "audio/sfx/ui/click1.ogg", "audio/sfx/ui/click2.ogg", "audio/sfx/ui/click3.ogg", "audio/sfx/ui/click4.ogg", "audio/sfx/ui/click5.ogg", "audio/sfx/ui/mouseclick1.ogg", "audio/sfx/ui/mouserelease1.ogg" ];
-	Audio.fetchAudio(uris, ()=>{
+	Audio.createMixer("bgm", 0.25, Audio.mixers.master);
+	Audio.createMixer("sfx", 1, Audio.mixers.master);
+	Audio.fetchAudio(uris, () =>{
+		//Audio.play({ uri: uris[0], mixer: Audio.mixers.bgm }, 0, true, 0.5);
 		loadingCallback();
 	});
 

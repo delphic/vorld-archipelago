@@ -1,6 +1,6 @@
 let Maths = require('../fury/src/maths');
 
-let Audio = module.exports = (function(){ // TODO: Different name
+let Audio = module.exports = (function(){
 	let exports = {};
 
 	// Web Audio! 
@@ -8,27 +8,32 @@ let Audio = module.exports = (function(){ // TODO: Different name
 	// https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Using_Web_Audio_API
 	// https://developer.mozilla.org/en-US/docs/Web/API/Web_Audio_API/Best_practices
 	let audioContext = null;
-	let masterGainNode, bgmGainNode, sfxGainNode;
-	let buffers = {};
+	let masterGainNode;
+	let buffers = exports.buffers = {};
+	let mixers = exports.mixers = {}; // named gain nodes 
 
 	audioContext = 	new (window.AudioContext || window.webkitAudioContext)();
 	masterGainNode = audioContext.createGain();
 	masterGainNode.connect(audioContext.destination);
+	mixers.master = masterGainNode;
+	
+	exports.createMixer = (name, gainValue, targetMixer) => {
+		if (mixers[name]) {
+			console.error("Mixer with name '" + name + "' already exists");
+			return null;
+		} else {
+			mixers[name] = audioContext.createGain();
+			if (targetMixer) {
+				mixers[name].connect(targetMixer);
+			}
+			if (gainValue !== undefined) {
+				mixers[name].gain.value = gainValue;
+			}
+			return mixers[name];
+		}
+	}; 
 
-	// TODO: Mixer / gain node separation to be outside this module
-	// Just methods for easily creating nodes from definitions/source objects
-	// Helpers for setting position and orientation of panners & listener (both from rotation and forward)
-	bgmGainNode = audioContext.createGain();
-	bgmGainNode.connect(masterGainNode);
-	sfxGainNode = audioContext.createGain();
-	sfxGainNode.connect(masterGainNode);
-
-	bgmGainNode.gain.value = 0.25; // Default BGM to quiet!
-
-	exports.masterGainNode = masterGainNode;
-	exports.bgmGainNode = bgmGainNode;
-	exports.sfxGainNode = sfxGainNode;
-
+	// TODO: replace with general loading solution -> and start UI, interaction use this to detect input type as well
 	// Chrome does not obey the standard specification because they don't
 	// want to add more UI to their browser and would rather break all 
 	// games and experiments that use WebAudio - fuck you google.
@@ -53,7 +58,6 @@ let Audio = module.exports = (function(){ // TODO: Different name
 			document.addEventListener(eventNames[i], resumeAudioContext);
 		}
 	})();
-
 
 	exports.fetchAudio = (uris, callback) => {
 		if (!uris || !uris.length) {
@@ -96,7 +100,7 @@ let Audio = module.exports = (function(){ // TODO: Different name
 		}
 	};
 
-	let setNodePosition = (node, position) => {
+	let setNodePosition = exports.setNodePosition = (node, position) => {
 		if (node.positionX) {
 			node.positionX.value = position[0];
 			node.positionY.vlaue = position[1];
@@ -106,7 +110,7 @@ let Audio = module.exports = (function(){ // TODO: Different name
 		}
 	};
 
-	let setNodeOrientation = (node, forward) => {
+	let setNodeOrientation = exports.setNodeOrientation = (node, forward) => {
 		if (node.orientationX) {
 			node.orientationX.value = forward[0];
 			node.orientationY.value = forward[1]; 
@@ -181,49 +185,54 @@ let Audio = module.exports = (function(){ // TODO: Different name
 		return source;
 	};
 
-	exports.playSfxAtPosition = (uri, delay, position, loop) => {
-		if (buffers[uri]) {
-			if (!delay) delay = 0;
-			let panner = createPannerNode(position, null, sfxGainNode);
-			let source = playBuffer(buffers[uri], panner, delay);
-			source.panner = panner;
-			source.loop = !!loop;
-			return source;
-		}
-	};
+	// Audio Source Object Sample
+	/* {
+		uri: bufferKey, (required)
+		mixer: gainNode,
+		position: vec3, (optional)
+		forward: vec3, (optional)
+		panner: pannerNode, (set back by play method if position provided)
+		gain: gainNode, (set back by play method if voume provided)
+	}
+	*/
+	exports.play = (audioSource, delay, loop, volume) => {
+		let buffer = buffers[audioSource.uri];
+		let targetNode = audioSource.mixer;
+		let source = null;
+		if (!targetNode) {
+			targetNode = masterGainNode;
+			audioSource.mixer = targetNode;
+		} 
 
-	// TODO: Want to take a sound definition / source instance instead
-	// of uri which can contain optional position information, and 
-	// target mixer that way could categorise sounds outside of the 
-	// audio module - although might still want broad predefined categories
-	exports.updateSfxPosition = (source, position) => {
-		if (source.panner) {
-			setNodePosition(source.panner, position);
+		if (buffer) {
+			if (!delay) delay = 0;
+			if (audioSource.position) {
+				let panner = createPannerNode(audioSource.position, audioSource.forward, targetNode);
+				audioSource.panner = panner;
+				targetNode = panner;
+			}
+			if (volume !== undefined) {
+				let gainNode = audioContext.createGain();
+				gainNode.connect(targetNode);
+				gainNode.gain.value = volume;
+				audioSource.gain = gainNode;
+				targetNode = gainNode;
+			}
+			source = playBuffer(buffer, targetNode, delay);
+			source.loop = !!loop;
+			audioSource.node = source;
+		}
+		return source;
+	};
+	
+	exports.updateSourcePosition = (audioSource, position) => {
+		if (!position) position = audioSource.position;
+		if (audioSource.panner) {
+			setNodePosition(audioSource.panner, position);
 		} else {
-			console.warn("Unable to update position of audio source with no panner node, use playSfxAtPosition to create the audio source");
+			// Could we just change the destination of the audioSource.node ?
+			console.warn("Unable to update position of audio source with no panner node, use play with audio source with a specified position");
 		}
-	};
-
-	// Question should in world sound and UI have different gain nodes?
-	exports.playSfx = (uri, delay) => {
-		if (buffers[uri]) {
-			if (!delay) delay = 0;
-			return playBuffer(buffers[uri], sfxGainNode, delay);
-		}
-		return null;
-	};
-
-	exports.playBgm = (uri, loop, delay) => {
-		if (buffers[uri]) {
-			if (!delay) delay = 0;
-			let source = playBuffer(buffers[uri], bgmGainNode, delay);
-			source.loop = !!loop;
-			return source;
-		}
-	};
-
-	exports.getDecodedAudioData = (uri) => {
-		return buffers[uri];
 	};
 
 	return exports;
