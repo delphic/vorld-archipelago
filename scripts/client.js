@@ -7,10 +7,10 @@ let GUI = require('./gui');
 let Audio = require('./audio');
 let Primitives = require('./primitives');
 
-let scene, camera, cameraRatio = 16 / 9;
+let scene, overlayScene, camera, cameraRatio = 16 / 9;
 let world = { boxes: [] }, vorld = null;
 let material, alphaMaterial;
-let player, spawnPlayer = true;
+let player, spawnPlayer = false;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 let waterColor = vec3.fromValues(0, 113/255, 144/255);
 
@@ -109,6 +109,7 @@ let start = () => {
 		rotation: quat.fromValues(-0.232, 0.24, 0.06, 0.94)
 	});
 	scene = Fury.Scene.create({ camera: camera, enableFrustumCulling: true });
+	overlayScene = Fury.Scene.create({ camera: camera });
 	Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2]);
 	
 	Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
@@ -120,7 +121,7 @@ let start = () => {
 				world: world,
 				vorld: vorld,
 				position: vec3.fromValues(12, 32, 12),
-				quad: scene.add({ mesh: Primitives.createQuadMesh(0), material: alphaMaterial, position: vec3.create() }),
+				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(0), material: alphaMaterial, position: vec3.create() }),
 				camera: camera,
 				config: playerMovementConfig,
 				// Normal sized player
@@ -160,7 +161,11 @@ let loop = (elapsed) => {
 	} else {
 		freeLookCameraUpdate(elapsed);
 	}
+
+	camera.clear = true;
 	scene.render();
+	camera.clear = false;
+	overlayScene.render();
 };
 
 window.addEventListener('load', (event) => {
