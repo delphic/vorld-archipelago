@@ -5,12 +5,14 @@ let VorldHelper = require('./vorldHelper');
 let Player = require('./player');
 let GUI = require('./gui');
 let Audio = require('./audio');
+let Primitives = require('./primitives');
 
 let scene, camera, cameraRatio = 16 / 9;
 let world = { boxes: [] }, vorld = null;
 let material, alphaMaterial;
 let player, spawnPlayer = true;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
+let waterColor = vec3.fromValues(0, 113/255, 144/255);
 
 let initialBounds = {	// Testing bounds
 	iMin: -6, iMax: 6,
@@ -118,6 +120,7 @@ let start = () => {
 				world: world,
 				vorld: vorld,
 				position: vec3.fromValues(12, 32, 12),
+				quad: scene.add({ mesh: Primitives.createQuadMesh(0), material: alphaMaterial, position: vec3.create() }),
 				camera: camera,
 				config: playerMovementConfig,
 				// Normal sized player
@@ -135,6 +138,7 @@ let start = () => {
 };
 
 let time = 0;
+let isInWater = false;
 let loop = (elapsed) => {
 	time += elapsed;
 	if (player) {
@@ -209,6 +213,9 @@ window.addEventListener('load', (event) => {
 		let shader = Fury.Shader.create(shaderConfig);
 		material = Fury.Material.create({ shader: shader, properties: { "fogColor": skyColor, "fogDensity": 0.005 }});
 		alphaMaterial = Fury.Material.create({ shader: shader, properties: { alpha: true, "fogColor": skyColor, "fogDensity": 0.005 }});
+		// ^^ to apply fog based on the depth of the water you're looking through properly, need to render depth buffer out from solid geometry pass
+		// and use it as texture input, whilst this would be fun, it's a bit too much of a tangent right now, sooo quad in front of the camera! 
+		// https://stackoverflow.com/questions/23362076/opengl-how-to-access-depth-buffer-values-or-gl-fragcoord-z-vs-rendering-d
 
 		let upscaled = Fury.Utils.createScaledImage({ image: image, scale: 8 });
 		let textureSize = upscaled.width, textureCount = Math.round(upscaled.height / upscaled.width);

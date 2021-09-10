@@ -1,6 +1,6 @@
 const Fury = require('../fury/src/fury');
 const { Input, Physics, Maths } = require('../fury/src/fury');
-const { vec3, quat } = require('../fury/src/maths');
+const { vec3, quat, vec3Pool } = require('../fury/src/maths');
 const CharacterController = require ('./characterController.js');
 const Vorld = require('../vorld/core/vorld');
 const VorldPhysics = require('../vorld/core/physics');
@@ -109,6 +109,12 @@ let Player = module.exports = (function(){
 		quat.fromEuler(camera.rotation, 0, 180, 0); // Set look for player forward
 		vec3.scaleAndAdd(camera.position, camera.position, Maths.vec3Y, cameraOffset);
 
+		// Camera Tint Quad
+		let waterQuad = parameters.quad;
+		if (waterQuad) {
+			waterQuad.active = false;
+		}
+
 		let localX = vec3.create(), localZ = vec3.create();
 		let contacts = vec3.create();
 
@@ -196,8 +202,6 @@ let Player = module.exports = (function(){
 		// Nigh on impossible to drop into a space of one voxel - as the passes are separated - and if you did you'd just step out
 		player.update = (elapsed) => {
 			detectInput(elapsed);
-
-			inWater = Vorld.getBlock(vorld, Math.round(player.position[0]), Math.round(player.position[1]), Math.round(player.position[2]));
 
 			if (isWalking || inWater) { // TODO: Remove inWater check here and handle swimming movement completely separately
 				maxMovementSpeed = player.config.maxWalkSpeed;
@@ -403,6 +407,8 @@ let Player = module.exports = (function(){
 				}
 			}
 
+			inWater = Vorld.getBlock(vorld, Math.floor(player.position[0]), Math.floor(player.position[1]), Math.floor(player.position[2]));
+			
 			// Smoothly move the camera - no jerks from sudden movement please!
 			// Technically displacement isn't the issue, it's acceleration
 			// Arguably the change due to falling if there is any, we should just do,
@@ -413,6 +419,32 @@ let Player = module.exports = (function(){
 				vec3.copy(camera.position, cameraTargetPosition);
 			} else {
 				vec3.lerp(camera.position, camera.position, cameraTargetPosition, 0.25);
+			}
+
+			if (waterQuad) {
+				// Set active if any part of the near clip plane would be in water
+				let x = Math.floor(camera.position[0]), y = Math.floor(camera.position[1] - 1.001 * camera.near), z = Math.floor(camera.position[2]);
+				waterQuad.active = Vorld.getBlock(vorld, x, y, z);
+				if (waterQuad.active) {
+					let upperY = Math.floor(camera.position[1] + 1.001 * camera.near); 
+					waterQuad.transform.scale[0] = camera.ratio; // technically overkill, as we're closer than 1
+					quat.copy(waterQuad.transform.rotation, camera.rotation);
+					let targetPoint = vec3Pool.request();
+					vec3.transformQuat(targetPoint, Maths.vec3Z, camera.rotation);
+					vec3.scaleAndAdd(waterQuad.transform.position, camera.position, targetPoint, - 1.001 * camera.near); 
+
+					if (upperY != y && !Vorld.getBlock(vorld, x, upperY, z)) {
+						// Top of near clip plane could be outside the water need to adjust so the quad only covers the appropriate screen area
+						// Move in camera localY until the top vertices are at upperY
+						let localY = targetPoint; // Reuse target point vec3
+						vec3.transformQuat(localY, Maths.vec3Y, camera.rotation);
+						let currentY = waterQuad.transform.position[1] + 0.5 * waterQuad.transform.scale[1] * localY[1];
+						let distanceToMove = (upperY - currentY) * localY[1];
+						vec3.scaleAndAdd(waterQuad.transform.position, waterQuad.transform.position, localY, distanceToMove);
+					}
+
+					vec3Pool.return(targetPoint);
+				}
 			}
 		};
 
