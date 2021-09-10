@@ -8,7 +8,7 @@ let Audio = require('./audio');
 
 let scene, camera, cameraRatio = 16 / 9;
 let world = { boxes: [] }, vorld = null;
-let material;
+let material, alphaMaterial;
 let player, spawnPlayer = true;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 
@@ -19,11 +19,11 @@ let initialBounds = {	// Testing bounds
 };
 
 // Bigger bounds!
-initialBounds = {
+/*initialBounds = {
 	iMin: -20, iMax: 20,
 	jMin: -1, jMax: 3,
 	kMin: -20, kMax: 20
-};
+};*/
 // TODO: Calculate point at which fog becomes ~1.0, set max draw distance to this and generation target distance to this
 
 let playerMovementConfig = {
@@ -111,7 +111,7 @@ let start = () => {
 	
 	Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
 	Fury.GameLoop.start();
-	vorld = VorldHelper.init({ scene: scene, material: material, bounds: initialBounds }, (data) => {
+	vorld = VorldHelper.init({ scene: scene, material: material, alphaMaterial: alphaMaterial, bounds: initialBounds }, (data) => {
 		// Spawn Player
 		if (spawnPlayer) {
 			player = Player.create({
@@ -208,11 +208,13 @@ window.addEventListener('load', (event) => {
 		let shaderConfig = VoxelShader.create();
 		let shader = Fury.Shader.create(shaderConfig);
 		material = Fury.Material.create({ shader: shader, properties: { "fogColor": skyColor, "fogDensity": 0.005 }});
+		alphaMaterial = Fury.Material.create({ shader: shader, properties: { alpha: true, "fogColor": skyColor, "fogDensity": 0.005 }});
 
 		let upscaled = Fury.Utils.createScaledImage({ image: image, scale: 8 });
 		let textureSize = upscaled.width, textureCount = Math.round(upscaled.height / upscaled.width);
 		let textureArray = Fury.Renderer.createTextureArray(upscaled, textureSize, textureSize, textureCount, "pixel", true);
 		material.setTexture(textureArray);
+		alphaMaterial.setTexture(textureArray);
 		loadingCallback();
 	};
 	image.src = "images/atlas_array.png";

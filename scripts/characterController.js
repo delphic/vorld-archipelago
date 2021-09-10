@@ -69,7 +69,7 @@ let CharacterController = module.exports = (() => {
 			for (let x = xMin; x <= xMax; x++) {
 				for (let y = yMin; y <= yMax; y++) {
 					for (let z = zMin; z <= zMax; z++) {
-						if (Vorld.getBlock(vorld, x, y, z)) {
+						if (Vorld.isBlockSolid(vorld, x, y, z)) { // TODO: Layers would be better but isSolid will do
 							out.push(requestBox(x,y,z)); 
 						}
 					}

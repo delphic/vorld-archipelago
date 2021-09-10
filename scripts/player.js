@@ -40,13 +40,11 @@ let Player = module.exports = (function(){
 		// Could be smarter could start from the center and loop out
 		for (let x = xMin; x <= xMax; x++) {
 			for (let z = zMin; z <= zMax; z++) {
-				if (Vorld.getBlock(vorld, x, y, z)) {
-					// TODO: Will have to check it's solid if we make non-solid voxels
-
+				if (Vorld.isBlockSolid(vorld, x, y, z)) {
 					// Check there is space above for the player box
 					let isSpaceAbove = true;
 					for (let j = 1, l = Math.ceil(box.size[1]); j <= l && isSpaceAbove; j++) {
-						isSpaceAbove = !Vorld.getBlock(vorld, x, y + j, z); 
+						isSpaceAbove = !Vorld.isBlockSolid(vorld, x, y + j, z);
 					}
 
 					if (isSpaceAbove) {
@@ -180,6 +178,7 @@ let Player = module.exports = (function(){
 
 		// Movement Variables
 		let grounded = false, lastGroundedTime = 0, canCoyote = true, lastJumpAttemptTime = 0;
+		let inWater = false;
 
 		let jump = () => {
 			grounded = false;
@@ -198,7 +197,9 @@ let Player = module.exports = (function(){
 		player.update = (elapsed) => {
 			detectInput(elapsed);
 
-			if (isWalking) {
+			inWater = Vorld.getBlock(vorld, Math.round(player.position[0]), Math.round(player.position[1]), Math.round(player.position[2]));
+
+			if (isWalking || inWater) { // TODO: Remove inWater check here and handle swimming movement completely separately
 				maxMovementSpeed = player.config.maxWalkSpeed;
 			} else {
 				if (attemptSprint) {
@@ -292,7 +293,8 @@ let Player = module.exports = (function(){
 				// TODO: Also do this in water with much bigger coefficent
 		
 				let airSpeed = vec3.length(player.velocity);
-				let dragDv = (airSpeed * airSpeed * 1.225 * elapsed) / (2 * 100);	// Assumes air and mass of 100kg, drag coefficent of ~1 and surface area ~1 (it's probably less)
+				let p = inWater ? 120 : 1.225;
+				let dragDv = (airSpeed * airSpeed * p * elapsed) / (2 * 100);	// Assumes air and mass of 100kg, drag coefficent of ~1 and surface area ~1 (it's probably less)
 				// ^^ Technically surface area is different based on direction, so a more accurate model would break down vertical against others
 		
 				if (airSpeed < dragDv) {
@@ -308,7 +310,7 @@ let Player = module.exports = (function(){
 				} else {
 					vec3.zero(player.velocity);
 				}	
-				
+
 				let airAcceleration = player.config.airAcceleration;
 				let targetX = player.velocity[0] + airAcceleration * elapsed * inputVector[0];
 				let targetZ = player.velocity[2] + airAcceleration * elapsed * inputVector[2];
@@ -357,7 +359,24 @@ let Player = module.exports = (function(){
 			}
 
 			// Now Gravity / Jumping
-			player.velocity[1] -= gravity * elapsed;
+			if (!inWater) {
+				player.velocity[1] -= gravity * elapsed;
+			} else {
+				// TODO: should have gravity vs buoyancy 
+				// (this means less buoyancy when you're partially out of the water, and 'more' when you're deeper)
+				// Just assuming it cancels for now
+				// TODO:
+				// * use player forward to swim instead
+				// * when swimming move in bursts as if you're performing strokes (although this would imply headbob for walking)
+				// * just entirely different swimming mode - including step logic to get out of the water and 'grounded' / 'wading' logic
+				if (Input.keyDown("e")) {
+					player.velocity[1] += 4 * elapsed;
+				}
+				if (Input.keyDown("q")) {
+					player.velocity[1] -= 4 * elapsed;
+				}
+				grounded = VorldPhysics.raycast(hitPoint, vorld, player.position, castDirection, player.box.extents[1] + 0.5) !== 0;
+			}
 
 			if (attemptJump) {
 				if (grounded || canCoyote && (Date.now() - lastGroundedTime < 1000 * coyoteTime)) {

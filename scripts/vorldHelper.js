@@ -7,7 +7,7 @@ let Vorld = require('../vorld/core/vorld');
 module.exports = (function(){
 	let exports = {};
 
-	let scene = null, material = null;
+	let scene = null, material = null, alphaMaterial = null;
 	let generationWorkerPool = WorkerPool.create({ src: 'scripts/generator-worker.js', maxWorkers: 8 });
 	let mesherWorkerPool = WorkerPool.create({ src: 'scripts/mesher-worker.js', maxWorkers: 4 });
 
@@ -32,6 +32,14 @@ module.exports = (function(){
 		yOffset: 0,
 	};
 
+	let blockConfig = [
+		{ name: "air", isOpaque: false, isSolid: false },
+		{ name: "stone", isOpaque: true, isSolid: true },
+		{ name: "soil", isOpaque: true, isSolid: true },
+		{ name: "grass", isOpaque: true, isSolid: true },
+		{ name: "water", isOpaque: false, isSolid: false }
+	];
+
 	let generationConfig = {
 		generationRules: {
 			seed: "XUVNREAZOZJFPQMSAKEMSDJURTQPWEORHZMD",
@@ -52,6 +60,11 @@ module.exports = (function(){
 					yMax: -14,
 					targetBlock: 2
 				}, {
+					conditions: [ "blockValue", "yMax" ],
+					block: 0,
+					yMax: -1,
+					targetBlock: 4, // 4 is water
+				}, {
 					conditions: [ "blockValue", "blockAboveValue", "yMin" ],
 					blockAbove: 0,
 					block: 2,
@@ -71,8 +84,10 @@ module.exports = (function(){
 				{ side: 3, top: 3, bottom: 3 }, // stone
 				{ side: 2, top: 2, bottom: 2 }, // soil
 				{ side: 1, top: 0, bottom: 2 }, // grass
+				{ side: 8, top: 8, bottom: 8 }, // water
 			]
 		}
+		// blockConfig also effects meshing but this is stored on vorld data
 	};
 
 	let performWorkOnBounds = (workerPool, bounds, sectionSize, configDelegate, messageCallback, completeCallback) => {
@@ -133,7 +148,7 @@ module.exports = (function(){
 	}; 
 
 	let generate = (bounds, callback) => {
-		let vorld = Vorld.create();
+		let vorld = Vorld.create({ blockConfig: blockConfig });
 		
 		performWorkOnBounds(
 			generationWorkerPool,
@@ -179,7 +194,8 @@ module.exports = (function(){
 					// TODO: Use customBuffer parameter - will require update to shader, see fury model demo for reference
 					let position = vec3.clone(data.chunkIndices);
 					vec3.scale(position, position, vorld.chunkSize);
-					scene.add({ mesh: mesh, material: material, position: position, static: true });
+					let chunkMaterial = data.alpha ? alphaMaterial : material;
+					scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true });
 				}
 			},
 			callback);
@@ -188,6 +204,7 @@ module.exports = (function(){
 	exports.init = (parameters, callback) => {
 		scene = parameters.scene;
 		material = parameters.material;
+		alphaMaterial = parameters.alphaMaterial;
 		return generate(parameters.bounds, callback);
 	};
 
