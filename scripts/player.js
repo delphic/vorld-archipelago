@@ -424,7 +424,7 @@ let Player = module.exports = (function(){
 			if (waterQuad) {
 				// Set active if any part of the near clip plane would be in water
 				let x = Math.floor(camera.position[0]), y = Math.floor(camera.position[1] - 1.001 * camera.near), z = Math.floor(camera.position[2]);
-				waterQuad.active = Vorld.getBlock(vorld, x, y, z);
+				waterQuad.active = !!Vorld.getBlock(vorld, x, y, z);
 				if (waterQuad.active) {
 					let upperY = Math.floor(camera.position[1] + 1.001 * camera.near); 
 					waterQuad.transform.scale[0] = camera.ratio; // technically overkill, as we're closer than 1
