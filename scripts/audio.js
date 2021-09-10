@@ -14,6 +14,10 @@ let Audio = module.exports = (function(){ // TODO: Different name
 	audioContext = 	new (window.AudioContext || window.webkitAudioContext)();
 	masterGainNode = audioContext.createGain();
 	masterGainNode.connect(audioContext.destination);
+
+	// TODO: Mixer / gain node separation to be outside this module
+	// Just methods for easily creating nodes from definitions/source objects
+	// Helpers for setting position and orientation of panners & listener (both from rotation and forward)
 	bgmGainNode = audioContext.createGain();
 	bgmGainNode.connect(masterGainNode);
 	sfxGainNode = audioContext.createGain();
@@ -32,6 +36,7 @@ let Audio = module.exports = (function(){ // TODO: Different name
 	(function() {
 		const eventNames = [ 'click', 'contextmenu', 'auxclick', 'dblclick', 'mousedown', 'mouseup', 'pointerup', 'touchend', 'keydown', 'keyup' ];
 		// BUG: This is triggered by F5 to refresh the page but chrome does not think this is a valid check
+		// TODO: Determine which events are valid as this happens multiple times when reloading
 		let resumeAudioContext = function(event) {
 			if (audioContext.state == "suspended") {
 				audioContext.resume();
@@ -150,7 +155,7 @@ let Audio = module.exports = (function(){ // TODO: Different name
 		// Distance at volume reduction finishes (default: 10000)
 		panner.maxDistance = 10000;
 		// Used in distance model to determine rate of decay with distance (default: 1)
-		panner.rolloffFactor = 1; // TODO: Determine sane value for this
+		panner.rolloffFactor = 1; // By comparison with Unity's logarithmic falloff, a value of 1 is in the right ballpark for using units = meters.
 
 		// Inside inner angle, there is no volume reduction, outside outer angle sound is reduced by outergain
 		panner.coneInnerAngle = 360;
@@ -172,7 +177,7 @@ let Audio = module.exports = (function(){ // TODO: Different name
 		let source = audioContext.createBufferSource();
 		source.buffer = buffer;
 		source.connect(targetNode);
-		source.start(delay);
+		source.start(audioContext.currentTime + delay);
 		return source;
 	};
 
@@ -187,7 +192,7 @@ let Audio = module.exports = (function(){ // TODO: Different name
 		}
 	};
 
-	// TODO: May want to take a sound definition / instance instead
+	// TODO: Want to take a sound definition / source instance instead
 	// of uri which can contain optional position information, and 
 	// target mixer that way could categorise sounds outside of the 
 	// audio module - although might still want broad predefined categories
@@ -215,6 +220,10 @@ let Audio = module.exports = (function(){ // TODO: Different name
 			source.loop = !!loop;
 			return source;
 		}
+	};
+
+	exports.getDecodedAudioData = (uri) => {
+		return buffers[uri];
 	};
 
 	return exports;

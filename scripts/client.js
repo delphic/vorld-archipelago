@@ -12,18 +12,19 @@ let material;
 let player, spawnPlayer = true;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 
-/*
-let initialBounds = {
-	iMin: -20, iMax: 20,
-	jMin: -1, jMax: 3,
-	kMin: -20, kMax: 20
-};*/
-
 let initialBounds = {	// Testing bounds
 	iMin: -6, iMax: 6,
 	jMin: -1, jMax: 3,
 	kMin: -6, kMax: 6
 };
+
+// Bigger bounds!
+initialBounds = {
+	iMin: -20, iMax: 20,
+	jMin: -1, jMax: 3,
+	kMin: -20, kMax: 20
+};
+// TODO: Calculate point at which fog becomes ~1.0, set max draw distance to this and generation target distance to this
 
 let playerMovementConfig = {
 	mouseLookSpeed: 0.25,	// TODO: This should be in player facing settings object
@@ -107,7 +108,7 @@ let start = () => {
 	});
 	scene = Fury.Scene.create({ camera: camera, enableFrustumCulling: true });
 	Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2]);
-
+	
 	Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
 	Fury.GameLoop.start();
 	vorld = VorldHelper.init({ scene: scene, material: material, bounds: initialBounds }, (data) => {
@@ -129,7 +130,6 @@ let start = () => {
 				//size: vec3.fromValues(0.25,0.5,0.25),
 				//stepHeight: 0.25
 			});
-			Fury.Input.requestPointerLock();
 		}
 	});
 };
@@ -157,6 +157,22 @@ let loop = (elapsed) => {
 		freeLookCameraUpdate(elapsed);
 	}
 	scene.render();
+};
+
+let createTestSoundDownloads = () => {
+	//	Create some test sounds
+	let synth = require('./synth');
+
+	let notes = ["C", "D", "E", "G", "A" ];
+	for (let i = 0; i < notes.length; i++) {
+		// TODO: popup instead of anchor
+		var anchor = document.createElement("a");
+		anchor.innerText = "Download";
+		anchor.id = "download-" + i;
+		document.body.appendChild(anchor);
+		let note = notes[i];
+		synth.exportNote(anchor.id, 3, note, "triangle", { a: 0.1, d: 0.2, s: 0.4, r: 0.2, sustain: 0.7 });
+	}
 };
 
 window.addEventListener('load', (event) => {
@@ -192,8 +208,18 @@ window.addEventListener('load', (event) => {
 		}
 	};
 
+	let playSounds = () => {
+		if (assetLoadingCount == 0) {
+			for(let i  = 0, l = uris.length; i < l; i++) {
+				Audio.playSfxAtPosition(uris[i], 1 + i*1, vec3.fromValues(0, 0, -100 * i), false);
+			}
+		}
+	};
+	window.addEventListener('click', playSounds);
+
 	assetLoadingCount++;
-	let uris = [ "audio/bgm/Retro Mystic.ogg", "audio/sfx/ui/click1.ogg", "audio/sfx/ui/click2.ogg", "audio/sfx/ui/click3.ogg", "audio/sfx/ui/click4.ogg", "audio/sfx/ui/click5.ogg", "audio/sfx/ui/mouseclick1.ogg", "audio/sfx/ui/mouserelease1.ogg" ];
+	let uris = // [ "audio/bgm/Retro Mystic.ogg", "audio/sfx/ui/click1.ogg", "audio/sfx/ui/click2.ogg", "audio/sfx/ui/click3.ogg", "audio/sfx/ui/click4.ogg", "audio/sfx/ui/click5.ogg", "audio/sfx/ui/mouseclick1.ogg", "audio/sfx/ui/mouserelease1.ogg" ];
+		[ "audio/sfx/notes/triangleC3.wav", "audio/sfx/notes/triangleD3.wav", "audio/sfx/notes/triangleE3.wav", "audio/sfx/notes/triangleG3.wav", "audio/sfx/notes/triangleA3.wav" ];
 	Audio.fetchAudio(uris, ()=>{
 		loadingCallback();
 	});
