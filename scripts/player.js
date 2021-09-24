@@ -165,7 +165,9 @@ let Player = module.exports = (function(){
 				inputZ /= Math.SQRT2;
 				// TODO: Test inputVector.sqrMagnitude > 1 => normalize(inputVector)
 
-				maxContactSpeed[0] = Math.min(maxMovementSpeed, maxContactSpeed[2] = maxContactSpeedFactor * maxMovementSpeed / Math.SQRT2);
+				// Not actually sure |localX[0]| + |localZ[0]| / SQRT2 is correct, but its far better than what was there
+				maxContactSpeed[0] = Math.min(maxMovementSpeed, (Math.abs(localX[0]) + Math.abs(localZ[0]) / Math.SQRT2) * maxContactSpeedFactor * maxMovementSpeed);
+				maxContactSpeed[2] = Math.min(maxMovementSpeed, (Math.abs(localX[2]) + Math.abs(localZ[2]) / Math.SQRT2) * maxContactSpeedFactor * maxMovementSpeed);
 			} else if (inputX !== 0) {
 				maxContactSpeed[0] = Math.min(maxMovementSpeed, Math.abs(localX[0]) * maxMovementSpeed * maxContactSpeedFactor);
 				maxContactSpeed[2] = Math.min(maxMovementSpeed, Math.abs(localX[2]) * maxMovementSpeed * maxContactSpeedFactor);
@@ -330,7 +332,7 @@ let Player = module.exports = (function(){
 			}
 
 			// Move Character By Velocity
-			characterController.stepHeight = grounded ? stepHeight : 0; // No stepping whilst not grounded
+			characterController.stepHeight = grounded || inWater ? stepHeight : 0; // No stepping whilst not grounded
 			characterController.moveXZ(contacts, player.velocity, elapsed, inputVector);
 
 			// Don't allow walking off edges
