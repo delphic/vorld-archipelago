@@ -10,7 +10,7 @@ let Primitives = require('./primitives');
 let scene, overlayScene, camera, cameraRatio = 16 / 9;
 let world = { boxes: [] }, vorld = null;
 let material, alphaMaterial;
-let player, spawnPlayer = false;
+let player, spawnPlayer = true;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 let waterColor = vec3.fromValues(0, 113/255, 144/255);
 
@@ -21,11 +21,11 @@ let initialBounds = {	// Testing bounds
 };
 
 // Bigger bounds!
-/*initialBounds = {
+initialBounds = {
 	iMin: -20, iMax: 20,
 	jMin: -1, jMax: 3,
 	kMin: -20, kMax: 20
-};*/
+};
 // TODO: Calculate point at which fog becomes ~1.0, set max draw distance to this and generation target distance to this
 
 let playerMovementConfig = {
@@ -193,25 +193,42 @@ window.addEventListener('load', (event) => {
 	GUI.init(glCanvas);
 	// GUI.Inspector.create("Inspector", playerMovementConfig, 20, 20, 200, "auto");
 
+	// Create Loading GUI
+	let playPromptDiv = GUI.appendElement(GUI.root, "div", { "class": "playPrompt" });
+	GUI.appendElement(playPromptDiv, "h1").innerText = "Vorld Archipelago";
+	let progressBarContainer = GUI.appendElement(playPromptDiv, "div");
+	let progressBar = GUI.ProgressBar.create(progressBarContainer);
+	progressBar.setProgress(0);
+	// TODO: Only show progress bar if more than a certain amount of time passes when loading?
+	// or just show a spinner
+
 	let assetLoadingCount = 0;
+	let totalAssetsToLoad = 0;
 	let loadingCallback = () => {
 		assetLoadingCount--;
+		progressBar.setProgress((totalAssetsToLoad - assetLoadingCount) / totalAssetsToLoad);
 		if (assetLoadingCount == 0) {
-			start();
+			setTimeout(onAssetLoadComplete, 250);
 		}
 	};
+	let onAssetLoadComplete = () => {
+		progressBarContainer.removeChild(progressBar.element);
+		let playButton = GUI.appendElement(progressBarContainer, "input", { "type": "button", "value": "Play" });
+		playButton.onclick = (e) => {
+			Audio.play({ uri: uris[1], mixer: Audio.mixers["sfx"] });
+			GUI.root.removeChild(playPromptDiv);
+			start();
+		};
+	};
 
-	assetLoadingCount++;
 	let uris = [ "audio/bgm/Retro Mystic.ogg", "audio/sfx/ui/click1.ogg", "audio/sfx/ui/click2.ogg", "audio/sfx/ui/click3.ogg", "audio/sfx/ui/click4.ogg", "audio/sfx/ui/click5.ogg", "audio/sfx/ui/mouseclick1.ogg", "audio/sfx/ui/mouserelease1.ogg" ];
 	Audio.createMixer("bgm", 0.25, Audio.mixers.master);
 	Audio.createMixer("sfx", 1, Audio.mixers.master);
-	Audio.fetchAudio(uris, () =>{
-		//Audio.play({ uri: uris[0], mixer: Audio.mixers.bgm }, 0, true, 0.5);
-		loadingCallback();
-	});
+	Audio.fetchAudio(uris, null, loadingCallback);
+	totalAssetsToLoad = assetLoadingCount = assetLoadingCount + uris.length;
 
 	// Load Atlas Texture
-	assetLoadingCount++;
+	totalAssetsToLoad = assetLoadingCount++;
 	let image = new Image();
 	image.onload = function() {
 		let shaderConfig = VoxelShader.create();

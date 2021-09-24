@@ -31,35 +31,9 @@ let Audio = module.exports = (function(){
 			}
 			return mixers[name];
 		}
-	}; 
+	};
 
-	// TODO: replace with general loading solution -> and start UI, interaction use this to detect input type as well
-	// Chrome does not obey the standard specification because they don't
-	// want to add more UI to their browser and would rather break all 
-	// games and experiments that use WebAudio - fuck you google.
-	// Auto-resume on userinteraction
-	(function() {
-		const eventNames = [ 'click', 'contextmenu', 'auxclick', 'dblclick', 'mousedown', 'mouseup', 'pointerup', 'touchend', 'keydown', 'keyup' ];
-		// BUG: This is triggered by F5 to refresh the page but chrome does not think this is a valid check
-		// TODO: Determine which events are valid as this happens multiple times when reloading
-		let resumeAudioContext = function(event) {
-			if (audioContext.state == "suspended") {
-				audioContext.resume();
-			} 
-			if (audioContext.state != "suspended") {
-				console.log("Resumed audio context");
-				for(let i = 0; i < eventNames.length; i++) {
-					document.removeEventListener(eventNames[i], resumeAudioContext);
-				}
-			}
-		};
-		
-		for(let i = 0; i < eventNames.length; i++) {
-			document.addEventListener(eventNames[i], resumeAudioContext);
-		}
-	})();
-
-	exports.fetchAudio = (uris, callback) => {
+	exports.fetchAudio = (uris, callback, progressCallback) => {
 		if (!uris || !uris.length) {
 			callback();
 			return;
@@ -68,9 +42,8 @@ let Audio = module.exports = (function(){
 		let assetLoadingCount = 0;
 		let loadingCompleteCallback = () => {
 			assetLoadingCount--;
-			if (assetLoadingCount <= 0) {
-				callback();
-			}
+			if (progressCallback) progressCallback(assetLoadingCount);
+			if (assetLoadingCount <= 0 && callback) callback();
 		};
 
 		let fetchBuffer = (uri) => {

@@ -14,6 +14,7 @@ let GUI = module.exports = (function(){
 
 	// For now just a global root div you can create subcanvas beneath that.
 	let root = null;
+	exports.root = null;
 
 	/**
 	 * Append a div to the parent element
@@ -70,6 +71,22 @@ let GUI = module.exports = (function(){
 		}
 		return box;
 	};
+
+	let ProgressBar = exports.ProgressBar = (function(){
+		let exports = {};
+
+		exports.create = (parent) => {
+			let outer = appendElement(parent, "div", { "class": "progressBarBorder" });
+			let inner = appendElement(outer, "div", { "class": "progressBar" });
+			return {
+				element: outer,
+				bar: inner,
+				setProgress: (value) => { inner.style.width = (100 * value) + "%" }
+			};
+		};
+
+		return exports;
+	})(); 
 
 	let Inspector = exports.Inspector = (function() {
 		let exports = {};
@@ -211,6 +228,7 @@ let GUI = module.exports = (function(){
 
 	exports.init = (furyCanvas) => {
 		root = appendElement(furyCanvas.parentElement, "div", { "class": "furyGUI" });
+		exports.root = root;
 
 		// Inspector Test code
 		/*
