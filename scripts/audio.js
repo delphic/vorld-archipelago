@@ -60,6 +60,9 @@ let Audio = module.exports = (function(){
 					audioContext.decodeAudioData(buffer, (decodedData) => {
 						buffers[uri] = decodedData;
 						loadingCompleteCallback();
+					}, (error) => {
+						console.error(error);
+						loadingCompleteCallback();
 					});
 				} else {
 					console.error("Unable to fetch " + uri + " empty buffer");
