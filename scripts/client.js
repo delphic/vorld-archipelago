@@ -21,22 +21,25 @@ let initialBounds = {	// Testing bounds
 };
 
 // Bigger bounds!
-initialBounds = {
+/*initialBounds = {
 	iMin: -20, iMax: 20,
 	jMin: -1, jMax: 3,
 	kMin: -20, kMax: 20
-};
+};*/ // TODO: GUI option for quick test vs game 
 // TODO: Calculate point at which fog becomes ~1.0, set max draw distance to this and generation target distance to this
 
 let playerMovementConfig = {
 	mouseLookSpeed: 0.25,	// TODO: This should be in player facing settings object
 	acceleration: 80,
 	maxWalkSpeed: 2,
+	maxWadeSpeed: 2,
 	maxRunSpeed: 5.5,
 	maxSprintSpeed: 8,
 	stopSpeed: 1.5,
 	airAcceleration: 10,
-	airMaxMovementSpeed: 4
+	airMaxMovementSpeed: 4,
+	waterAcceleration: 10,
+	waterMaxMovementSpeed: 3
 };
 
 // TODO: Extract to Fury Utils

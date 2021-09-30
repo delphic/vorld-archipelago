@@ -116,10 +116,12 @@ let Player = module.exports = (function(){
 		}
 
 		let localX = vec3.create(), localZ = vec3.create();
+		let localGroundX = vec3.create(), localGroundZ = vec3.create();
 		let contacts = vec3.create();
 
 		// Input Variables
 		let ry = 0, rx = 0;
+		let localInputVector = vec3.create();
 		let inputVector = vec3.create();
 		let isWalking = false;
 		let attemptJump = false; 
@@ -135,19 +137,22 @@ let Player = module.exports = (function(){
 			// Calculate Local Axes
 			vec3.transformQuat(localX, Maths.vec3X, camera.rotation);
 			vec3.transformQuat(localZ, Maths.vec3Z, camera.rotation);
-			// vec3.copy(localForward, localZ);	// Before 0ing out y component copy to forward
-			localZ[1] = localX[1] = 0;
-			vec3.normalize(localX, localX);
-			vec3.normalize(localZ, localZ);
+			vec3.copy(localGroundX, localX);
+			vec3.copy(localGroundZ, localZ);
+			localGroundZ[1] = localGroundX[1] = 0;
+			vec3.normalize(localGroundX, localGroundX);
+			vec3.normalize(localGroundZ, localGroundZ);
 
 			ry = rx = 0;
 			if (Input.isPointerLocked()) {
 				ry -= player.config.mouseLookSpeed * elapsed * Input.MouseDelta[0];
 				rx -= player.config.mouseLookSpeed * elapsed * Input.MouseDelta[1];
 			}
-			let inputZ = Input.getAxis("s", "w", 0.05, Maths.Ease.inQuad);
-			let inputX = Input.getAxis("d", "a", 0.05, Maths.Ease.inQuad);
 
+			let inputX = Input.getAxis("d", "a", 0.05, Maths.Ease.inQuad);
+			let inputY = Input.getAxis("e", "q", 0.05, Maths.Ease.inQuad);
+			let inputZ = Input.getAxis("s", "w", 0.05, Maths.Ease.inQuad);
+			
 			if (!attemptSprint && Input.keyDown("w", true)) {
 				let time = Date.now();
 				if ((time - lastForwardPress) < sprintDoubleTapMaxDuration * 1000) {
@@ -157,31 +162,41 @@ let Player = module.exports = (function(){
 			} else if (attemptSprint && !Input.keyDown("w")) {
 				attemptSprint = false;
 			}
-
-			// Q: Does maxContactSpeed work niavely or do we need to compensate for current movement direction?
+			
 			if (inputX !== 0 && inputZ !== 0) {
 				// Normalize input vector if moving in more than one direction
 				inputX /= Math.SQRT2;
 				inputZ /= Math.SQRT2;
-				// TODO: Test inputVector.sqrMagnitude > 1 => normalize(inputVector)
-
-				// Not actually sure |localX[0]| + |localZ[0]| / SQRT2 is correct, but its far better than what was there
-				maxContactSpeed[0] = Math.min(maxMovementSpeed, (Math.abs(localX[0]) + Math.abs(localZ[0]) / Math.SQRT2) * maxContactSpeedFactor * maxMovementSpeed);
-				maxContactSpeed[2] = Math.min(maxMovementSpeed, (Math.abs(localX[2]) + Math.abs(localZ[2]) / Math.SQRT2) * maxContactSpeedFactor * maxMovementSpeed);
-			} else if (inputX !== 0) {
-				maxContactSpeed[0] = Math.min(maxMovementSpeed, Math.abs(localX[0]) * maxMovementSpeed * maxContactSpeedFactor);
-				maxContactSpeed[2] = Math.min(maxMovementSpeed, Math.abs(localX[2]) * maxMovementSpeed * maxContactSpeedFactor);
-			} else if (inputZ !== 0) {
-				maxContactSpeed[0] = Math.min(maxMovementSpeed, Math.abs(localZ[0]) * maxMovementSpeed * maxContactSpeedFactor);
-				maxContactSpeed[2] = Math.min(maxMovementSpeed, Math.abs(localZ[2]) * maxMovementSpeed * maxContactSpeedFactor);
+				// TODO: Consider / test inputVector.sqrMagnitude > 1 => normalize(inputVector)
 			}
 
-			vec3.zero(inputVector);
-			vec3.scaleAndAdd(inputVector, inputVector, localX, inputX);
-			vec3.scaleAndAdd(inputVector, inputVector, localZ, inputZ);
+			localInputVector[0] = inputX;
+			localInputVector[1] = inputY;
+			localInputVector[2] = inputZ;
 
 			isWalking = Input.keyDown("Shift");
 			attemptJump = Input.keyDown("Space", true);
+		};
+
+		let calculateGlobalXZInputVector = (out, localInputVector, forward, left) => {
+			vec3.zero(out);
+			vec3.scaleAndAdd(out, out, left, localInputVector[0]);
+			vec3.scaleAndAdd(out, out, forward, localInputVector[2]);
+		};
+
+		let calculateMaxContactSpeed = (localInputVector, forward, left) => {
+			// Q: Does maxContactSpeed work niavely or do we need to compensate for current movement direction?
+			if (localInputVector[0] !== 0 && localInputVector[2] !== 0) {
+				// Not actually sure |localX[0]| + |localZ[0]| / SQRT2 is correct, but its far better than what was there
+				maxContactSpeed[0] = Math.min(maxMovementSpeed, (Math.abs(left[0]) + Math.abs(forward[0]) / Math.SQRT2) * maxContactSpeedFactor * maxMovementSpeed);
+				maxContactSpeed[2] = Math.min(maxMovementSpeed, (Math.abs(left[2]) + Math.abs(forward[2]) / Math.SQRT2) * maxContactSpeedFactor * maxMovementSpeed);
+			} else if (localInputVector[0] !== 0) {
+				maxContactSpeed[0] = Math.min(maxMovementSpeed, Math.abs(left[0]) * maxMovementSpeed * maxContactSpeedFactor);
+				maxContactSpeed[2] = Math.min(maxMovementSpeed, Math.abs(left[2]) * maxMovementSpeed * maxContactSpeedFactor);
+			} else if (localInputVector[2] !== 0) {
+				maxContactSpeed[0] = Math.min(maxMovementSpeed, Math.abs(forward[0]) * maxMovementSpeed * maxContactSpeedFactor);
+				maxContactSpeed[2] = Math.min(maxMovementSpeed, Math.abs(forward[2]) * maxMovementSpeed * maxContactSpeedFactor);
+			}
 		};
 
 		// Movement Variables
@@ -205,13 +220,22 @@ let Player = module.exports = (function(){
 		player.update = (elapsed) => {
 			detectInput(elapsed);
 
-			if (isWalking || inWater) { // TODO: Remove inWater check here and handle swimming movement completely separately
-				maxMovementSpeed = player.config.maxWalkSpeed;
+			// TODO: consider using local axes rather than ground axes when swimming
+			calculateMaxContactSpeed(localInputVector, localGroundZ, localGroundX);
+
+			if (inWater && !grounded) {
+				calculateGlobalXZInputVector(inputVector, localInputVector, localZ, localX);
+				maxMovementSpeed = player.config.maxWadeSpeed;
 			} else {
-				if (attemptSprint) {
-					maxMovementSpeed = player.config.maxSprintSpeed;
+				calculateGlobalXZInputVector(inputVector, localInputVector, localGroundZ, localGroundX);
+				if (isWalking || inWater) {
+					maxMovementSpeed = player.config.maxWalkSpeed;
 				} else {
-					maxMovementSpeed = player.config.maxRunSpeed;
+					if (attemptSprint) {
+						maxMovementSpeed = player.config.maxSprintSpeed;
+					} else {
+						maxMovementSpeed = player.config.maxRunSpeed;
+					}
 				}
 			}
 
@@ -286,7 +310,7 @@ let Player = module.exports = (function(){
 						vec3.zero(player.velocity);
 					}
 				}
-			} else {
+			} else if (!inWater) {
 				// Apply Drag
 				// F(drag) = (1/2)pvvC(drag)A
 				// p = density of fluid, v = velocity relative to fluid, C(drag) = drag co-efficient
@@ -296,11 +320,8 @@ let Player = module.exports = (function(){
 				// dv = pvvC(d)A * dt / 2m (with A ~= 1 and C(d) ~= 1, p(air) = 1.225 (one atmosphere at 15 degrees C), p(water) = 997)
 				// dv = (v*v*1.225*dt)/2m
 		
-				// TODO: Also do this in water with much bigger coefficent
-		
 				let airSpeed = vec3.length(player.velocity);
-				let p = inWater ? 120 : 1.225;
-				let dragDv = (airSpeed * airSpeed * p * elapsed) / (2 * 100);	// Assumes air and mass of 100kg, drag coefficent of ~1 and surface area ~1 (it's probably less)
+				let dragDv = (airSpeed * airSpeed * 1.225 * elapsed) / (2 * 100);	// Assumes air and mass of 100kg, drag coefficent of ~1 and surface area ~1 (it's probably less)
 				// ^^ Technically surface area is different based on direction, so a more accurate model would break down vertical against others
 		
 				if (airSpeed < dragDv) {
@@ -329,9 +350,47 @@ let Player = module.exports = (function(){
 				if (canAccelerate || Math.abs(targetZ) < Math.abs(player.velocity[2])) {
 					player.velocity[2] = targetZ;
 				}
+			} else {
+				// TODO: Move in water grounded logic here
+				let swimSpeed = vec3.length(player.velocity);
+				let dragDv = (swimSpeed * swimSpeed * 120 * elapsed) / (2 * 100);	// Assumes 'water' and mass of 100kg, drag coefficent of ~1 and surface area ~1 (it's probably less)
+				// ^^ Technically surface area is different based on direction, so a more accurate model would break down vertical against others
+				// Note the 120 density is just fudged to 'feel' right, no basis in reality
+		
+				if (swimSpeed < dragDv) {
+					// This happens when elasped > 200 / 120 * swimSpeed * swimSpeed 
+					// i.e. swim speed > sqrt(200 * 60 / 120) = 10 m/s
+					console.log("Warning: Calculated drag higher than swim speed!");
+					swimSpeed = Math.max(0, swimSpeed - dragDv);
+				}
+
+				// Update Swim Velocity
+				if (swimSpeed !== 0) {
+					vec3.scale(player.velocity, player.velocity, (swimSpeed - dragDv) / swimSpeed);
+				} else {
+					vec3.zero(player.velocity);
+				}	
+
+				let waterAcceleration = player.config.waterAcceleration;
+				let targetX = player.velocity[0] + waterAcceleration * elapsed * inputVector[0];
+				let targetY = player.velocity[1] + waterAcceleration * elapsed * inputVector[1] + localInputVector[1] * waterAcceleration * elapsed;
+				let targetZ = player.velocity[2] + waterAcceleration * elapsed * inputVector[2];
+
+				let maxSwimSpeedSqr = player.config.waterMaxMovementSpeed * player.config.waterMaxMovementSpeed; 
+				let canAccelerate = targetX * targetX + targetY * targetY + targetZ * targetZ < maxSwimSpeedSqr;
+				if (canAccelerate || Math.abs(targetX) < Math.abs(player.velocity[0])) {
+					player.velocity[0] = targetX;
+				}
+				if (canAccelerate || (Math.abs(targetY) < Math.abs(player.velocity[1]) && player.velocity[1] * player.velocity[1] < maxSwimSpeedSqr)) {
+					// Additional check, can only decelerate in Y when y is less than max swim speed (i.e. can't arrest entry speed when jumping in)
+					player.velocity[1] = targetY;
+				}
+				if (canAccelerate || Math.abs(targetZ) < Math.abs(player.velocity[2])) {
+					player.velocity[2] = targetZ;
+				}
 			}
 
-			// Move Character By Velocity
+			// Move Character by Velocity
 			characterController.stepHeight = grounded || inWater ? stepHeight : 0; // No stepping whilst not grounded
 			characterController.moveXZ(contacts, player.velocity, elapsed, inputVector);
 
@@ -372,15 +431,7 @@ let Player = module.exports = (function(){
 				// (this means less buoyancy when you're partially out of the water, and 'more' when you're deeper)
 				// Just assuming it cancels for now
 				// TODO:
-				// * use player forward to swim instead
-				// * when swimming move in bursts as if you're performing strokes (although this would imply headbob for walking)
-				// * just entirely different swimming mode - including step logic to get out of the water and 'grounded' / 'wading' logic
-				if (Input.keyDown("e")) {
-					player.velocity[1] += 4 * elapsed;
-				}
-				if (Input.keyDown("q")) {
-					player.velocity[1] -= 4 * elapsed;
-				}
+				// * when swimming move in bursts as if you're performing strokes (although this would imply headbob for walking)?
 				grounded = VorldPhysics.raycast(hitPoint, vorld, player.position, castDirection, player.box.extents[1] + 0.5) !== 0;
 			}
 
