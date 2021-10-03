@@ -113,7 +113,7 @@ let start = () => {
 	});
 	scene = Fury.Scene.create({ camera: camera, enableFrustumCulling: true });
 	overlayScene = Fury.Scene.create({ camera: camera });
-	Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2]);
+	Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2], 1.0);
 	
 	Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
 	Fury.GameLoop.start();
