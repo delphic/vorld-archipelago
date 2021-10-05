@@ -21,11 +21,12 @@ let initialBounds = {	// Testing bounds
 };
 
 // Bigger bounds!
-/*initialBounds = {
+/* initialBounds = {
 	iMin: -20, iMax: 20,
 	jMin: -1, jMax: 3,
 	kMin: -20, kMax: 20
-};*/ // TODO: GUI option for quick test vs game 
+}; */
+// TODO: GUI option for quick test vs game 
 // TODO: Calculate point at which fog becomes ~1.0, set max draw distance to this and generation target distance to this
 
 let playerMovementConfig = {

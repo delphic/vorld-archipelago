@@ -1,7 +1,8 @@
 // TODO: either update to read voxels *or* have sweep build aabb out of voxels
 const { vec3 } = require('../fury/src/maths');
 const { Maths, Physics } = require('../fury/src/fury');
-const Vorld = require('../vorld/core/vorld')
+const Vorld = require('../vorld/core/vorld');
+const VPhysics = require('../vorld/core/physics');
 
 let CharacterController = module.exports = (() => {
 	let exports = {};
@@ -45,7 +46,7 @@ let CharacterController = module.exports = (() => {
 			boxes[i] = Physics.Box.create({ min: vec3.create(), max: vec3.create() });
 		}
 
-		let requestBox = (x, y, z) =>{
+		let requestBox = (x, y, z) => {
 			if (nextIndex < boxes.length) {
 				let result = boxes[nextIndex++];
 				vec3.set(result.min, x, y, z);
@@ -56,8 +57,7 @@ let CharacterController = module.exports = (() => {
 			return boxes[nextIndex++] = Physics.Box.create({ min: vec3.fromValues(x, y, z), max: vec3.fromValues(x+1, y+1, z+1) });
 		};
 
-		// Quick and dirty sweep, AABB per non-0 voxel
-		// Not sure this is working!
+		// Quick and dirty sweep, create AABBs for solid voxels
 		exports.sweep = (out, vorld, sweepBox) => {
 			let xMin = Math.floor(sweepBox.min[0]);
 			let xMax = Math.floor(sweepBox.max[0]);
@@ -69,9 +69,8 @@ let CharacterController = module.exports = (() => {
 			for (let x = xMin; x <= xMax; x++) {
 				for (let y = yMin; y <= yMax; y++) {
 					for (let z = zMin; z <= zMax; z++) {
-						if (Vorld.isBlockSolid(vorld, x, y, z)) { // TODO: Layers would be better but isSolid will do
-							out.push(requestBox(x,y,z)); 
-						}
+						// TODO: Layers would be nice
+						VPhysics.appendAABBsForBlock(out, vorld, x, y, z, requestBox);
 					}
 				}
 			}
