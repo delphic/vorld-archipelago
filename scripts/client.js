@@ -26,7 +26,10 @@ let initialBounds = {	// Testing bounds
 	jMin: -1, jMax: 3,
 	kMin: -20, kMax: 20
 }; */
-// TODO: GUI option for quick test vs game 
+// TODO: GUI option for quick test vs game (vs flat?)
+	// Move config into actual config files - then the menu can be selecting between them
+	// What do to when we don't want any noise? just no octaves and vertical transforms? does that work?
+	// Should it just be a nullable sub object? 
 // TODO: Calculate point at which fog becomes ~1.0, set max draw distance to this and generation target distance to this
 
 let playerMovementConfig = {
