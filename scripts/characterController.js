@@ -1,4 +1,3 @@
-// TODO: either update to read voxels *or* have sweep build aabb out of voxels
 const { vec3 } = require('../fury/src/maths');
 const { Maths, Physics } = require('../fury/src/fury');
 const Vorld = require('../vorld/core/vorld');
