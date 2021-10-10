@@ -14,22 +14,17 @@ let player, spawnPlayer = true;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 let waterColor = vec3.fromValues(0, 113/255, 144/255);
 
-let initialBounds = {	// Testing bounds
+let smallInitialBounds = {
 	iMin: -6, iMax: 6,
 	jMin: -1, jMax: 3,
 	kMin: -6, kMax: 6
 };
-
-// Bigger bounds!
-/* initialBounds = {
+let largeInitialBounds = {
 	iMin: -20, iMax: 20,
 	jMin: -1, jMax: 3,
 	kMin: -20, kMax: 20
-}; */
-// TODO: GUI option for quick test vs game (vs flat?)
-	// Move config into actual config files - then the menu can be selecting between them
-	// What do to when we don't want any noise? just no octaves and vertical transforms? does that work?
-	// Should it just be a nullable sub object? 
+};
+// TODO: Move config into actual config files - then the menu can be selecting between them
 // TODO: Calculate point at which fog becomes ~1.0, set max draw distance to this and generation target distance to this
 
 let playerMovementConfig = {
@@ -105,7 +100,7 @@ let freeLookCameraUpdate = (function(){
 	};
 })();
 
-let start = () => {
+let start = (initialBounds, worldConfigId) => {
 	// Create camera and scene
 	camera = Fury.Camera.create({
 		near: 0.1,
@@ -121,7 +116,8 @@ let start = () => {
 	
 	Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
 	Fury.GameLoop.start();
-	vorld = VorldHelper.init({ scene: scene, material: material, alphaMaterial: alphaMaterial, bounds: initialBounds }, (data) => {
+
+	let onVorldCreated = (data) => {
 		// Spawn Player
 		if (spawnPlayer) {
 			player = Player.create({
@@ -142,11 +138,17 @@ let start = () => {
 				//stepHeight: 0.25
 			});
 		}
-	});
+	};
+	vorld = VorldHelper.init({
+		scene: scene,
+		material: material,
+		alphaMaterial: alphaMaterial,
+		bounds: initialBounds,
+		configId: worldConfigId
+	}, onVorldCreated);
 };
 
 let time = 0;
-let isInWater = false;
 let loop = (elapsed) => {
 	time += elapsed;
 	if (player) {
@@ -200,11 +202,14 @@ window.addEventListener('load', (event) => {
 	GUI.init(glCanvas);
 	// GUI.Inspector.create("Inspector", playerMovementConfig, 20, 20, 200, "auto");
 
+	let ProgressBar = require('./gui/progressBar');
+	let Menu = require('./gui/menu');
+
 	// Create Loading GUI
 	let playPromptDiv = GUI.appendElement(GUI.root, "div", { "class": "playPrompt" });
 	GUI.appendElement(playPromptDiv, "h1").innerText = "Vorld Archipelago";
 	let progressBarContainer = GUI.appendElement(playPromptDiv, "div");
-	let progressBar = GUI.ProgressBar.create(progressBarContainer);
+	let progressBar = ProgressBar.create(progressBarContainer);
 	progressBar.setProgress(0);
 	// TODO: Only show progress bar if more than a certain amount of time passes when loading?
 	// or just show a spinner
@@ -224,7 +229,24 @@ window.addEventListener('load', (event) => {
 		playButton.onclick = (e) => {
 			Audio.play({ uri: uris[1], mixer: Audio.mixers["sfx"] });
 			GUI.root.removeChild(playPromptDiv);
-			start();
+			
+			let menu = Menu.create(
+				GUI.root,
+				"Select Mode", 
+				[
+					{ text: "Small Test Terrain", callback: () => {
+						menu.remove();
+						start(smallInitialBounds, "terrain");
+					} }, 
+					{ text: "Large Test Terrain", callback: () => {
+						menu.remove();
+						start(largeInitialBounds, "terrain");
+					} }, 
+					{ text: "Flat World", callback: () => {
+						menu.remove();
+						start(smallInitialBounds, "flat");
+					} }
+				]);
 		};
 	};
 

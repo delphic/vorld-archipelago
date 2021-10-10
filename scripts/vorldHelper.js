@@ -122,42 +122,6 @@ module.exports = (function(){
 		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson } // TODO: Custom collision logic - custom AABBs
 	];
 
-	let generationConfig = {
-		generationRules: {
-			seed: "XUVNREAZOZJFPQMSAKEMSDJURTQPWEORHZMD",
-			baseWavelength: 128,
-			octaveWeightings: [0.5, 0.5, 1, 0.1],
-			neutralNoise: true,
-			thresholds: [ 0.5, 0.8 ],
-			blocksByThreshold: [ 0, 2, 1 ],	// 0 = Air, 1 = Stone, 2 = Soil, 3 = Grass 
-			verticalTransforms: [{
-					conditions: [ "blockValue", "yMax" ],
-					block: 0,
-					yMax: -15,
-					targetBlock: 1
-				}, {
-					conditions: [ "blockValue", "yRange" ],
-					block: 0,
-					yMin: -14,
-					yMax: -14,
-					targetBlock: 2
-				}, {
-					conditions: [ "blockValue", "yMax" ],
-					block: 0,
-					yMax: 0,
-					targetBlock: 4, // 4 is water
-				}, {
-					conditions: [ "blockValue", "blockAboveValue", "yMin" ],
-					blockAbove: 0,
-					block: 2,
-					targetBlock: 3,
-					yMin: 0
-				}
-			],
-			shapingFunction: gaussianShapingConfig
-		}
-	};
-
 	let meshingConfig = {
 		atlas: {
 			textureArraySize: 9,
@@ -171,6 +135,67 @@ module.exports = (function(){
 			]
 		}
 		// blockConfig also effects meshing but this is stored on vorld data
+	};
+
+	let generationConfigs = {
+		"flat": {
+			generationRules: { 
+				octaveWeightings: [],
+				thresholds: [ 1 ],
+				blocksByThreshold: [ 0 ],
+				verticalTransforms: [{
+					conditions: [ "blockValue", "yMax" ],
+					block: 0,
+					yMax: -3,
+					targetBlock: 1
+				}, {
+					conditions: [ "blockValue", "yMax" ],
+					block: 0,
+					yMax: -1,
+					targetBlock: 2
+				}, {
+					conditions: [ "blockValue", "yMax" ],
+					block: 0,
+					yMax: 0,
+					targetBlock: 3
+				}
+			]}
+		},
+		"terrain": {
+			generationRules: {
+				seed: "XUVNREAZOZJFPQMSAKEMSDJURTQPWEORHZMD",
+				baseWavelength: 128,
+				octaveWeightings: [ 0.5, 0.5, 1, 0.1 ],
+				neutralNoise: true,
+				thresholds: [ 0.5, 0.8 ],
+				blocksByThreshold: [ 0, 2, 1 ],	// 0 = Air, 1 = Stone, 2 = Soil, 3 = Grass 
+				verticalTransforms: [{
+						conditions: [ "blockValue", "yMax" ],
+						block: 0,
+						yMax: -15,
+						targetBlock: 1
+					}, {
+						conditions: [ "blockValue", "yRange" ],
+						block: 0,
+						yMin: -14,
+						yMax: -14,
+						targetBlock: 2
+					}, {
+						conditions: [ "blockValue", "yMax" ],
+						block: 0,
+						yMax: 0,
+						targetBlock: 4, // 4 is water
+					}, {
+						conditions: [ "blockValue", "blockAboveValue", "yMin" ],
+						blockAbove: 0,
+						block: 2,
+						targetBlock: 3,
+						yMin: 0
+					}
+				],
+				shapingFunction: gaussianShapingConfig
+			}
+		}
 	};
 
 	let performWorkOnBounds = (workerPool, bounds, sectionSize, configDelegate, messageCallback, completeCallback) => {
@@ -230,9 +255,10 @@ module.exports = (function(){
 		while (workerPool.isWorkerAvailable() && tryStartNextWorker()) { }
 	}; 
 
-	let generate = (bounds, callback) => {
+	let generate = (bounds, id, callback) => {
 		let vorld = Vorld.create({ blockConfig: blockConfig });
-		
+		let generationConfig = generationConfigs[id];
+
 		performWorkOnBounds(
 			generationWorkerPool,
 			bounds,
@@ -288,7 +314,7 @@ module.exports = (function(){
 		scene = parameters.scene;
 		material = parameters.material;
 		alphaMaterial = parameters.alphaMaterial;
-		return generate(parameters.bounds, callback);
+		return generate(parameters.bounds, parameters.configId, callback);
 	};
 
 	return exports;

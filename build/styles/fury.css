@@ -50,6 +50,14 @@ body {
 	color: rgba(255,255,255,1)
 }
 
+.furyGUI .menu {
+	position: absolute;
+	left: 0;
+	width: 100%;
+	text-align: center;
+	top: 100px;
+}
+
 .furyGUI .playPrompt {
 	position: absolute;
 	left: 0;
@@ -60,12 +68,12 @@ body {
 	margin-top: -150px;
 }
 
-.playPrompt h1 {
+.playPrompt h1, .menu h1 {
 	font-size: 70px;
 	margin-top: 0;
 }
 
-.playPrompt input {
+.playPrompt input, .menu input {
 	display: block;
 	margin: 10px auto;
 	font-family: 'Courier New', Courier, monospace;
@@ -75,11 +83,11 @@ body {
 	border: none;
 	padding: 10px 20px;
 }
-.playPrompt input:hover {
+.playPrompt input:hover, .menu input:hover {
 	background-color: hsl(336,100%,50%);
 }
-.playPrompt input:active {
-	background-color: hsl(336, 100%, 40%);
+.playPrompt input:active, .menu input:active {
+	background-color: hsl(340, 3%, 21%);
 }
 
 .progressBarBorder {
