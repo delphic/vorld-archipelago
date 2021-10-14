@@ -149,6 +149,8 @@ let start = (initialBounds, worldConfigId) => {
 				//stepHeight: 0.25
 			});
 		}
+		window.addEventListener('blur', pauseGame);
+		window.addEventListener('pointerlockchange', pauseGame);
 	};
 	vorld = VorldHelper.init({
 		scene: scene,
@@ -159,7 +161,47 @@ let start = (initialBounds, worldConfigId) => {
 	}, onVorldCreated);
 };
 
-let time = 0, pauseMenu = null, shouldCreatePauseOnFocusLoss = false, requestingLock = false, spinner = null;
+let pauseMenu = null, requestingLock = false, spinner = null;
+let pauseGame = (e) => {
+	if (player && pauseMenu == null) {
+		pauseMenu = createPauseMenu((resume) => {
+			if (resume && !requestingLock) {
+				let onSuccess = (e) => { 
+					requestingLock = false;
+					if (spinner) { 
+						GUI.root.removeChild(spinner);
+						spinner = null;
+					}
+					pauseMenu = null;
+				};
+				// On Failing - try again
+				let onFail = (e) => { 
+					requestingLock = true;
+					if (!spinner) {
+						spinner = GUI.appendElement(GUI.root, "div", { "class": "spin" });
+					}
+					setTimeout(attemptLock, 250);
+				};
+				let attemptLock = () => { 
+					let promise = Fury.Input.requestPointerLock();
+					if (promise) { // Chrome returns a promise
+						promise.then(onSuccess).catch(onFail); 
+					} else { // Firefox does not
+						onSuccess();
+					}
+				};
+				attemptLock();
+			}
+			if (!resume) {
+				window.removeEventListener('blur', pauseGame);
+				window.removeEventListener('pointerlockchange', pauseGame);
+				pauseMenu = null;
+			}
+		});
+	}
+};
+
+let time = 0;
 let loop = (elapsed) => {
 	time += elapsed;
 	if (player) {
@@ -167,54 +209,20 @@ let loop = (elapsed) => {
 		if (!Fury.Input.isPointerLocked()) {
 			if (Fury.Input.mouseDown(0, true)) {
 				Fury.Input.requestPointerLock();
-				shouldCreatePauseOnFocusLoss = true; // TODO: Replace this with "show ready UI on load complete"
-			} else if (shouldCreatePauseOnFocusLoss && pauseMenu == null) {
-				// TODO: Subscribe to the same events as game loop stop instead of querying like this
-				shouldCreatePauseOnFocusLoss = false;
-				pauseMenu = createPauseMenu((resume) => {
-					if (resume && !requestingLock) {
-						let onSuccess = (e) => { 
-							requestingLock = false;
-							if (spinner) { 
-								GUI.root.removeChild(spinner);
-								spinner = null;
-							}
-							pauseMenu = null;
-						};
-						// On Failing - try again
-						let onFail = (e) => { 
-							requestingLock = true;
-							if (!spinner) {
-								spinner = GUI.appendElement(GUI.root, "div", { "class": "spin" });
-							}
-							setTimeout(attemptLock, 250);
-						};
-						let attemptLock = () => { 
-							let promise = Fury.Input.requestPointerLock();
-							if (promise) { // Chrome returns a promise
-								promise.then(onSuccess).catch(onFail); 
-							} else { // Firefox does not
-								onSuccess();
-							}
-						};
-						attemptLock();
-						shouldCreatePauseOnFocusLoss = true;
-					}
-					if (!resume) {
-						pauseMenu = null;
-					}
-				});
+				// TODO: show ready UI on load complete and lock on click ready
 			}
 		} else if (pauseMenu != null) {
 			pauseMenu.remove();
 			pauseMenu = null;
 		}
+
 		// Only update player / world if have locked pointer i.e. have focused the element focus
-		// TODO: This isn't enough you can change focus with tab
+		// TODO: This isn't enough you can change focus with tab - TODO: focus change from canvas 
+		// instead, also integrate for GameLoop pause.
 		if (Fury.Input.isPointerLocked()) {
 			player.update(elapsed);
 			Audio.setListenerPosition(player.position);
-			// TODO: Orientation
+			// TODO: listener orientation
 		}
 
 		// Note after having the same tab open for a long time with multiple refreshes:
