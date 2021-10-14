@@ -189,7 +189,14 @@ let loop = (elapsed) => {
 							}
 							setTimeout(attemptLock, 250);
 						};
-						let attemptLock = () => { Fury.Input.requestPointerLock().then(onSuccess).catch(onFail); };
+						let attemptLock = () => { 
+							let promise = Fury.Input.requestPointerLock();
+							if (promise) { // Chrome returns a promise
+								promise.then(onSuccess).catch(onFail); 
+							} else { // Firefox does not
+								onSuccess();
+							}
+						};
 						attemptLock();
 						shouldCreatePauseOnFocusLoss = true;
 					}
