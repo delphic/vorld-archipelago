@@ -1,12 +1,13 @@
 let Fury = require('../fury/src/fury');
 const { vec3, quat } = require('../fury/src/maths');
+let Vorld = require('../vorld/core/vorld');
 let VoxelShader = require('../vorld/core/shader');
 let VorldHelper = require('./vorldHelper');
 let Player = require('./player');
 let GUI = require('./gui');
 let Audio = require('./audio');
 let Primitives = require('./primitives');
-
+let Menu = require('./gui/menu');
 let scene, overlayScene, camera, cameraRatio = 16 / 9;
 let world = { boxes: [] }, vorld = null;
 let material, alphaMaterial;
@@ -100,21 +101,31 @@ let freeLookCameraUpdate = (function(){
 	};
 })();
 
+let initialised = false;
+let setCameraInitialPosition = (camera) => {
+	vec3.set(camera.position, 53.0, 55.0, 123.0),
+	quat.set(camera.rotation, -0.232, 0.24, 0.06, 0.94)
+};
+
 let start = (initialBounds, worldConfigId) => {
-	// Create camera and scene
-	camera = Fury.Camera.create({
-		near: 0.1,
-		far: 1000000.0,
-		fov: 1.0472,
-		ratio: cameraRatio,
-		position: vec3.fromValues(53.0, 55.0, 123.0),
-		rotation: quat.fromValues(-0.232, 0.24, 0.06, 0.94)
-	});
-	scene = Fury.Scene.create({ camera: camera, enableFrustumCulling: true });
-	overlayScene = Fury.Scene.create({ camera: camera });
-	Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2], 1.0);
-	
-	Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
+	if (!initialised) {
+		// Create camera and scene
+		camera = Fury.Camera.create({
+			near: 0.1,
+			far: 1000000.0,
+			fov: 1.0472,
+			ratio: cameraRatio,
+			position: vec3.create(),
+			rotation: quat.create()
+		});
+		setCameraInitialPosition(camera);
+		scene = Fury.Scene.create({ camera: camera, enableFrustumCulling: true });
+		overlayScene = Fury.Scene.create({ camera: camera });
+		Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2], 1.0);
+		
+		Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
+		initialised = true;
+	}
 	Fury.GameLoop.start();
 
 	let onVorldCreated = (data) => {
@@ -148,14 +159,49 @@ let start = (initialBounds, worldConfigId) => {
 	}, onVorldCreated);
 };
 
-let time = 0;
+let time = 0, pauseMenu = null, shouldCreatePauseOnFocusLoss = false, requestingLock = false, spinner = null;
 let loop = (elapsed) => {
 	time += elapsed;
 	if (player) {
 		// Unlocking the pointer is pausing the game
-		if (!Fury.Input.isPointerLocked() && Fury.Input.mouseDown(0, true)) {
-			Fury.Input.requestPointerLock();
-		}	
+		if (!Fury.Input.isPointerLocked()) {
+			if (Fury.Input.mouseDown(0, true)) {
+				Fury.Input.requestPointerLock();
+				shouldCreatePauseOnFocusLoss = true; // TODO: Replace this with "show ready UI on load complete"
+			} else if (shouldCreatePauseOnFocusLoss && pauseMenu == null) {
+				// TODO: Subscribe to the same events as game loop stop instead of querying like this
+				shouldCreatePauseOnFocusLoss = false;
+				pauseMenu = createPauseMenu((resume) => {
+					if (resume && !requestingLock) {
+						let onSuccess = (e) => { 
+							requestingLock = false;
+							if (spinner) { 
+								GUI.root.removeChild(spinner);
+								spinner = null;
+							}
+							pauseMenu = null;
+						};
+						// On Failing - try again
+						let onFail = (e) => { 
+							requestingLock = true;
+							if (!spinner) {
+								spinner = GUI.appendElement(GUI.root, "div", { "class": "spin" });
+							}
+							setTimeout(attemptLock, 250);
+						};
+						let attemptLock = () => { Fury.Input.requestPointerLock().then(onSuccess).catch(onFail); };
+						attemptLock();
+						shouldCreatePauseOnFocusLoss = true;
+					}
+					if (!resume) {
+						pauseMenu = null;
+					}
+				});
+			}
+		} else if (pauseMenu != null) {
+			pauseMenu.remove();
+			pauseMenu = null;
+		}
 		// Only update player / world if have locked pointer i.e. have focused the element focus
 		// TODO: This isn't enough you can change focus with tab
 		if (Fury.Input.isPointerLocked()) {
@@ -175,6 +221,56 @@ let loop = (elapsed) => {
 	scene.render();
 	camera.clear = false;
 	overlayScene.render();
+};
+
+let createMainMenu = () => {
+	let menu = Menu.create(
+		GUI.root,
+		"Select Mode", 
+		[
+			{ text: "Small Test Terrain", callback: () => {
+				menu.remove();
+				start(smallInitialBounds, "terrain");
+			} }, 
+			{ text: "Large Test Terrain", callback: () => {
+				menu.remove();
+				start(largeInitialBounds, "terrain");
+			} }, 
+			{ text: "Flat World", callback: () => {
+				menu.remove();
+				start(smallInitialBounds, "flat");
+			} }
+		]);
+};
+
+let createPauseMenu = (onClose) => {
+	// TODO: Shield of unclickability
+	let menu = Menu.create(
+		GUI.root,
+		"Paused",
+		[
+			{ text: "Resume", callback: () => {
+				menu.remove();
+				onClose(true);
+			} },
+			{ text: "Main Menu", callback: () => {
+				onClose();
+				player = null;
+				clearWorld();
+				menu.remove();
+				setCameraInitialPosition(camera);
+				scene.render();
+				createMainMenu();
+				onClose(false);
+			 } }
+		]);
+	return menu;
+};
+
+let clearWorld = () => {
+	Vorld.clear(vorld);
+	scene.clear();
+	Fury.Scene.clearResources();
 };
 
 window.addEventListener('load', (event) => {
@@ -203,7 +299,6 @@ window.addEventListener('load', (event) => {
 	// GUI.Inspector.create("Inspector", playerMovementConfig, 20, 20, 200, "auto");
 
 	let ProgressBar = require('./gui/progressBar');
-	let Menu = require('./gui/menu');
 
 	// Create Loading GUI
 	let playPromptDiv = GUI.appendElement(GUI.root, "div", { "class": "playPrompt" });
@@ -229,24 +324,7 @@ window.addEventListener('load', (event) => {
 		playButton.onclick = (e) => {
 			Audio.play({ uri: uris[1], mixer: Audio.mixers["sfx"] });
 			GUI.root.removeChild(playPromptDiv);
-			
-			let menu = Menu.create(
-				GUI.root,
-				"Select Mode", 
-				[
-					{ text: "Small Test Terrain", callback: () => {
-						menu.remove();
-						start(smallInitialBounds, "terrain");
-					} }, 
-					{ text: "Large Test Terrain", callback: () => {
-						menu.remove();
-						start(largeInitialBounds, "terrain");
-					} }, 
-					{ text: "Flat World", callback: () => {
-						menu.remove();
-						start(smallInitialBounds, "flat");
-					} }
-				]);
+			createMainMenu();
 		};
 	};
 

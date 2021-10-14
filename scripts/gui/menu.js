@@ -15,7 +15,7 @@ let Menu = module.exports = (function(){
 		}
 		return {
 			element: menuElement,
-			remove: () => { parent.removeChild(menuElement); }
+			remove: () => { try { parent.removeChild(menuElement); } catch(e) { console.error(e); } }
 		};
 	};
 
