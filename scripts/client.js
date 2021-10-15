@@ -8,6 +8,7 @@ let GUI = require('./gui');
 let Audio = require('./audio');
 let Primitives = require('./primitives');
 let Menu = require('./gui/menu');
+
 let scene, overlayScene, camera, cameraRatio = 16 / 9;
 let world = { boxes: [] }, vorld = null;
 let material, alphaMaterial;
@@ -80,16 +81,16 @@ let freeLookCameraUpdate = (function(){
 			}
 		}
 	
-		if(Input.keyDown("w")) {
+		if (Input.keyDown("w")) {
 			vec3.scaleAndAdd(p, p, localz, -zoomRate*elapsed);
 		}
-		if(Input.keyDown("s")) {
+		if (Input.keyDown("s")) {
 			vec3.scaleAndAdd(p, p, localz, zoomRate*elapsed);
 		}
-		if(Input.keyDown("a")) {
+		if (Input.keyDown("a")) {
 			vec3.scaleAndAdd(p, p, localx, -zoomRate*elapsed);
 		}
-		if(Input.keyDown("d")) {
+		if (Input.keyDown("d")) {
 			vec3.scaleAndAdd(p, p, localx, zoomRate*elapsed);
 		}
 		if (Input.keyDown("q")) {
@@ -131,26 +132,26 @@ let start = (initialBounds, worldConfigId) => {
 	let onVorldCreated = (data) => {
 		// Spawn Player
 		if (spawnPlayer) {
-			player = Player.create({
+			let playerConfig = {
 				world: world,
 				vorld: vorld,
 				position: vec3.fromValues(12, 32, 12),
 				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(0), material: alphaMaterial, position: vec3.create() }),
 				camera: camera,
 				config: playerMovementConfig,
-				// Normal sized player
 				size: vec3.fromValues(1,2,1),
 				stepHeight: 0.51
-				// Massive Player!
-				//size: vec3.fromValues(4,8,4),
-				//stepHeight: 2.01
-				// Tiny Player
-				//size: vec3.fromValues(0.25,0.5,0.25),
-				//stepHeight: 0.25
-			});
+			};
+			// Massive Player!
+			// playerConfig.size = vec3.fromValues(4,8,4);
+			// playerConfig.stepHeight = 2.01;
+			// Tiny Player
+			// playerConfig.size = vec3.fromValues(0.25,0.5,0.25);
+			// playerConfig.stepHeight = 0.25;
+			player = Player.create(playerConfig);
 		}
 		window.addEventListener('blur', pauseGame);
-		window.addEventListener('pointerlockchange', pauseGame);
+		document.addEventListener('pointerlockchange', handlePointLockChange);
 	};
 	vorld = VorldHelper.init({
 		scene: scene,
@@ -162,6 +163,13 @@ let start = (initialBounds, worldConfigId) => {
 };
 
 let pauseMenu = null, requestingLock = false, spinner = null;
+
+let handlePointLockChange = (e) => {
+	if (!Fury.Input.isPointerLocked()) {
+		pauseGame();
+	}
+};
+
 let pauseGame = (e) => {
 	if (player && pauseMenu == null) {
 		pauseMenu = createPauseMenu((resume) => {
@@ -184,7 +192,7 @@ let pauseGame = (e) => {
 				};
 				let attemptLock = () => { 
 					let promise = Fury.Input.requestPointerLock();
-					if (promise) { // Chrome returns a promise
+					if (promise) { // Chrome & Edge returns a promise
 						promise.then(onSuccess).catch(onFail); 
 					} else { // Firefox does not
 						onSuccess();
@@ -194,7 +202,7 @@ let pauseGame = (e) => {
 			}
 			if (!resume) {
 				window.removeEventListener('blur', pauseGame);
-				window.removeEventListener('pointerlockchange', pauseGame);
+				document.removeEventListener('pointerlockchange', handlePointLockChange);
 				pauseMenu = null;
 			}
 		});
@@ -210,6 +218,8 @@ let loop = (elapsed) => {
 			if (Fury.Input.mouseDown(0, true)) {
 				Fury.Input.requestPointerLock();
 				// TODO: show ready UI on load complete and lock on click ready
+				// This is required for Firefox as this check mouse down loop isn't allowed
+				// to capture point, could however maybe subscribe directly to the mouse down event?
 			}
 		} else if (pauseMenu != null) {
 			pauseMenu.remove();
@@ -361,7 +371,9 @@ window.addEventListener('load', (event) => {
 		// and use it as texture input, whilst this would be fun, it's a bit too much of a tangent right now, sooo quad in front of the camera! 
 		// https://stackoverflow.com/questions/23362076/opengl-how-to-access-depth-buffer-values-or-gl-fragcoord-z-vs-rendering-d
 
-		let upscaled = Fury.Utils.createScaledImage({ image: image, scale: 8 });
+		let targetWidth = 128; // => Scale 8 for 16 pixels, 4 for 32 pixels, 2 for 64 pixels, 1 for 128 pixels+
+		scale = Math.ceil(targetWidth / image.width);  
+		let upscaled = Fury.Utils.createScaledImage({ image: image, scale: scale });
 		let textureSize = upscaled.width, textureCount = Math.round(upscaled.height / upscaled.width);
 		let textureArray = Fury.Renderer.createTextureArray(upscaled, textureSize, textureSize, textureCount, "pixel", true);
 		material.setTexture(textureArray);
