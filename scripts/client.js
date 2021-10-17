@@ -1,4 +1,5 @@
 let Fury = require('../fury/src/fury');
+const { GameLoop } = require('../fury/src/fury');
 const { vec3, quat } = require('../fury/src/maths');
 let Vorld = require('../vorld/core/vorld');
 let VoxelShader = require('../vorld/core/shader');
@@ -124,10 +125,10 @@ let start = (initialBounds, worldConfigId) => {
 		overlayScene = Fury.Scene.create({ camera: camera });
 		Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2], 1.0);
 		
-		Fury.GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
+		GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
 		initialised = true;
 	}
-	Fury.GameLoop.start();
+	GameLoop.start();
 
 	let loadingScreen = createProgressScreen("Generating Vorld", "playPrompt");
 	let currentLoadingText = "Generating Vorld";
@@ -193,6 +194,7 @@ let handlePointLockChange = (e) => {
 
 let pauseGame = (e) => {
 	if (player && pauseMenu == null) {
+		GameLoop.stop();
 		pauseMenu = createPauseMenu((resume) => {
 			if (resume && !requestingLock) {
 				let onSuccess = (e) => { 
@@ -202,6 +204,7 @@ let pauseGame = (e) => {
 						spinner = null;
 					}
 					pauseMenu = null;
+					GameLoop.start();
 				};
 				// On Failing - try again
 				let onFail = (e) => { 
@@ -225,23 +228,21 @@ let pauseGame = (e) => {
 				window.removeEventListener('blur', pauseGame);
 				document.removeEventListener('pointerlockchange', handlePointLockChange);
 				pauseMenu = null;
+				GameLoop.start();
 			}
 		});
 	}
 };
 
+
 let time = 0;
 let loop = (elapsed) => {
 	time += elapsed;
+
 	if (player) {
-		// Only update player / world if have locked pointer i.e. have focused the element focus
-		// TODO: This isn't enough you can change focus with tab - TODO: focus change from canvas 
-		// instead, also integrate for GameLoop pause.
-		if (Fury.Input.isPointerLocked()) {
-			player.update(elapsed);
-			Audio.setListenerPosition(player.position);
-			// TODO: listener orientation
-		}
+		player.update(elapsed);
+		Audio.setListenerPosition(player.position);
+		// TODO: listener orientation
 
 		// Note after having the same tab open for a long time with multiple refreshes:
 		// a short time after refresh and generation long system tasks would block the main thread  
