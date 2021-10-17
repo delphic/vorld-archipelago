@@ -248,20 +248,27 @@ let loop = (elapsed) => {
 	overlayScene.render();
 };
 
+let playButtonClickSfx = () => {
+	Audio.play({ uri: "audio/sfx/ui/click1.ogg", mixer: Audio.mixers["sfx"] });
+};
+
 let createMainMenu = () => {
 	let menu = Menu.create(
 		GUI.root,
 		"Select Mode", 
 		[
 			{ text: "Small Test Terrain", callback: () => {
+				playButtonClickSfx();
 				menu.remove();
 				start(smallInitialBounds, "terrain");
 			} }, 
 			{ text: "Large Test Terrain", callback: () => {
+				playButtonClickSfx();
 				menu.remove();
 				start(largeInitialBounds, "terrain");
 			} }, 
 			{ text: "Flat World", callback: () => {
+				playButtonClickSfx();
 				menu.remove();
 				start(smallInitialBounds, "flat");
 			} }
@@ -275,11 +282,12 @@ let createPauseMenu = (onClose) => {
 		"Paused",
 		[
 			{ text: "Resume", callback: () => {
+				playButtonClickSfx();
 				menu.remove();
 				onClose(true);
 			} },
 			{ text: "Main Menu", callback: () => {
-				onClose();
+				playButtonClickSfx();
 				player = null;
 				clearWorld();
 				menu.remove();
@@ -290,6 +298,32 @@ let createPauseMenu = (onClose) => {
 			 } }
 		]);
 	return menu;
+};
+
+let createProgressScreen = (title, className) => {
+	let ProgressBar = require('./gui/progressBar');
+
+	// Create Loading GUI
+	let playPromptDiv = GUI.appendElement(GUI.root, "div", { "class": className });
+	GUI.appendElement(playPromptDiv, "h1").innerText = title;
+	let progressBarContainer = GUI.appendElement(playPromptDiv, "div");
+	let progressBar = ProgressBar.create(progressBarContainer);
+	progressBar.setProgress(0);
+
+	let showReadyButton = (text, onclick) => {
+		progressBarContainer.removeChild(progressBar.element);
+		let playButton = GUI.appendElement(progressBarContainer, "input", { "type": "button", "value": text });
+		playButton.onclick = (e) => {
+			playButtonClickSfx();
+			GUI.root.removeChild(playPromptDiv);
+			onclick();
+		};
+	};
+
+	return {
+		setProgress: progressBar.setProgress,
+		showReadyButton: showReadyButton
+	};
 };
 
 let clearWorld = () => {
@@ -321,36 +355,20 @@ window.addEventListener('load', (event) => {
 
 	Fury.init({ canvasId: glCanvasId });
 	GUI.init(glCanvas);
-	// GUI.Inspector.create("Inspector", playerMovementConfig, 20, 20, 200, "auto");
 
-	let ProgressBar = require('./gui/progressBar');
-
-	// Create Loading GUI
-	let playPromptDiv = GUI.appendElement(GUI.root, "div", { "class": "playPrompt" });
-	GUI.appendElement(playPromptDiv, "h1").innerText = "Vorld Archipelago";
-	let progressBarContainer = GUI.appendElement(playPromptDiv, "div");
-	let progressBar = ProgressBar.create(progressBarContainer);
-	progressBar.setProgress(0);
-	// TODO: Only show progress bar if more than a certain amount of time passes when loading?
-	// or just show a spinner
+	let titleScreen = createProgressScreen("Vorld Archipelago", "playPrompt");
 
 	let assetLoadingCount = 0;
 	let totalAssetsToLoad = 0;
 	let loadingCallback = () => {
 		assetLoadingCount--;
-		progressBar.setProgress((totalAssetsToLoad - assetLoadingCount) / totalAssetsToLoad);
+		titleScreen.setProgress((totalAssetsToLoad - assetLoadingCount) / totalAssetsToLoad);
 		if (assetLoadingCount == 0) {
 			setTimeout(onAssetLoadComplete, 250);
 		}
 	};
 	let onAssetLoadComplete = () => {
-		progressBarContainer.removeChild(progressBar.element);
-		let playButton = GUI.appendElement(progressBarContainer, "input", { "type": "button", "value": "Play" });
-		playButton.onclick = (e) => {
-			Audio.play({ uri: uris[1], mixer: Audio.mixers["sfx"] });
-			GUI.root.removeChild(playPromptDiv);
-			createMainMenu();
-		};
+		titleScreen.showReadyButton("Play", createMainMenu);
 	};
 
 	let uris = [ "audio/bgm/Retro Mystic.ogg", "audio/sfx/ui/click1.ogg", "audio/sfx/ui/click2.ogg", "audio/sfx/ui/click3.ogg", "audio/sfx/ui/click4.ogg", "audio/sfx/ui/click5.ogg", "audio/sfx/ui/mouseclick1.ogg", "audio/sfx/ui/mouserelease1.ogg" ];
