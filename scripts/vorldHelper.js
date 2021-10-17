@@ -206,10 +206,11 @@ module.exports = (function(){
 		let i = iMin, k = kMin;
 
 		let workerMessageCallback = (data) => {
-			messageCallback(data);
 			if (data.complete) {
 				generatedSectionsCount += 1;
-
+			}
+			messageCallback(data, generatedSectionsCount, totalSectionsToGenerate);
+			if (data.complete) {
 				if (generatedSectionsCount >= totalSectionsToGenerate && completeCallback) {
 					completeCallback();
 				} else {
@@ -255,7 +256,7 @@ module.exports = (function(){
 		while (workerPool.isWorkerAvailable() && tryStartNextWorker()) { }
 	}; 
 
-	let generate = (bounds, id, callback) => {
+	let generate = (bounds, id, callback, progressDelegate) => {
 		let vorld = Vorld.create({ blockConfig: blockConfig });
 		let generationConfig = generationConfigs[id];
 
@@ -267,19 +268,20 @@ module.exports = (function(){
 				generationConfig.bounds = sectionBounds;
 				return generationConfig;
 			},
-			(data) => {
+			(data, count, total) => {
+				progressDelegate("generation", count, total);
 				if (data.complete) {
 					Vorld.tryMerge(vorld, data.vorld);
 				}
 			},
 			() => {
-				meshVorld(vorld, bounds, callback);
+				meshVorld(vorld, bounds, callback, progressDelegate);
 			});
 
 		return vorld;
 	};
 	
-	let meshVorld = (vorld, bounds, callback) => {	
+	let meshVorld = (vorld, bounds, callback, progressDelegate) => {	
 		performWorkOnBounds(
 			mesherWorkerPool,
 			bounds,
@@ -296,7 +298,8 @@ module.exports = (function(){
 					sectionBounds.kMax + 1);
 				return meshingConfig;
 			},
-			(data) => {
+			(data, count, total) => {
+				progressDelegate("meshing", count, total);
 				if (data.mesh) {
 					let mesh = Fury.Mesh.create(data.mesh);
 					mesh.tileBuffer = Fury.Renderer.createBuffer(data.mesh.tileIndices, 1);
@@ -310,11 +313,11 @@ module.exports = (function(){
 			callback);
 	};
 
-	exports.init = (parameters, callback) => {
+	exports.init = (parameters, callback, progressDelegate) => {
 		scene = parameters.scene;
 		material = parameters.material;
 		alphaMaterial = parameters.alphaMaterial;
-		return generate(parameters.bounds, parameters.configId, callback);
+		return generate(parameters.bounds, parameters.configId, callback, progressDelegate);
 	};
 
 	return exports;

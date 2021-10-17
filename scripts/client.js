@@ -129,7 +129,11 @@ let start = (initialBounds, worldConfigId) => {
 	}
 	Fury.GameLoop.start();
 
-	let onVorldCreated = (data) => {
+	let loadingScreen = createProgressScreen("Generating Vorld", "playPrompt");
+	let currentLoadingText = "Generating Vorld";
+	let meshingLoadingText = "Meshing Vorld";
+
+	let spawnPlayer = () => {
 		// Spawn Player
 		if (spawnPlayer) {
 			let playerConfig = {
@@ -150,16 +154,33 @@ let start = (initialBounds, worldConfigId) => {
 			// playerConfig.stepHeight = 0.25;
 			player = Player.create(playerConfig);
 		}
+
+		Fury.Input.requestPointerLock();
 		window.addEventListener('blur', pauseGame);
 		document.addEventListener('pointerlockchange', handlePointLockChange);
 	};
+
+	let onVorldCreated = (data) => {
+		loadingScreen.showReadyButton("Enter Vorld", spawnPlayer);
+	};
+
 	vorld = VorldHelper.init({
 		scene: scene,
 		material: material,
 		alphaMaterial: alphaMaterial,
 		bounds: initialBounds,
 		configId: worldConfigId
-	}, onVorldCreated);
+	}, onVorldCreated, (stage, count, total) => {
+		if (stage == "meshing") {
+			if (count == total) {
+				loadingScreen.setTitle("Ready!");
+			} else if (currentLoadingText != meshingLoadingText) {
+				loadingScreen.setTitle(meshingLoadingText);
+				currentLoadingText = meshingLoadingText;
+			}
+		}
+		loadingScreen.setProgress(count / total);
+	});
 };
 
 let pauseMenu = null, requestingLock = false, spinner = null;
@@ -213,19 +234,6 @@ let time = 0;
 let loop = (elapsed) => {
 	time += elapsed;
 	if (player) {
-		// Unlocking the pointer is pausing the game
-		if (!Fury.Input.isPointerLocked()) {
-			if (Fury.Input.mouseDown(0, true)) {
-				Fury.Input.requestPointerLock();
-				// TODO: show ready UI on load complete and lock on click ready
-				// This is required for Firefox as this check mouse down loop isn't allowed
-				// to capture point, could however maybe subscribe directly to the mouse down event?
-			}
-		} else if (pauseMenu != null) {
-			pauseMenu.remove();
-			pauseMenu = null;
-		}
-
 		// Only update player / world if have locked pointer i.e. have focused the element focus
 		// TODO: This isn't enough you can change focus with tab - TODO: focus change from canvas 
 		// instead, also integrate for GameLoop pause.
@@ -276,7 +284,6 @@ let createMainMenu = () => {
 };
 
 let createPauseMenu = (onClose) => {
-	// TODO: Shield of unclickability
 	let menu = Menu.create(
 		GUI.root,
 		"Paused",
@@ -303,9 +310,9 @@ let createPauseMenu = (onClose) => {
 let createProgressScreen = (title, className) => {
 	let ProgressBar = require('./gui/progressBar');
 
-	// Create Loading GUI
 	let playPromptDiv = GUI.appendElement(GUI.root, "div", { "class": className });
-	GUI.appendElement(playPromptDiv, "h1").innerText = title;
+	let titleElement = GUI.appendElement(playPromptDiv, "h1");
+	titleElement.innerText = title;
 	let progressBarContainer = GUI.appendElement(playPromptDiv, "div");
 	let progressBar = ProgressBar.create(progressBarContainer);
 	progressBar.setProgress(0);
@@ -322,6 +329,7 @@ let createProgressScreen = (title, className) => {
 
 	return {
 		setProgress: progressBar.setProgress,
+		setTitle: (text) => { titleElement.innerText = text; },
 		showReadyButton: showReadyButton
 	};
 };
