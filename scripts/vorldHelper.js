@@ -146,17 +146,17 @@ module.exports = (function(){
 				verticalTransforms: [{
 					conditions: [ "blockValue", "yMax" ],
 					block: 0,
-					yMax: -3,
+					yMax: -4,
 					targetBlock: 1
 				}, {
 					conditions: [ "blockValue", "yMax" ],
 					block: 0,
-					yMax: -1,
+					yMax: -2,
 					targetBlock: 2
 				}, {
 					conditions: [ "blockValue", "yMax" ],
 					block: 0,
-					yMax: 0,
+					yMax: -1,
 					targetBlock: 3
 				}
 			]}
@@ -275,7 +275,25 @@ module.exports = (function(){
 				}
 			},
 			() => {
-				meshVorld(vorld, bounds, callback, progressDelegate);
+				if (id == "flat") {
+					// Castle Generator TEST
+					// TODO: generation should be multi-pass, first terrain, then buildings, then meshing
+					// and arguably meshing should be a separate concern as we'll want to add / remove meshes as we move around on large worlds
+					// Also each stage should be easy to extract into a web worker
+					let CastleGenerator = require('./generators/castle/generator');
+					let sliceBounds = { xMin: -3, xMax: 3, zMin: -3, zMax: 3, yMin: 0, yMax: 15 };
+					let config = { 
+						vorld: Vorld.createSliceFromBounds(vorld, sliceBounds),
+						bounds : sliceBounds,
+						blocks: { wall: [1] }
+					}
+					CastleGenerator.generate(config, (data) => {
+						Vorld.tryMerge(vorld, data.vorld)
+						meshVorld(vorld, bounds, callback, progressDelegate);
+					});
+				} else {
+					meshVorld(vorld, bounds, callback, progressDelegate);
+				}
 			});
 
 		return vorld;
@@ -299,7 +317,7 @@ module.exports = (function(){
 				return meshingConfig;
 			},
 			(data, count, total) => {
-				progressDelegate("meshing", count, total);
+				progressDelegate("meshing", count, total); // Note: data contains.progress could also just send that
 				if (data.mesh) {
 					let mesh = Fury.Mesh.create(data.mesh);
 					mesh.tileBuffer = Fury.Renderer.createBuffer(data.mesh.tileIndices, 1);
