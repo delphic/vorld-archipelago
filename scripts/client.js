@@ -166,22 +166,24 @@ let start = (initialBounds, worldConfigId) => {
 	};
 
 	vorld = VorldHelper.init({
-		scene: scene,
-		material: material,
-		alphaMaterial: alphaMaterial,
-		bounds: initialBounds,
-		configId: worldConfigId
-	}, onVorldCreated, (stage, count, total) => {
-		if (stage == "meshing") {
-			if (count == total) {
-				loadingScreen.setTitle("Ready!");
-			} else if (currentLoadingText != meshingLoadingText) {
-				loadingScreen.setTitle(meshingLoadingText);
-				currentLoadingText = meshingLoadingText;
+			scene: scene,
+			material: material,
+			alphaMaterial: alphaMaterial,
+			bounds: initialBounds,
+			configId: worldConfigId
+		},
+		onVorldCreated,
+		(stage, count, total) => {
+			if (stage == "meshing") {
+				if (count == total) {
+					loadingScreen.setTitle("Ready!");
+				} else if (currentLoadingText != meshingLoadingText) {
+					loadingScreen.setTitle(meshingLoadingText);
+					currentLoadingText = meshingLoadingText;
+				}
 			}
-		}
-		loadingScreen.setProgress(count / total);
-	});
+			loadingScreen.setProgress(count / total);
+		});
 };
 
 let pauseMenu = null, requestingLock = false, spinner = null;
