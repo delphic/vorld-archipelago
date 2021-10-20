@@ -11,6 +11,12 @@ module.exports = (function(){
 	let generationWorkerPool = WorkerPool.create({ src: 'scripts/generator-worker.js', maxWorkers: 8 });
 	let mesherWorkerPool = WorkerPool.create({ src: 'scripts/mesher-worker.js', maxWorkers: 4 });
 
+	// TODO: IMPORTANT we really need to do a pass on handness because when I updated the UVs for right what I thought was left updated instead...
+	// this is made more complex by the fact the camera points in -z. It updated right from the perspective of the camera, but I expected it to update the other side
+	// It's made even more complex by noting the camera does not spawn facing in -z it's at an angle to give a nice view... so it could in fact still be fine.
+	// On the other hand when I specificed step block to face right when spawning first on the left hand side it was stepping in the direction I thought it should....
+
+	// TODO: create cube from bounds, it would be *much easier* to manipulate than manually changing numbers
 	let halfCubeJson = {
 		vertices: [ 
 			0.0, 0.0, 1.0,
@@ -90,6 +96,212 @@ module.exports = (function(){
 		indices: [ 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23 ]
 	};
 
+	let stepJson = {
+		vertices: [ 
+			// base
+			// forward
+			0.0, 0.0, 1.0,
+			1.0, 0.0, 1.0,
+			1.0, 0.5, 1.0,
+			0.0, 0.5, 1.0,
+			// back
+			0.0, 0.0, 0.0,
+			0.0, 0.5, 0.0,
+			1.0, 0.5, 0.0,
+			1.0, 0.0, 0.0,
+			// up
+			0.0, 0.5, 0.0,
+			0.0, 0.5, 0.5,
+			1.0, 0.5, 0.5,
+			1.0, 0.5, 0.0,
+			// down
+			0.0, 0.0, 0.0,
+			1.0, 0.0, 0.0,
+			1.0, 0.0, 1.0,
+			0.0, 0.0, 1.0,
+			// right
+			1.0, 0.0, 0.0,
+			1.0, 0.5, 0.0,
+			1.0, 0.5, 1.0,
+			1.0, 0.0, 1.0,
+			// left
+			0.0, 0.0, 0.0,
+			0.0, 0.0, 1.0,
+			0.0, 0.5, 1.0,
+			0.0, 0.5, 0.0, 
+			// step
+			// forward
+			0.0, 0.5, 1.0,
+			1.0, 0.5, 1.0,
+			1.0, 1.0, 1.0,
+			0.0, 1.0, 1.0,
+			// back
+			0.0, 0.5, 0.5,
+			0.0, 1.0, 0.5,
+			1.0, 1.0, 0.5,
+			1.0, 0.5, 0.5,
+			// up
+			0.0, 1.0, 0.5,
+			0.0, 1.0, 1.0,
+			1.0, 1.0, 1.0,
+			1.0, 1.0, 0.5,
+			// right
+			1.0, 0.5, 0.5,
+			1.0, 1.0, 0.5,
+			1.0, 1.0, 1.0,
+			1.0, 0.5, 1.0,
+			// left
+			0.0, 0.5, 0.5,
+			0.0, 0.5, 1.0,
+			0.0, 1.0, 1.0,
+			0.0, 1.0, 0.5 
+		],
+		normals: [
+			// base
+			// forward
+			0.0, 0.0, 1.0,
+			0.0, 0.0, 1.0,
+			0.0, 0.0, 1.0,
+			0.0, 0.0, 1.0,
+			// back
+			0.0, 0.0, -1.0,
+			0.0, 0.0, -1.0,
+			0.0, 0.0, -1.0,
+			0.0, 0.0, -1.0,
+			// up
+			0.0, 1.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 1.0, 0.0,
+			// down
+			0.0, -1.0, 0.0,
+			0.0, -1.0, 0.0,
+			0.0, -1.0, 0.0,
+			0.0, -1.0, 0.0,
+			// right
+			1.0, 0.0, 0.0,
+			1.0, 0.0, 0.0,
+			1.0, 0.0, 0.0,
+			1.0, 0.0, 0.0,
+			// left
+			-1.0, 0.0, 0.0,
+			-1.0, 0.0, 0.0,
+			-1.0, 0.0, 0.0,
+			-1.0, 0.0, 0.0,
+			// step
+			// forward
+			0.0, 0.0, 1.0,
+			0.0, 0.0, 1.0,
+			0.0, 0.0, 1.0,
+			0.0, 0.0, 1.0,
+			// back
+			0.0, 0.0, -1.0,
+			0.0, 0.0, -1.0,
+			0.0, 0.0, -1.0,
+			0.0, 0.0, -1.0,
+			// up
+			0.0, 1.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 1.0, 0.0,
+			0.0, 1.0, 0.0,
+			// right
+			1.0, 0.0, 0.0,
+			1.0, 0.0, 0.0,
+			1.0, 0.0, 0.0,
+			1.0, 0.0, 0.0,
+			// left
+			-1.0, 0.0, 0.0,
+			-1.0, 0.0, 0.0,
+			-1.0, 0.0, 0.0,
+			-1.0, 0.0, 0.0
+		],
+		textureCoordinates: [
+			// base
+			// forward
+			0.0, 0.0,
+			1.0, 0.0,
+			1.0, 0.5,
+			0.0, 0.5,
+			// back
+			1.0, 0.0,
+			1.0, 0.5,
+			0.0, 0.5,
+			0.0, 0.0,
+			// up
+			0.0, 1.0,
+			0.0, 0.5,
+			1.0, 0.5,
+			1.0, 1.0,
+			// down
+			1.0, 1.0,
+			0.0, 1.0,
+			0.0, 0.0,
+			1.0, 0.0,
+			// right
+			1.0, 0.0,
+			1.0, 0.5,
+			0.0, 0.5,
+			0.0, 0.0,
+			// left
+			0.0, 0.0,
+			1.0, 0.0,
+			1.0, 0.5,
+			0.0, 0.5, 
+			// step
+			// forward
+			0.0, 0.5,
+			1.0, 0.5,
+			1.0, 1.0,
+			0.0, 1.0,
+			// back
+			1.0, 0.5,
+			1.0, 1.0,
+			0.0, 1.0,
+			0.0, 0.5,
+			// up
+			0.0, 1.0,
+			0.0, 0.5,
+			1.0, 0.5,
+			1.0, 1.0,
+			// right // TODO: Double check these texture coords have been altered correctly
+			0.5, 0.5,
+			0.5, 1.0,
+			0.0, 1.0,
+			0.0, 0.5,
+			// left
+			0.5, 0.5,
+			1.0, 0.5,
+			1.0, 1.0,
+			0.5, 1.0 
+		],
+		indices: [
+			// base
+			0, 1, 2, 
+			0, 2, 3,
+			4, 5, 6,
+			4, 6, 7,
+			8, 9, 10,
+			8, 10, 11,
+			12, 13, 14,
+			12, 14, 15,
+			16, 17, 18,
+			16, 18, 19,
+			20, 21, 22,
+			20, 22, 23,
+			// step
+			24, 25, 26, 
+			24, 26, 27,
+			28, 29, 30,
+			28, 30, 31,
+			32, 33, 34,
+			32, 34, 35,
+			36, 37, 38,
+			36, 38, 39,
+			40, 41, 42,
+			40, 42, 43,
+		 ]
+	};
+
 	// TODO: Extract to config files rather than inline
 	let gaussianShapingConfig = {
 		name: "gaussian",
@@ -112,6 +324,12 @@ module.exports = (function(){
 		yOffset: 0,
 	};
 
+	// Custom collision specified as an array of AABB relative to mesh.bounds min
+	let stepCollision = [
+		{ min: [ 0.0, 0.0, 0.0 ], max: [ 1.0, 0.5, 1.0 ] },
+		{ min: [ 0.0, 0.5, 0.5 ], max: [ 1.0, 1.0, 1.0 ] }
+	]
+
 	let blockConfig = [
 		// Note: isOpaque is used to determine culling, useAlpha currently used for alpha, isSolid used for collision logic
 		{ name: "air", isOpaque: false, isSolid: false },
@@ -119,7 +337,8 @@ module.exports = (function(){
 		{ name: "soil", isOpaque: true, isSolid: true },
 		{ name: "grass", isOpaque: true, isSolid: true },
 		{ name: "water", isOpaque: false, isSolid: false, useAlpha: true },
-		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson } // TODO: Custom collision logic - custom AABBs
+		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson }, // Uses mesh bounds by default for collision
+		{ name: "stone_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision } // TODO: different meshes / collisions based on adjaency (i.e. corner step meshes)
 	];
 
 	let meshingConfig = {
@@ -132,11 +351,13 @@ module.exports = (function(){
 				{ side: 1, top: 0, bottom: 2 }, // grass
 				{ side: 8, top: 8, bottom: 8 }, // water
 				{ side: 3, top: 3, bottom: 3 }, // half-stone
+				{ side: 3, top: 3, bottom: 3 }, // step-stone
 			]
 		}
 		// blockConfig also effects meshing but this is stored on vorld data
 	};
 
+	// These are technically *terrain* generation configs
 	let generationConfigs = {
 		"flat": {
 			generationRules: { 
@@ -161,7 +382,7 @@ module.exports = (function(){
 				}
 			]}
 		},
-		"terrain": {
+		"guassian_shaped_noise": {
 			generationRules: {
 				seed: "XUVNREAZOZJFPQMSAKEMSDJURTQPWEORHZMD",
 				baseWavelength: 128,
@@ -197,6 +418,7 @@ module.exports = (function(){
 			}
 		}
 	};
+	generationConfigs["castle"] = generationConfigs["flat"]; // Reuse flat for castle test
 
 	let performWorkOnBounds = (workerPool, bounds, sectionSize, configDelegate, messageCallback, completeCallback) => {
 		let iMin = bounds.iMin, iMax = bounds.iMax, kMin = bounds.kMin, kMax = bounds.kMax;
@@ -275,7 +497,7 @@ module.exports = (function(){
 				}
 			},
 			() => {
-				if (id == "flat") {
+				if (id == "castle") {
 					// Castle Generator TEST
 					// TODO: generation should be multi-pass, first terrain, then buildings, then meshing
 					// and arguably meshing should be a separate concern as we'll want to add / remove meshes as we move around on large worlds
@@ -285,7 +507,7 @@ module.exports = (function(){
 					let config = { 
 						vorld: Vorld.createSliceFromBounds(vorld, sliceBounds),
 						bounds : sliceBounds,
-						blocks: { wall: [1] }
+						blocks: { wall: [1], step: [6] }
 					}
 					CastleGenerator.generate(config, (data) => {
 						Vorld.tryMerge(vorld, data.vorld)

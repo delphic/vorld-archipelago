@@ -13,7 +13,7 @@ let Menu = require('./gui/menu');
 let scene, overlayScene, camera, cameraRatio = 16 / 9;
 let world = { boxes: [] }, vorld = null;
 let material, alphaMaterial;
-let player, spawnPlayer = true;
+let player;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 let waterColor = vec3.fromValues(0, 113/255, 144/255);
 
@@ -136,7 +136,7 @@ let start = (initialBounds, worldConfigId) => {
 
 	let spawnPlayer = () => {
 		// Spawn Player
-		if (spawnPlayer) {
+		if (player == null) {
 			let playerConfig = {
 				world: world,
 				vorld: vorld,
@@ -144,7 +144,7 @@ let start = (initialBounds, worldConfigId) => {
 				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(0), material: alphaMaterial, position: vec3.create() }),
 				camera: camera,
 				config: playerMovementConfig,
-				size: vec3.fromValues(1,2,1),
+				size: vec3.fromValues(0.8, 2, 0.8),
 				stepHeight: 0.51
 			};
 			// Massive Player!
@@ -152,7 +152,7 @@ let start = (initialBounds, worldConfigId) => {
 			// playerConfig.stepHeight = 2.01;
 			// Tiny Player
 			// playerConfig.size = vec3.fromValues(0.25,0.5,0.25);
-			// playerConfig.stepHeight = 0.25;
+			// playerConfig.stepHeight = 0.26;
 			player = Player.create(playerConfig);
 		}
 
@@ -271,17 +271,17 @@ let createMainMenu = () => {
 			{ text: "Small Test Terrain", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
-				start(smallInitialBounds, "terrain");
+				start(smallInitialBounds, "guassian_shaped_noise");
 			} }, 
 			{ text: "Large Test Terrain", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
-				start(largeInitialBounds, "terrain");
+				start(largeInitialBounds, "guassian_shaped_noise");
 			} }, 
-			{ text: "Flat World", callback: () => {
+			{ text: "Castle Test", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
-				start(smallInitialBounds, "flat");
+				start(smallInitialBounds, "castle");
 			} }
 		]);
 };
