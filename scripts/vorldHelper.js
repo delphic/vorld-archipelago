@@ -328,30 +328,75 @@ module.exports = (function(){
 	let stepCollision = [
 		{ min: [ 0.0, 0.0, 0.0 ], max: [ 1.0, 0.5, 1.0 ] },
 		{ min: [ 0.0, 0.5, 0.5 ], max: [ 1.0, 1.0, 1.0 ] }
-	]
+	];
+
+	let blockIds = {
+		"air": 0,
+		"stone": 1,
+		"soil": 2,
+		"grass": 3,
+		"wood": 4,
+		"leaves": 5,
+		"water": 6,
+		"stone_blocks": 7,
+		"stone_half": 8,
+		"stone_step": 9,
+		"planks": 10,
+		"planks_half": 11,
+		"planks_step": 12
+	};
 
 	let blockConfig = [
 		// Note: isOpaque is used to determine culling, useAlpha currently used for alpha, isSolid used for collision logic
+		// Note: if custom mesh provided and no collision, game uses mesh bounds as default collision AABB
+		// TODO: option for different meshes / collisions based on adjaency (i.e. corner step meshes)
 		{ name: "air", isOpaque: false, isSolid: false },
 		{ name: "stone", isOpaque: true, isSolid: true },
 		{ name: "soil", isOpaque: true, isSolid: true },
 		{ name: "grass", isOpaque: true, isSolid: true },
+		{ name: "wood", isOpaque: true, isSolid: true },
+		{ name: "leaves", isOpaque: false, isSolid: true }, // TODO: need to mesh internal sides (for own blocks) & back faces (or disable backface culling)
 		{ name: "water", isOpaque: false, isSolid: false, useAlpha: true },
-		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson }, // Uses mesh bounds by default for collision
-		{ name: "stone_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision } // TODO: different meshes / collisions based on adjaency (i.e. corner step meshes)
+		{ name: "stone_blocks", isOpaque: true, isSolid: true },
+		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson },
+		{ name: "stone_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision }, 
+		{ name: "planks", isOpaque: true, isSolid: true },
+		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson },
+		{ name: "planks_step", isOpaque: false, isOpaque: true, mesh: stepJson, collision: stepCollision }
+		// TODO: Add fence post mesh and block (provide full collision box)
+		// TODO: Add ladder & vegatation / vines using cutout
 	];
 
+	/* atlas indices: 
+	* 0: Grass Top
+	* 1: Grass Side
+	* 2: Soil / Grass Bottom
+	* 3: Stone
+	* 4: Stone Blocks
+	* 5: Bedrock
+	* 6: Wood top / bottom
+	* 7: Wood side
+	* 8: Wood Planks
+	* 9: Leaves
+	* 10: Water
+	*/
 	let meshingConfig = {
 		atlas: {
-			textureArraySize: 9,
+			textureArraySize: 11,
 			blockToTileIndex: [
 				null,
 				{ side: 3, top: 3, bottom: 3 }, // stone
 				{ side: 2, top: 2, bottom: 2 }, // soil
 				{ side: 1, top: 0, bottom: 2 }, // grass
-				{ side: 8, top: 8, bottom: 8 }, // water
-				{ side: 3, top: 3, bottom: 3 }, // half-stone
-				{ side: 3, top: 3, bottom: 3 }, // step-stone
+				{ side: 7, top: 6, bottom: 6 }, // wood
+				{ side: 9, top: 9, bottom: 9 }, // leaves
+				{ side: 10, top: 10, bottom: 10 }, // water
+				{ side: 4, top: 4, bottom: 4 }, // stone-blocks
+				{ side: 4, top: 4, bottom: 4 }, // half-stone
+				{ side: 4, top: 4, bottom: 4 }, // step-stone
+				{ side: 8, top: 8, bottom: 8 }, // planks
+				{ side: 8, top: 8, bottom: 8 }, // half-planks
+				{ side: 8, top: 8, bottom: 8 }, // step-planks
 			]
 		}
 		// blockConfig also effects meshing but this is stored on vorld data
@@ -366,19 +411,19 @@ module.exports = (function(){
 				blocksByThreshold: [ 0 ],
 				verticalTransforms: [{
 					conditions: [ "blockValue", "yMax" ],
-					block: 0,
+					block: blockIds.air,
 					yMax: -4,
-					targetBlock: 1
+					targetBlock: blockIds.stone
 				}, {
 					conditions: [ "blockValue", "yMax" ],
-					block: 0,
+					block: blockIds.air,
 					yMax: -2,
-					targetBlock: 2
+					targetBlock: blockIds.soil
 				}, {
 					conditions: [ "blockValue", "yMax" ],
-					block: 0,
+					block: blockIds.air,
 					yMax: -1,
-					targetBlock: 3
+					targetBlock: blockIds.grass
 				}
 			]}
 		},
@@ -392,25 +437,25 @@ module.exports = (function(){
 				blocksByThreshold: [ 0, 2, 1 ],	// 0 = Air, 1 = Stone, 2 = Soil, 3 = Grass 
 				verticalTransforms: [{
 						conditions: [ "blockValue", "yMax" ],
-						block: 0,
+						block: blockIds.air,
 						yMax: -15,
-						targetBlock: 1
+						targetBlock: blockIds.stone
 					}, {
 						conditions: [ "blockValue", "yRange" ],
-						block: 0,
+						block: blockIds.air,
 						yMin: -14,
 						yMax: -14,
-						targetBlock: 2
+						targetBlock: blockIds.soil
 					}, {
 						conditions: [ "blockValue", "yMax" ],
-						block: 0,
+						block: blockIds.air,
 						yMax: 0,
-						targetBlock: 4, // 4 is water
+						targetBlock: blockIds.water, 
 					}, {
 						conditions: [ "blockValue", "blockAboveValue", "yMin" ],
-						blockAbove: 0,
+						blockAbove: blockIds.air,
 						block: 2,
-						targetBlock: 3,
+						targetBlock: blockIds.grass,
 						yMin: 0
 					}
 				],
@@ -507,7 +552,7 @@ module.exports = (function(){
 					let config = { 
 						vorld: Vorld.createSliceFromBounds(vorld, sliceBounds),
 						bounds : sliceBounds,
-						blocks: { wall: [1], step: [6] }
+						blocks: { wall: [ blockIds.stone_blocks ], step: [ blockIds.stone_step ] }
 					}
 					CastleGenerator.generate(config, (data) => {
 						Vorld.tryMerge(vorld, data.vorld)

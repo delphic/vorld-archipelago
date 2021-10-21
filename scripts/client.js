@@ -392,10 +392,12 @@ window.addEventListener('load', (event) => {
 	totalAssetsToLoad = assetLoadingCount++;
 	let image = new Image();
 	image.onload = function() {
-		let shaderConfig = VoxelShader.create();
+		let shaderConfig = VoxelShader.create(1.0);
+		let alphaShaderConfig = VoxelShader.create();
 		let shader = Fury.Shader.create(shaderConfig);
+		let alphaShader = Fury.Shader.create(alphaShaderConfig);
 		material = Fury.Material.create({ shader: shader, properties: { "fogColor": skyColor, "fogDensity": 0.005 }});
-		alphaMaterial = Fury.Material.create({ shader: shader, properties: { alpha: true, "fogColor": skyColor, "fogDensity": 0.005 }});
+		alphaMaterial = Fury.Material.create({ shader: alphaShader, properties: { alpha: true, "fogColor": skyColor, "fogDensity": 0.005 }});
 		// ^^ to apply fog based on the depth of the water you're looking through properly, need to render depth buffer out from solid geometry pass
 		// and use it as texture input, whilst this would be fun, it's a bit too much of a tangent right now, sooo quad in front of the camera! 
 		// https://stackoverflow.com/questions/23362076/opengl-how-to-access-depth-buffer-values-or-gl-fragcoord-z-vs-rendering-d
