@@ -11,6 +11,7 @@ let Primitives = require('./primitives');
 let Menu = require('./gui/menu');
 
 let scene, overlayScene, camera, cameraRatio = 16 / 9;
+let freeFlyCamera = null;
 let world = { boxes: [] }, vorld = null;
 let material, alphaMaterial;
 let player;
@@ -44,66 +45,7 @@ let playerMovementConfig = {
 	waterMaxMovementSpeed: 3
 };
 
-// TODO: Extract to Fury Utils
-let freeLookCameraUpdate = (function(){
-	// TODO: Extract into free look camera
-	let rotateRate = 0.1 * Math.PI;
-	let zoomRate = 16;
-
-	let Input = Fury.Input;
-	let localx = vec3.create();
-	let localy = vec3.create();
-	let localz = vec3.create();
-	
-	// https://en.wikipedia.org/wiki/Conversion_between_quaternions_and_Euler_angles
-	let getRoll = function(q) {
-		// Note: glMatrix is x,y,z,w where as wiki assumes w,x,y,z!
-		let sinr_cosp = 2 * (q[3] * q[0] + q[1] * q[2]);
-		let cosr_cosp = 1 - 2 * (q[0] * q[0] + q[1] * q[1]);
-		return Math.atan(sinr_cosp / cosr_cosp);
-		// If you want to know sector you need atan2(sinr_cosp, cosr_cosp)
-		// but we don't in this case.
-	};
-
-	return (elapsed) => {
-		let q = camera.rotation;
-		let p = camera.position;
-		Fury.Maths.quatLocalAxes(q, localx, localy, localz);
-		
-		if (Input.mouseDown(2)) {
-			let xRotation = Input.MouseDelta[0] * rotateRate*elapsed;
-			let yRotation = Input.MouseDelta[1] * rotateRate*elapsed;
-			Fury.Maths.quatRotate(q, q, -xRotation, Fury.Maths.vec3Y);
-	
-			let roll = getRoll(q);
-			let clampAngle = 10 * Math.PI/180;
-			if (Math.sign(roll) == Math.sign(yRotation) || Math.abs(roll - yRotation) < 0.5*Math.PI - clampAngle) {
-				quat.rotateX(q, q, -yRotation);
-			}
-		}
-	
-		if (Input.keyDown("w")) {
-			vec3.scaleAndAdd(p, p, localz, -zoomRate*elapsed);
-		}
-		if (Input.keyDown("s")) {
-			vec3.scaleAndAdd(p, p, localz, zoomRate*elapsed);
-		}
-		if (Input.keyDown("a")) {
-			vec3.scaleAndAdd(p, p, localx, -zoomRate*elapsed);
-		}
-		if (Input.keyDown("d")) {
-			vec3.scaleAndAdd(p, p, localx, zoomRate*elapsed);
-		}
-		if (Input.keyDown("q")) {
-			vec3.scaleAndAdd(p, p, localy, -zoomRate*elapsed);
-		}
-		if (Input.keyDown("e")) {
-			vec3.scaleAndAdd(p, p, localy, zoomRate*elapsed);
-		}
-	};
-})();
-
-let initialised = false;
+let initialised = false, generating = false;
 let setCameraInitialPosition = (camera) => {
 	vec3.set(camera.position, 53.0, 55.0, 123.0),
 	quat.set(camera.rotation, -0.232, 0.24, 0.06, 0.94)
@@ -125,6 +67,12 @@ let start = (initialBounds, worldConfigId) => {
 		overlayScene = Fury.Scene.create({ camera: camera });
 		Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2], 1.0);
 		
+		freeFlyCamera = require('./freeFlyCamera').create({
+			rotateRate: 0.1,
+			moveSpeed: 16,
+			camera: camera
+		});
+
 		GameLoop.init({ loop: loop, maxFrameTimeMs: 66 });
 		initialised = true;
 	}
@@ -162,9 +110,11 @@ let start = (initialBounds, worldConfigId) => {
 	};
 
 	let onVorldCreated = (data) => {
+		generating = false;
 		loadingScreen.showReadyButton("Enter Vorld", spawnPlayer);
 	};
 
+	generating = true;
 	vorld = VorldHelper.init({
 			scene: scene,
 			material: material,
@@ -236,7 +186,6 @@ let pauseGame = (e) => {
 	}
 };
 
-
 let time = 0;
 let loop = (elapsed) => {
 	time += elapsed;
@@ -249,8 +198,8 @@ let loop = (elapsed) => {
 		// Note after having the same tab open for a long time with multiple refreshes:
 		// a short time after refresh and generation long system tasks would block the main thread  
 		// for over a second however closing that tab and openning a new one made it disappear
-	} else {
-		freeLookCameraUpdate(elapsed);
+	} else if (!generating && freeFlyCamera) {
+		freeFlyCamera.update(elapsed);
 	}
 
 	camera.clear = true;
