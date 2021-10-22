@@ -372,7 +372,7 @@ module.exports = (function(){
 	* 1: Grass Side
 	* 2: Soil / Grass Bottom
 	* 3: Stone
-	* 4: Stone Blocks
+	* 4: Stone Blocks (well currently brick pattern technically)
 	* 5: Bedrock
 	* 6: Wood top / bottom
 	* 7: Wood side
@@ -552,7 +552,7 @@ module.exports = (function(){
 					let config = { 
 						vorld: Vorld.createSliceFromBounds(vorld, sliceBounds),
 						bounds : sliceBounds,
-						blocks: { wall: [ blockIds.stone_blocks ], step: [ blockIds.stone_step ] }
+						blocks: { wall: [ blockIds.stone_blocks ], step: [ blockIds.stone_half, blockIds.stone_step ] }
 					}
 					CastleGenerator.generate(config, (data) => {
 						Vorld.tryMerge(vorld, data.vorld)
