@@ -355,7 +355,11 @@ module.exports = (function(){
 		{ name: "soil", isOpaque: true, isSolid: true },
 		{ name: "grass", isOpaque: true, isSolid: true },
 		{ name: "wood", isOpaque: true, isSolid: true },
-		{ name: "leaves", isOpaque: false, isSolid: true }, // TODO: need to mesh internal sides (for own blocks) & back faces (or disable backface culling)
+		{ name: "leaves", isOpaque: false, isSolid: true },
+		// TODO: need to mesh internal sides (for own blocks) & back faces on 'external sides' (meshInternals and meshBackFaces - but inset to avoid z-fighting)
+		// (or disable backface culling - would need a new material and then in bind material to do that, but would need to add an unbind method to reenable)
+		// In order to use a new material would need another mesh created instead of packing into existing mesh 
+		// Note turning off back face cull may result in z-fighting so will need to alter meshing algorithm to inset quad for cutouts slightly from solid blocks
 		{ name: "water", isOpaque: false, isSolid: false, useAlpha: true },
 		{ name: "stone_blocks", isOpaque: true, isSolid: true },
 		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson },
