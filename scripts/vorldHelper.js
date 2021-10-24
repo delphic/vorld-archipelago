@@ -614,8 +614,6 @@ module.exports = (function(){
 				progressDelegate("meshing", count, total); // Note: data contains.progress could also just send that
 				if (data.mesh) {
 					let mesh = Fury.Mesh.create(data.mesh);
-					mesh.tileBuffer = Fury.Renderer.createBuffer(data.mesh.tileIndices, 1);
-					// TODO: Use customBuffer parameter - will require update to shader, see fury model demo for reference
 					let position = vec3.clone(data.chunkIndices);
 					vec3.scale(position, position, vorld.chunkSize);
 					let chunkMaterial = data.alpha ? alphaMaterial : material;
