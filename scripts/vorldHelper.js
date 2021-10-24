@@ -575,11 +575,11 @@ module.exports = (function(){
 					// and arguably meshing should be a separate concern as we'll want to add / remove meshes as we move around on large worlds
 					// Also each stage should be easy to extract into a web worker
 					let CastleGenerator = require('./generators/castle/generator');
-					let sliceBounds = { xMin: -3, xMax: 3, zMin: -3, zMax: 3, yMin: 0, yMax: 15 };
+					let sliceBounds = { xMin: -3, xMax: 3, zMin: -3, zMax: 3, yMin: 0, yMax: 20 };
 					let config = { 
 						vorld: Vorld.createSliceFromBounds(vorld, sliceBounds),
 						bounds : sliceBounds,
-						blocks: { wall: [ blockIds.stone_blocks ], step: [ blockIds.stone_half, blockIds.stone_step ] }
+						blocks: { wall: [ blockIds.stone, blockIds.stone_blocks ], floor: [ blockIds.planks ], step: [ blockIds.stone_half, blockIds.stone_step ] }
 					}
 					CastleGenerator.generate(config, (data) => {
 						Vorld.tryMerge(vorld, data.vorld)
