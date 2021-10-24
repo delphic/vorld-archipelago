@@ -393,22 +393,22 @@ window.addEventListener('load', (event) => {
 	let image = new Image();
 	image.onload = function() {
 		let shaderConfig = VoxelShader.create(1.0);
-		let alphaShaderConfig = VoxelShader.create();
+		let alphaShaderConfig = VoxelShader.create(); // TODO: Consider adding cutout uniform so can avoid shader program switches
 		let shader = Fury.Shader.create(shaderConfig);
 		let alphaShader = Fury.Shader.create(alphaShaderConfig);
-		material = Fury.Material.create({ shader: shader, properties: { "fogColor": skyColor, "fogDensity": 0.005 }});
-		alphaMaterial = Fury.Material.create({ shader: alphaShader, properties: { alpha: true, "fogColor": skyColor, "fogDensity": 0.005 }});
-		// ^^ to apply fog based on the depth of the water you're looking through properly, need to render depth buffer out from solid geometry pass
-		// and use it as texture input, whilst this would be fun, it's a bit too much of a tangent right now, sooo quad in front of the camera! 
-		// https://stackoverflow.com/questions/23362076/opengl-how-to-access-depth-buffer-values-or-gl-fragcoord-z-vs-rendering-d
 
 		let targetWidth = 128; // => Scale 8 for 16 pixels, 4 for 32 pixels, 2 for 64 pixels, 1 for 128 pixels+
 		scale = Math.ceil(targetWidth / image.width);  
 		let upscaled = Fury.Utils.createScaledImage({ image: image, scale: scale });
 		let textureSize = upscaled.width, textureCount = Math.round(upscaled.height / upscaled.width);
 		let textureArray = Fury.Renderer.createTextureArray(upscaled, textureSize, textureSize, textureCount, "pixel", true);
-		material.setTexture(textureArray);
-		alphaMaterial.setTexture(textureArray);
+
+		material = Fury.Material.create({ shader: shader, texture: textureArray,  properties: { "fogColor": skyColor, "fogDensity": 0.005 }});
+		alphaMaterial = Fury.Material.create({ shader: alphaShader, texture: textureArray, properties: { alpha: true, "fogColor": skyColor, "fogDensity": 0.005 }});
+		// ^^ to apply fog based on the depth of the water you're looking through properly, need to render depth buffer out from solid geometry pass
+		// and use it as texture input, whilst this would be fun, it's a bit too much of a tangent right now, sooo quad in front of the camera! 
+		// https://stackoverflow.com/questions/23362076/opengl-how-to-access-depth-buffer-values-or-gl-fragcoord-z-vs-rendering-d
+
 		loadingCallback();
 	};
 	image.src = "images/atlas_array.png";
