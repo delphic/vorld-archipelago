@@ -207,11 +207,11 @@ let CharacterController = module.exports = (() => {
 				let deltaY = targetPosition[1] - playerPosition[1];
 				let deltaZ = targetPosition[2] - playerPosition[2];
 				let intersectsX = Physics.Box.intersectsAxisOffset(box, playerBox, 0, deltaX);
-				let entersX = deltaX && Physics.Box.entersAxis(box, playerBox, 0, deltaX);
+				let entersX = !!deltaX && Physics.Box.entersAxis(box, playerBox, 0, deltaX);
 				let intersectsY = Physics.Box.intersectsAxisOffset(box, playerBox, 1, deltaY);
-				let entersY = deltaY && Physics.Box.entersAxis(box, playerBox, 1, targetPosition[1] - playerPosition[1]);
+				let entersY = !!deltaY && Physics.Box.entersAxis(box, playerBox, 1, deltaY);
 				let intersectsZ = Physics.Box.intersectsAxisOffset(box, playerBox, 2, deltaZ);
-				let entersZ = deltaZ && Physics.Box.entersAxis(box, playerBox, 2, targetPosition[2] - playerPosition[2]);
+				let entersZ = !!deltaZ && Physics.Box.entersAxis(box, playerBox, 2, deltaZ);
 		
 				if ((intersectsX || entersX) && (intersectsY || entersY) && (intersectsZ || entersZ)
 					&& (entersX || entersY || entersZ)) {
