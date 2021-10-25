@@ -8,14 +8,17 @@ module.exports = (function(){
 	let exports = {};
 
 	let scene = null, material = null, alphaMaterial = null;
+	let sceneChunkObjects = {};
 	let generationWorkerPool = WorkerPool.create({ src: 'scripts/generator-worker.js', maxWorkers: 8 });
 	let mesherWorkerPool = WorkerPool.create({ src: 'scripts/mesher-worker.js', maxWorkers: 4 });
+	let boundsCache = {};
 
 	// TODO: IMPORTANT we really need to do a pass on handness because when I updated the UVs for right what I thought was left updated instead...
 	// this is made more complex by the fact the camera points in -z. It updated right from the perspective of the camera, but I expected it to update the other side
 	// It's made even more complex by noting the camera does not spawn facing in -z it's at an angle to give a nice view... so it could in fact still be fine.
 	// On the other hand when I specificed step block to face right when spawning first on the left hand side it was stepping in the direction I thought it should....
 
+	// TODO: Move to Fury primitives - also, this is a Cuboid, not a cube.
 	let createCubeMesh = (xMin, xMax, yMin, yMax, zMin, zMax) => {
 		// Note no UV offset - mapped directly to world position
 		return {
@@ -617,10 +620,99 @@ module.exports = (function(){
 					let position = vec3.clone(data.chunkIndices);
 					vec3.scale(position, position, vorld.chunkSize);
 					let chunkMaterial = data.alpha ? alphaMaterial : material;
-					scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true });
+					let key = data.chunkIndices[0] + "_" + data.chunkIndices[1] + "_" + data.chunkIndices[2];
+					sceneChunkObjects[key] = scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true });
 				}
 			},
 			callback);
+	};
+
+	exports.addBlock = (vorld, x, y, z, block) => {
+		let chunkIndices = Maths.vec3Pool.request();
+		chunkIndices[0] = Math.floor(x / vorld.chunkSize);
+		chunkIndices[1] = Math.floor(y / vorld.chunkSize);
+		chunkIndices[2] = Math.floor(z / vorld.chunkSize); 
+		let key = chunkIndices[0] + "_" + chunkIndices[1] + "_" + chunkIndices[2];
+		// ^^ TODO: Vorld Utils
+		Vorld.addBlock(vorld, x, y, z, block);
+
+		// Determine chunk bounds (Remeshing adjacent chunks if necessary)
+		if (x - chunkIndices[0] * vorld.chunkSize == 0 && Vorld.getBlock(vorld, x - 1, y, z)) {
+			boundsCache.iMin = chunkIndices[0] - 1;
+		} else {
+			boundsCache.iMin = chunkIndices[0];
+		}
+		if (x - chunkIndices[0] * vorld.chunkSize == vorld.chunkSize - 1 && Vorld.getBlock(vorld, x + 1, y, z)) {
+			boundsCache.iMax = chunkIndices[0] + 1;
+		} else {
+			boundsCache.iMax = chunkIndices[0];
+		}
+		if (y - chunkIndices[1] * vorld.chunkSize == 0 && Vorld.getBlock(vorld, x, y - 1, z)) {
+			boundsCache.jMin = chunkIndices[1] - 1;
+		} else {
+			boundsCache.jMin = chunkIndices[1];
+		}
+		if (y - chunkIndices[1] * vorld.chunkSize == vorld.chunkSize - 1 && Vorld.getBlock(vorld, x, y + 1, z)) {
+			boundsCache.jMax = chunkIndices[1] + 1;
+		} else {
+			boundsCache.jMax = chunkIndices[1];
+		}
+		if (z - chunkIndices[2] * vorld.chunkSize == 0 && Vorld.getBlock(vorld, x, y, z - 1)) {
+			boundsCache.kMin = chunkIndices[2] - 1;
+		} else {
+			boundsCache.kMin = chunkIndices[2];
+		}
+		if (z - chunkIndices[2] * vorld.chunkSize == vorld.chunkSize - 1 && Vorld.getBlock(vorld, x, y, z + 1)) {
+			boundsCache.kMax = chunkIndices[2] + 1;
+		} else {
+			boundsCache.kMax = chunkIndices[2];
+		}
+
+		Maths.vec3Pool.return(chunkIndices);
+
+		let pendingMeshData = [];
+		// Could potentially do this on main thread instead.
+		performWorkOnBounds(mesherWorkerPool, boundsCache, 1,
+			(sectionBounds) => {
+				meshingConfig.bounds = sectionBounds;
+				meshingConfig.vorld = Vorld.createSlice(
+					vorld,
+					sectionBounds.iMin - 1,
+					sectionBounds.iMax + 1,
+					sectionBounds.jMin - 1,
+					sectionBounds.jMax + 1,
+					sectionBounds.kMin - 1,
+					sectionBounds.kMax + 1);
+				return meshingConfig;
+			}, (data, count, total) => {
+				if (data.mesh) {
+					pendingMeshData.push(data);
+				}
+			}, () => {
+				// If removing a block, always remove existing scene object first
+				// (as it may be the last block in a chunk at which point it won't remesh)
+				if (!block && sceneChunkObjects[key]) {
+					scene.remove(sceneChunkObjects[key]);
+					sceneChunkObjects[key] = null;
+				}
+				for (let i = 0, l = pendingMeshData.length; i < l; i++) {
+					let data = pendingMeshData[i];
+					let key = data.chunkIndices[0] + "_" + data.chunkIndices[1] + "_" + data.chunkIndices[2];
+					if (sceneChunkObjects[key]) {
+						scene.remove(sceneChunkObjects[key]);
+						sceneChunkObjects[key] = null;
+					}
+					let mesh = Fury.Mesh.create(data.mesh);
+					let position = vec3.clone(data.chunkIndices);
+					vec3.scale(position, position, vorld.chunkSize);
+					let chunkMaterial = data.alpha ? alphaMaterial : material;
+					sceneChunkObjects[key] = scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true });
+				}
+			});
+	};
+
+	exports.removeBlock = (vorld, x, y, z) => {
+		exports.addBlock(vorld, x, y, z, 0);
 	};
 
 	exports.init = (parameters, callback, progressDelegate) => {

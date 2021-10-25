@@ -1,9 +1,10 @@
 let Fury = require('../fury/src/fury');
-const { GameLoop } = require('../fury/src/fury');
+const { GameLoop, Input, Maths } = require('../fury/src/fury');
 const { vec3, quat } = require('../fury/src/maths');
 let Vorld = require('../vorld/core/vorld');
 let VoxelShader = require('../vorld/core/shader');
 let VorldHelper = require('./vorldHelper');
+let VorldPhysics = require('../vorld/core/physics');
 let Player = require('./player');
 let GUI = require('./gui');
 let Audio = require('./audio');
@@ -92,7 +93,7 @@ let start = (initialBounds, worldConfigId) => {
 				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(0), material: alphaMaterial, position: vec3.create() }),
 				camera: camera,
 				config: playerMovementConfig,
-				size: vec3.fromValues(0.8, 2, 0.8),
+				size: vec3.fromValues(0.75, 2, 0.75), // BUG: If you use size 0.8 - you can walk through blocks at axis = 7 when moving from axis = 8.
 				stepHeight: 0.51
 			};
 			// Massive Player!
@@ -186,6 +187,18 @@ let pauseGame = (e) => {
 	}
 };
 
+let castCameraForwards = (vorld, camera, castDistance, hitDelegate) => {
+	let hitPoint = Maths.vec3Pool.request();
+	let forward = Maths.vec3Pool.request();
+	vec3.transformQuat(forward, Maths.vec3Z, camera.rotation);
+	vec3.negate(forward, forward); // Camera faces in -z
+	if (VorldPhysics.raycast(hitPoint, vorld, camera.position, forward, castDistance)) {
+		hitDelegate(hitPoint, forward);
+	}
+	Maths.vec3Pool.return(hitPoint);
+	Maths.vec3Pool.return(forward);
+};
+
 let time = 0;
 let loop = (elapsed) => {
 	time += elapsed;
@@ -194,6 +207,42 @@ let loop = (elapsed) => {
 		player.update(elapsed);
 		Audio.setListenerPosition(player.position);
 		// TODO: listener orientation
+
+		// Block Adding TEST
+		let castDistance = 8;
+		if (Input.mouseDown(0, true)) {
+			castCameraForwards(vorld, camera, castDistance, (hitPoint, forward) => {
+				// Detect which face was hit and shift hit point way from that face
+				for (let i = 0; i < 3; i++) {
+					if (Maths.approximately(Math.round(hitPoint[i]), hitPoint[i])) {
+						hitPoint[i] -= 0.5 * forward[i];
+						break;
+					}
+				}
+				VorldHelper.addBlock(
+					vorld,
+					Math.floor(hitPoint[0]),
+					Math.floor(hitPoint[1]),
+					Math.floor(hitPoint[2]),
+					1);
+			});
+		}
+		if (Input.mouseDown(2, true)) {
+			castCameraForwards(vorld, camera, castDistance, (hitPoint, forward) => {
+				// Detect which face was hit and shift hit point way into that face
+				for (let i = 0; i < 3; i++) {
+					if (Maths.approximately(Math.round(hitPoint[i]), hitPoint[i])) {
+						hitPoint[i] += 0.5 * forward[i];
+						break;
+					}
+				}
+				VorldHelper.removeBlock(
+					vorld,
+					Math.floor(hitPoint[0]),
+					Math.floor(hitPoint[1]),
+					Math.floor(hitPoint[2]));
+			});
+		}
 
 		// Note after having the same tab open for a long time with multiple refreshes:
 		// a short time after refresh and generation long system tasks would block the main thread  
