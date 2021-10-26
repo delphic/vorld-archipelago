@@ -640,6 +640,8 @@ module.exports = (function(){
 		Vorld.addBlock(vorld, x, y, z, block);
 
 		// Determine chunk bounds (Remeshing adjacent chunks if necessary)
+		// BUG: Does not account for remeshing required to make baked AO work TODO: check adajecent blocks on diagonals too
+		// Note this implies that you can remesh chunks diagonally adajecent as well
 		if (x - chunkIndices[0] * vorld.chunkSize == 0 && Vorld.getBlock(vorld, x - 1, y, z)) {
 			boundsCache.iMin = chunkIndices[0] - 1;
 		} else {
@@ -733,7 +735,31 @@ module.exports = (function(){
 	};
 
 	exports.removeBlock = (vorld, x, y, z) => {
-		exports.addBlock(vorld, x, y, z, 0);
+		// Check horizontally adjacent blocks for water
+		let adjacentWaterBlock = false;
+		for (let i = -1; i <= 1; i++) {
+			for (let j = -1; j <= 1; j++) {
+				if ((i != 0 || j != 0) && Math.abs(i) != Math.abs(j)) {
+					if (Vorld.getBlock(vorld, x + i, y, z + j) == blockIds.water) {
+						adjacentWaterBlock = true;
+						break;
+					}
+				}
+			}
+		}
+		// Also check above for water
+		if (Vorld.getBlock(vorld, x, y + 1, z) == blockIds.water) {
+			adjacentWaterBlock = true;
+		}
+		// TODO: Replace this with flow simulation so that more than the 
+		// block you're removing can get filled once exposed to water 
+		// Or just do a graph search and fill all appropriate blocks from here
+
+		if (!adjacentWaterBlock) {
+			exports.addBlock(vorld, x, y, z, 0);
+		} else {
+			exports.addBlock(vorld, x, y, z, blockIds.water);
+		}
 	};
 
 	exports.init = (parameters, callback, progressDelegate) => {
