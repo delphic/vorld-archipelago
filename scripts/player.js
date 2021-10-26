@@ -3,6 +3,7 @@ const { Input, Physics, Maths } = require('../fury/src/fury');
 const { vec3, quat, vec3Pool } = require('../fury/src/maths');
 const CharacterController = require ('./characterController.js');
 const Vorld = require('../vorld/core/vorld');
+const VorldHelper = require('./vorldHelper');
 const VorldPhysics = require('../vorld/core/physics');
 
 let Player = module.exports = (function(){
@@ -119,6 +120,28 @@ let Player = module.exports = (function(){
 		let localGroundX = vec3.create(), localGroundZ = vec3.create();
 		let contacts = vec3.create();
 
+		// Block placement
+		let placementDistance = 5;
+		if (parameters.placementDistance) {
+			placementDistance =  parameters.placementDistance;
+		}
+		let blockToPlace = 1; // TODO: UI to control
+		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate) => {
+			let hitPoint = Maths.vec3Pool.request();
+
+			// TODO: get camera look direction util
+			let cameraLookDirection = Maths.vec3Pool.request();
+			vec3.transformQuat(cameraLookDirection, Maths.vec3Z, camera.rotation);
+			vec3.negate(cameraLookDirection, cameraLookDirection); // Camera faces in -z
+			
+			if (VorldPhysics.raycast(hitPoint, vorld, camera.position, cameraLookDirection, castDistance)) {
+				hitDelegate(hitPoint, cameraLookDirection);
+			}
+
+			Maths.vec3Pool.return(hitPoint);
+			Maths.vec3Pool.return(cameraLookDirection);
+		};
+
 		// Input Variables
 		let ry = 0, rx = 0;
 		let localInputVector = vec3.create();
@@ -126,6 +149,7 @@ let Player = module.exports = (function(){
 		let isWalking = false;
 		let attemptJump = false; 
 		let attemptSprint = false;
+		let attemptPlacement = false, attemptRemoval = false;
 		let verticalLookAngle = 0;
 		let maxContactSpeedFactor = 1.5; // Just limiting it 1:1 feels bad
 		let maxContactSpeed = [maxMovementSpeed, 0, maxMovementSpeed];
@@ -176,6 +200,9 @@ let Player = module.exports = (function(){
 
 			isWalking = Input.keyDown("Shift");
 			attemptJump = Input.keyDown("Space", true);
+
+			attemptPlacement = Input.mouseDown(0, true);
+			attemptRemoval = Input.mouseDown(2, true);
 		};
 
 		let calculateGlobalXZInputVector = (out, localInputVector, forward, left) => {
@@ -498,6 +525,40 @@ let Player = module.exports = (function(){
 
 					vec3Pool.return(targetPoint);
 				}
+			}
+
+			// Block placement
+			if (attemptPlacement) {
+				castInCameraLookDirection(vorld, camera, placementDistance, (hitPoint, cameraLookDirection) => {
+					// Detect which face was hit and shift hit point way from that face
+					for (let i = 0; i < 3; i++) {
+						if (Maths.approximately(Math.round(hitPoint[i]), hitPoint[i])) {
+							hitPoint[i] -= 0.5 * cameraLookDirection[i];
+							break;
+						}
+					}
+					VorldHelper.addBlock(
+						vorld,
+						Math.floor(hitPoint[0]),
+						Math.floor(hitPoint[1]),
+						Math.floor(hitPoint[2]),
+						1);
+				});
+			} else if (attemptRemoval) {
+				castInCameraLookDirection(vorld, camera, placementDistance, (hitPoint, cameraLookDirection) => {
+					// Detect which face was hit and shift hit point way into that face
+					for (let i = 0; i < 3; i++) {
+						if (Maths.approximately(Math.round(hitPoint[i]), hitPoint[i])) {
+							hitPoint[i] += 0.5 * cameraLookDirection[i];
+							break;
+						}
+					}
+					VorldHelper.removeBlock(
+						vorld,
+						Math.floor(hitPoint[0]),
+						Math.floor(hitPoint[1]),
+						Math.floor(hitPoint[2]));
+				});
 			}
 		};
 
