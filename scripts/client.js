@@ -95,7 +95,7 @@ let start = (initialBounds, worldConfigId) => {
 				config: playerMovementConfig,
 				size: vec3.fromValues(0.75, 2, 0.75), // BUG: If you use size 0.8 - you can walk through blocks at axis = 7 when moving from axis = 8.
 				stepHeight: 0.51,
-				placementDistance: 8
+				placementDistance: 5.5
 			};
 			// Massive Player!
 			// playerConfig.size = vec3.fromValues(4,8,4);

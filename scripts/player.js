@@ -128,12 +128,9 @@ let Player = module.exports = (function(){
 		let blockToPlace = 1; // TODO: UI to control
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate) => {
 			let hitPoint = Maths.vec3Pool.request();
-
-			// TODO: get camera look direction util
 			let cameraLookDirection = Maths.vec3Pool.request();
-			vec3.transformQuat(cameraLookDirection, Maths.vec3Z, camera.rotation);
-			vec3.negate(cameraLookDirection, cameraLookDirection); // Camera faces in -z
-			
+
+			camera.getLookDirection(cameraLookDirection);
 			if (VorldPhysics.raycast(hitPoint, vorld, camera.position, cameraLookDirection, castDistance)) {
 				hitDelegate(hitPoint, cameraLookDirection);
 			}
@@ -487,7 +484,11 @@ let Player = module.exports = (function(){
 				}
 			}
 
-			inWater = Vorld.getBlock(vorld, Math.floor(player.position[0]), Math.floor(player.position[1]), Math.floor(player.position[2]));
+			// Use water movement inside any block not air
+			// NOTE: Only works for centered player position and player height > 1 - else would 'swim' on top of step and half blocks
+			// or you could jump into them from below and swim along them, which would be fun, but not really intentional.
+			// TODO: More robust check against block types so we're not dependent on player size for this to work.
+			inWater = !!Vorld.getBlock(vorld, Math.floor(player.position[0]), Math.floor(player.position[1]), Math.floor(player.position[2]));
 			
 			// Smoothly move the camera - no jerks from sudden movement please!
 			// Technically displacement isn't the issue, it's acceleration
@@ -504,7 +505,8 @@ let Player = module.exports = (function(){
 			if (waterQuad) {
 				// Set active if any part of the near clip plane would be in water
 				let x = Math.floor(camera.position[0]), y = Math.floor(camera.position[1] - 1.001 * camera.near), z = Math.floor(camera.position[2]);
-				waterQuad.active = !!Vorld.getBlock(vorld, x, y, z);
+				waterQuad.active = !!Vorld.getBlock(vorld, x, y, z) && !Vorld.isBlockSolid(vorld, x, y, z); 
+				// TODO: Should check if actually water, and show different properties depending on block type but for now any non-solid block is 'water'
 				if (waterQuad.active) {
 					let upperY = Math.floor(camera.position[1] + 1.001 * camera.near); 
 					waterQuad.transform.scale[0] = camera.ratio; // technically overkill, as we're closer than 1
@@ -542,7 +544,7 @@ let Player = module.exports = (function(){
 						Math.floor(hitPoint[0]),
 						Math.floor(hitPoint[1]),
 						Math.floor(hitPoint[2]),
-						1);
+						blockToPlace);
 				});
 			} else if (attemptRemoval) {
 				castInCameraLookDirection(vorld, camera, placementDistance, (hitPoint, cameraLookDirection) => {
