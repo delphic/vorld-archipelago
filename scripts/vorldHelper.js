@@ -621,7 +621,10 @@ module.exports = (function(){
 					vec3.scale(position, position, vorld.chunkSize);
 					let chunkMaterial = data.alpha ? alphaMaterial : material;
 					let key = data.chunkIndices[0] + "_" + data.chunkIndices[1] + "_" + data.chunkIndices[2];
-					sceneChunkObjects[key] = scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true });
+					if (!sceneChunkObjects[key]) {
+						sceneChunkObjects[key] = [];
+					}
+					sceneChunkObjects[key].push(scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true }));
 				}
 			},
 			callback);
@@ -689,24 +692,42 @@ module.exports = (function(){
 					pendingMeshData.push(data);
 				}
 			}, () => {
-				// If removing a block, always remove existing scene object first
-				// (as it may be the last block in a chunk at which point it won't remesh)
+				// If removing a block, always remove existing scene objects first
+				// (as it may be the last block in a chunk at which point it there will be no pending mesh data to remesh)
 				if (!block && sceneChunkObjects[key]) {
-					scene.remove(sceneChunkObjects[key]);
-					sceneChunkObjects[key] = null;
+					for (let j = 0, n = sceneChunkObjects[key].length; j < n; j++) {
+						scene.remove(sceneChunkObjects[key][j]);
+					}
+					if (pendingMeshData.length == 0) {
+						sceneChunkObjects[key] = null;
+					} else {
+						sceneChunkObjects[key].length = 0;
+					}
 				}
+
+				// Remove all scene objects for remeshed chunks
 				for (let i = 0, l = pendingMeshData.length; i < l; i++) {
 					let data = pendingMeshData[i];
 					let key = data.chunkIndices[0] + "_" + data.chunkIndices[1] + "_" + data.chunkIndices[2];
 					if (sceneChunkObjects[key]) {
-						scene.remove(sceneChunkObjects[key]);
-						sceneChunkObjects[key] = null;
+						for (let j = 0, n = sceneChunkObjects[key].length; j < n; j++) {
+							scene.remove(sceneChunkObjects[key][j]);
+						}
+						sceneChunkObjects[key].length = 0;
+					} else {
+						sceneChunkObjects[key] = [];
 					}
+				}
+
+				// The Remeshening
+				for (let i = 0, l = pendingMeshData.length; i < l; i++) {
+					let data = pendingMeshData[i];
+					let key = data.chunkIndices[0] + "_" + data.chunkIndices[1] + "_" + data.chunkIndices[2];
 					let mesh = Fury.Mesh.create(data.mesh);
 					let position = vec3.clone(data.chunkIndices);
 					vec3.scale(position, position, vorld.chunkSize);
 					let chunkMaterial = data.alpha ? alphaMaterial : material;
-					sceneChunkObjects[key] = scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true });
+					sceneChunkObjects[key].push(scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true }));
 				}
 			});
 	};
