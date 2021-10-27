@@ -1,6 +1,7 @@
 const Fury = require('../fury/src/fury');
 const { Input, Physics, Maths } = require('../fury/src/fury');
 const { vec3, quat, vec3Pool } = require('../fury/src/maths');
+const Primitives = require('./primitives');
 const CharacterController = require ('./characterController.js');
 const Vorld = require('../vorld/core/vorld');
 const VorldHelper = require('./vorldHelper');
@@ -13,6 +14,8 @@ let Player = module.exports = (function(){
 	let jumpDeltaV = 7.5;
 	let coyoteTime = 0.1;
 	let gravity = 2 * 9.8;
+
+	let blockPreviewMaterial = null;
 
 	let hitPoint = vec3.create();
 	let castDirection = vec3.fromValues(0, -1, 0);
@@ -126,18 +129,34 @@ let Player = module.exports = (function(){
 			placementDistance =  parameters.placementDistance;
 		}
 		let blockToPlace = 1; // TODO: UI to control
-		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate) => {
+		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
 			let hitPoint = Maths.vec3Pool.request();
 			let cameraLookDirection = Maths.vec3Pool.request();
 
 			camera.getLookDirection(cameraLookDirection);
 			if (VorldPhysics.raycast(hitPoint, vorld, camera.position, cameraLookDirection, castDistance)) {
 				hitDelegate(hitPoint, cameraLookDirection);
+			} else if (failureDelegate) {
+				failureDelegate();
 			}
 
 			Maths.vec3Pool.return(hitPoint);
 			Maths.vec3Pool.return(cameraLookDirection);
 		};
+
+		let blockPreviewMesh, blockPreview;
+		if (parameters.scene) {
+			blockPreviewMesh = Primitives.createCubeWireframeMesh();
+			// TODO: ^^ Wireframe appropriate for block cast to. 
+			// Have block config include wireframe mesh, then keep a cache of actual meshes
+			// and swap blockPreview.mesh dynamically (good test of Fury.Scene) 
+			blockPreviewMesh.renderMode = Fury.Renderer.RenderMode.Lines;
+			if (!blockPreviewMaterial) {
+				blockPreviewMaterial = Fury.Material.create({ shader: Fury.Shaders.UnlitColor, properties: { color: vec3.create() } } );
+			}
+			blockPreview = parameters.scene.add({ mesh: blockPreviewMesh, material: blockPreviewMaterial });
+			blockPreview.active = false;
+		}
 
 		// Input Variables
 		let ry = 0, rx = 0;
@@ -560,6 +579,21 @@ let Player = module.exports = (function(){
 						Math.floor(hitPoint[0]),
 						Math.floor(hitPoint[1]),
 						Math.floor(hitPoint[2]));
+				});
+			} else if (blockPreview) {
+				castInCameraLookDirection(vorld, camera, placementDistance, (hitPoint, cameraLookDirection) => {
+					for (let i = 0; i < 3; i++) {
+						if (Maths.approximately(Math.round(hitPoint[i]), hitPoint[i])) {
+							hitPoint[i] += 0.5 * cameraLookDirection[i];
+							break;
+						}
+					}
+					blockPreview.active = true;
+					blockPreview.transform.position[0] = Math.floor(hitPoint[0]);
+					blockPreview.transform.position[1] = Math.floor(hitPoint[1]);
+					blockPreview.transform.position[2] = Math.floor(hitPoint[2]);
+				}, () => {
+					blockPreview.active = false;
 				});
 			}
 		};
