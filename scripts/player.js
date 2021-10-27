@@ -11,6 +11,8 @@ let Player = module.exports = (function(){
 	let exports = {};
 	let prototype = {};
 
+	let verticalApproachClampAngleDegrees = 5;
+
 	let jumpDeltaV = 7.5;
 	let coyoteTime = 0.1;
 	let gravity = 2 * 9.8;
@@ -285,7 +287,7 @@ let Player = module.exports = (function(){
 
 			// Directly rotate camera
 			Maths.quatRotate(camera.rotation, camera.rotation, ry, Maths.vec3Y);
-			let clampAngle = 0.5 * Math.PI - 10 * Math.PI/180;
+			let clampAngle = 0.5 * Math.PI - verticalApproachClampAngleDegrees * Math.PI/180;
 			let lastVerticalLookAngle = verticalLookAngle;
 			verticalLookAngle = Fury.Maths.clamp(verticalLookAngle + rx, -clampAngle, clampAngle);
 			quat.rotateX(camera.rotation, camera.rotation, verticalLookAngle - lastVerticalLookAngle);
