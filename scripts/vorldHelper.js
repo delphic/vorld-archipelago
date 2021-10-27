@@ -640,38 +640,28 @@ module.exports = (function(){
 		Vorld.addBlock(vorld, x, y, z, block);
 
 		// Determine chunk bounds (Remeshing adjacent chunks if necessary)
-		// BUG: Does not account for remeshing required to make baked AO work TODO: check adajecent blocks on diagonals too
-		// Note this implies that you can remesh chunks diagonally adajecent as well
-		if (x - chunkIndices[0] * vorld.chunkSize == 0 && Vorld.getBlock(vorld, x - 1, y, z)) {
-			boundsCache.iMin = chunkIndices[0] - 1;
-		} else {
-			boundsCache.iMin = chunkIndices[0];
+		// Need to check adjacent and diagonally adjacent to account for AO bake
+		let xMin = x, xMax = x, yMin = y, yMax = y, zMin = z, zMax = z;
+		for (let i = -1; i <= 1; i++) {
+			for (let j = -1; j <= 1; j++) {
+				for (let k = -1; k <= 1; k++) {
+					if (Vorld.getBlock(vorld, x + i, y + j, z +k)) {
+						xMin = Math.min(xMin, x + i);
+						xMax = Math.max(xMax, x + i);
+						yMin = Math.min(yMin, y + j);
+						yMax = Math.max(yMax, y + j);
+						zMin = Math.min(zMin, z + k);
+						zMax = Math.max(zMax, z + k);
+					}
+				}
+			}
 		}
-		if (x - chunkIndices[0] * vorld.chunkSize == vorld.chunkSize - 1 && Vorld.getBlock(vorld, x + 1, y, z)) {
-			boundsCache.iMax = chunkIndices[0] + 1;
-		} else {
-			boundsCache.iMax = chunkIndices[0];
-		}
-		if (y - chunkIndices[1] * vorld.chunkSize == 0 && Vorld.getBlock(vorld, x, y - 1, z)) {
-			boundsCache.jMin = chunkIndices[1] - 1;
-		} else {
-			boundsCache.jMin = chunkIndices[1];
-		}
-		if (y - chunkIndices[1] * vorld.chunkSize == vorld.chunkSize - 1 && Vorld.getBlock(vorld, x, y + 1, z)) {
-			boundsCache.jMax = chunkIndices[1] + 1;
-		} else {
-			boundsCache.jMax = chunkIndices[1];
-		}
-		if (z - chunkIndices[2] * vorld.chunkSize == 0 && Vorld.getBlock(vorld, x, y, z - 1)) {
-			boundsCache.kMin = chunkIndices[2] - 1;
-		} else {
-			boundsCache.kMin = chunkIndices[2];
-		}
-		if (z - chunkIndices[2] * vorld.chunkSize == vorld.chunkSize - 1 && Vorld.getBlock(vorld, x, y, z + 1)) {
-			boundsCache.kMax = chunkIndices[2] + 1;
-		} else {
-			boundsCache.kMax = chunkIndices[2];
-		}
+		boundsCache.iMin = Math.floor(xMin / vorld.chunkSize);
+		boundsCache.iMax = Math.floor(xMax / vorld.chunkSize);
+		boundsCache.jMin = Math.floor(yMin / vorld.chunkSize);
+		boundsCache.jMax = Math.floor(yMax / vorld.chunkSize);
+		boundsCache.kMin = Math.floor(zMin / vorld.chunkSize);
+		boundsCache.kMax = Math.floor(zMax / vorld.chunkSize);
 
 		Maths.vec3Pool.return(chunkIndices);
 
