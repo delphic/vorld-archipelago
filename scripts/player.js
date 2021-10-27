@@ -80,6 +80,7 @@ let Player = module.exports = (function(){
 		}
 
 		player.config = parameters.config;
+		player.prefs = parameters.prefs;
 		let maxMovementSpeed = player.config.maxRunSpeed;
 
 		let size = parameters.size;
@@ -185,8 +186,8 @@ let Player = module.exports = (function(){
 
 			ry = rx = 0;
 			if (Input.isPointerLocked()) {
-				ry -= player.config.mouseLookSpeed * elapsed * Input.MouseDelta[0];
-				rx -= player.config.mouseLookSpeed * elapsed * Input.MouseDelta[1];
+				ry -= player.prefs.mouseLookSpeed * elapsed * Input.MouseDelta[0];
+				rx -= player.prefs.mouseLookSpeed * elapsed * Input.MouseDelta[1];
 			}
 
 			let inputX = Input.getAxis("d", "a", 0.05, Maths.Ease.inQuad);

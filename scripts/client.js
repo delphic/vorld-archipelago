@@ -32,8 +32,12 @@ let largeInitialBounds = {
 // TODO: Move config into actual config files - then the menu can be selecting between them
 // TODO: Calculate point at which fog becomes ~1.0, set max draw distance to this and generation target distance to this
 
+// TODO: Expose in Options Menu (from Main and Pause Menus)
+let playerPrefs = {
+	mouseLookSpeed: 0.25
+};
+
 let playerMovementConfig = {
-	mouseLookSpeed: 0.25,	// TODO: This should be in player facing settings object
 	acceleration: 80,
 	maxWalkSpeed: 2,
 	maxWadeSpeed: 2,
@@ -94,6 +98,7 @@ let start = (initialBounds, worldConfigId) => {
 				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(0), material: alphaMaterial, position: vec3.create() }),
 				camera: camera,
 				config: playerMovementConfig,
+				prefs: playerPrefs,
 				size: vec3.fromValues(0.75, 2, 0.75), // BUG: If you use size 0.8 - you can walk through blocks at axis = 7 when moving from axis = 8.
 				stepHeight: 0.51,
 				placementDistance: 5.5
