@@ -128,8 +128,12 @@ let Player = module.exports = (function(){
 
 		// Block placement
 		let placementDistance = 5;
+		let removalDistance = 4;
 		if (parameters.placementDistance) {
 			placementDistance =  parameters.placementDistance;
+		}
+		if (parameters.removalDistance) {
+			removalDistance = parameters.removalDistance;
 		}
 		let blockToPlace = 1; // TODO: UI to control & console option to toggle block placement (or equipable object)
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
@@ -570,7 +574,7 @@ let Player = module.exports = (function(){
 						blockToPlace);
 				});
 			} else if (attemptRemoval) {
-				castInCameraLookDirection(vorld, camera, placementDistance, (hitPoint, cameraLookDirection) => {
+				castInCameraLookDirection(vorld, camera, removalDistance, (hitPoint, cameraLookDirection) => {
 					// Detect which face was hit and shift hit point way into that face
 					for (let i = 0; i < 3; i++) {
 						if (Maths.approximately(Math.round(hitPoint[i]), hitPoint[i])) {
@@ -585,7 +589,7 @@ let Player = module.exports = (function(){
 						Math.floor(hitPoint[2]));
 				});
 			} else if (blockPreview) {
-				castInCameraLookDirection(vorld, camera, placementDistance, (hitPoint, cameraLookDirection) => {
+				castInCameraLookDirection(vorld, camera, removalDistance, (hitPoint, cameraLookDirection) => {
 					for (let i = 0; i < 3; i++) {
 						if (Maths.approximately(Math.round(hitPoint[i]), hitPoint[i])) {
 							hitPoint[i] += 0.5 * cameraLookDirection[i];
