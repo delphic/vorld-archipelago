@@ -82,7 +82,7 @@ let Player = module.exports = (function(){
 		}
 
 		player.config = parameters.config;
-		player.prefs = parameters.prefs;
+		let prefs = player.prefs = parameters.prefs;
 		let maxMovementSpeed = player.config.maxRunSpeed;
 
 		let size = parameters.size;
@@ -131,7 +131,7 @@ let Player = module.exports = (function(){
 		if (parameters.placementDistance) {
 			placementDistance =  parameters.placementDistance;
 		}
-		let blockToPlace = 1; // TODO: UI to control
+		let blockToPlace = 1; // TODO: UI to control & console option to toggle block placement (or equipable object)
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
 			let hitPoint = Maths.vec3Pool.request();
 			let cameraLookDirection = Maths.vec3Pool.request();
@@ -188,21 +188,21 @@ let Player = module.exports = (function(){
 
 			ry = rx = 0;
 			if (Input.isPointerLocked()) {
-				ry -= player.prefs.mouseLookSpeed * elapsed * Input.MouseDelta[0];
-				rx -= player.prefs.mouseLookSpeed * elapsed * Input.MouseDelta[1];
+				ry -= prefs.mouseLookSpeed * elapsed * Input.MouseDelta[0];
+				rx -= prefs.mouseLookSpeed * elapsed * Input.MouseDelta[1];
 			}
 
-			let inputX = Input.getAxis("d", "a", 0.05, Maths.Ease.inQuad);
-			let inputY = Input.getAxis("e", "q", 0.05, Maths.Ease.inQuad);
-			let inputZ = Input.getAxis("s", "w", 0.05, Maths.Ease.inQuad);
+			let inputX = Input.getAxis(prefs.rightKey, prefs.leftKey, 0.05, Maths.Ease.inQuad);
+			let inputY = Input.getAxis(prefs.upKey, prefs.downKey, 0.05, Maths.Ease.inQuad);
+			let inputZ = Input.getAxis(prefs.backKey, prefs.forwardKey, 0.05, Maths.Ease.inQuad);
 			
-			if (!attemptSprint && Input.keyDown("w", true)) {
+			if (!attemptSprint && Input.keyDown(prefs.forwardKey, true)) {
 				let time = Date.now();
 				if ((time - lastForwardPress) < sprintDoubleTapMaxDuration * 1000) {
 					attemptSprint = true;
 				}
 				lastForwardPress = Date.now();
-			} else if (attemptSprint && !Input.keyDown("w")) {
+			} else if (attemptSprint && !Input.keyDown(prefs.forwardKey)) {
 				attemptSprint = false;
 			}
 			
@@ -217,9 +217,10 @@ let Player = module.exports = (function(){
 			localInputVector[1] = inputY;
 			localInputVector[2] = inputZ;
 
-			isWalking = Input.keyDown("Shift");
-			attemptJump = Input.keyDown("Space", true);
+			isWalking = Input.keyDown(prefs.walkKey);
+			attemptJump = Input.keyDown(prefs.jumpKey, true);
 
+			// TODO: Move keys to prefs
 			attemptPlacement = Input.mouseDown(0, true);
 			attemptRemoval = Input.mouseDown(2, true);
 		};

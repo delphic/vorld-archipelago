@@ -34,7 +34,15 @@ let largeInitialBounds = {
 
 // TODO: Expose in Options Menu (from Main and Pause Menus)
 let playerPrefs = {
-	mouseLookSpeed: 0.25
+	mouseLookSpeed: 0.25,
+	forwardKey: "w",
+	leftKey: "a",
+	backKey: "s",
+	rightKey: "d",
+	upKey: "e",
+	downKey: "q",
+	jumpKey: "Space",
+	walkKey: "Shift"
 };
 
 let playerMovementConfig = {
