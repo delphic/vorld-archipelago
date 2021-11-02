@@ -560,14 +560,13 @@ let Player = module.exports = (function(){
 
 			// Block placement
 			// DEBUG - block placement change
-			if (Input.keyDown("[", true)) {
+			// TODO: Need a throttle on changes due to MouseWheel
+			if (Input.keyDown("[", true) || Input.MouseWheel[1] > 0) {
 				blockIndex = (blockIndex - 1) % placeableBlocks.length;
 				if (blockIndex < 0) blockIndex = placeableBlocks.length - 1;
-				console.log("Block to place: " + placeableBlocks[blockIndex]);
 			}
-			if (Input.keyDown("]", true)) {
+			if (Input.keyDown("]", true) || Input.MouseWheel[1] < 0) {
 				blockIndex = (blockIndex + 1) % placeableBlocks.length;
-				console.log("Block to place: " + placeableBlocks[blockIndex]);
 			}
 
 			if (attemptPlacement) {
