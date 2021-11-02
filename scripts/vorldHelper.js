@@ -381,7 +381,7 @@ module.exports = (function(){
 		{ name: "soil", isOpaque: true, isSolid: true },
 		{ name: "grass", isOpaque: true, isSolid: true },
 		{ name: "wood", isOpaque: true, isSolid: true },
-		{ name: "leaves", isOpaque: false, isSolid: true },
+		{ name: "leaves", isOpaque: false, isSolid: true, meshInternals: true },
 		// TODO: need to mesh internal sides (for own blocks) & back faces on 'external sides' (meshInternals and meshBackFaces - but inset to avoid z-fighting)
 		// (or disable backface culling - would need a new material and then in bind material to do that, but would need to add an unbind method to reenable)
 		// In order to use a new material would need another mesh created instead of packing into existing mesh 
@@ -392,7 +392,7 @@ module.exports = (function(){
 		{ name: "stone_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision }, 
 		{ name: "planks", isOpaque: true, isSolid: true },
 		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson },
-		{ name: "planks_step", isOpaque: false, isOpaque: true, mesh: stepJson, collision: stepCollision }
+		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];

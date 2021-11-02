@@ -135,7 +135,9 @@ let Player = module.exports = (function(){
 		if (parameters.removalDistance) {
 			removalDistance = parameters.removalDistance;
 		}
-		let blockToPlace = 1; // TODO: UI to control & console option to toggle block placement (or equipable object)
+
+		let placeableBlocks = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ]; // TODO: Get from block config
+		let blockIndex = 0; // TODO: UI to control & console option to toggle block placement (or equipable object)
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
 			let hitPoint = Maths.vec3Pool.request();
 			let cameraLookDirection = Maths.vec3Pool.request();
@@ -557,6 +559,17 @@ let Player = module.exports = (function(){
 			}
 
 			// Block placement
+			// DEBUG - block placement change
+			if (Input.keyDown("[", true)) {
+				blockIndex = (blockIndex - 1) % placeableBlocks.length;
+				if (blockIndex < 0) blockIndex = placeableBlocks.length - 1;
+				console.log("Block to place: " + placeableBlocks[blockIndex]);
+			}
+			if (Input.keyDown("]", true)) {
+				blockIndex = (blockIndex + 1) % placeableBlocks.length;
+				console.log("Block to place: " + placeableBlocks[blockIndex]);
+			}
+
 			if (attemptPlacement) {
 				castInCameraLookDirection(vorld, camera, placementDistance, (hitPoint, cameraLookDirection) => {
 					// Detect which face was hit and shift hit point way from that face
@@ -571,7 +584,7 @@ let Player = module.exports = (function(){
 						Math.floor(hitPoint[0]),
 						Math.floor(hitPoint[1]),
 						Math.floor(hitPoint[2]),
-						blockToPlace);
+						placeableBlocks[blockIndex]);
 				});
 			} else if (attemptRemoval) {
 				castInCameraLookDirection(vorld, camera, removalDistance, (hitPoint, cameraLookDirection) => {
