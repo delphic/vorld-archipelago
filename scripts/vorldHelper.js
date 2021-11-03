@@ -495,6 +495,12 @@ module.exports = (function(){
 	};
 	generationConfigs["castle"] = generationConfigs["flat"]; // Reuse flat for castle test
 
+	let lightingConfigs = {
+		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.5, directionalMagnitude: 0.5 },
+		"foggy": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.05, ambientMagnitude: 0.5, directionalMagnitude: 0.5 },
+		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.05, ambientMagnitude: 0, directionalMagnitude: 0 } 
+	};
+
 	let performWorkOnBounds = (workerPool, bounds, sectionSize, configDelegate, messageCallback, completeCallback) => {
 		let iMin = bounds.iMin, iMax = bounds.iMax, kMin = bounds.kMin, kMax = bounds.kMax;
 		let generatedSectionsCount = 0;
@@ -756,6 +762,21 @@ module.exports = (function(){
 		scene = parameters.scene;
 		material = parameters.material;
 		alphaMaterial = parameters.alphaMaterial;
+
+		// Apply lighting settings - arguably should be on scene and materials should have bindLighting method taking scene
+		let lightingConfig = null;
+		switch(parameters.configId) {
+			case "castle": 
+				lightingConfig = lightingConfigs["night"];
+				break;
+			default:
+				lightingConfig = lightingConfigs["day"];
+				break;
+		}
+		material.setProperties(lightingConfig);
+		alphaMaterial.setProperties(lightingConfig);
+		Fury.Renderer.clearColor(lightingConfig.fogColor[0], lightingConfig.fogColor[1], lightingConfig.fogColor[2], 1.0);
+
 		return generate(parameters.bounds, parameters.configId, callback, progressDelegate);
 	};
 

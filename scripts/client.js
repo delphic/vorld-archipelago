@@ -17,7 +17,7 @@ let world = { boxes: [] }, vorld = null;
 let material, alphaMaterial;
 let player;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
-let waterColor = vec3.fromValues(0, 113/255, 144/255);
+// waterColor : 0, 113, 144
 
 let smallInitialBounds = {
 	iMin: -6, iMax: 6,
@@ -268,6 +268,7 @@ let createPauseMenu = (onClose) => {
 				clearWorld();
 				menu.remove();
 				setCameraInitialPosition(camera);
+				Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2], 1.0); // TODO: Scenes should define their clear color
 				scene.render();
 				createMainMenu();
 				onClose(false);
@@ -369,11 +370,8 @@ window.addEventListener('load', (event) => {
 		let textureSize = upscaled.width, textureCount = Math.round(upscaled.height / upscaled.width);
 		let textureArray = Fury.Renderer.createTextureArray(upscaled, textureSize, textureSize, textureCount, "pixel", true);
 
-		material = Fury.Material.create({ shader: shader, texture: textureArray,  properties: { "fogColor": skyColor, "fogDensity": 0.005 }});
-		alphaMaterial = Fury.Material.create({ shader: alphaShader, texture: textureArray, properties: { alpha: true, "fogColor": skyColor, "fogDensity": 0.005 }});
-		// ^^ to apply fog based on the depth of the water you're looking through properly, need to render depth buffer out from solid geometry pass
-		// and use it as texture input, whilst this would be fun, it's a bit too much of a tangent right now, sooo quad in front of the camera! 
-		// https://stackoverflow.com/questions/23362076/opengl-how-to-access-depth-buffer-values-or-gl-fragcoord-z-vs-rendering-d
+		material = Fury.Material.create({ shader: shader, texture: textureArray,  properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.005 }});
+		alphaMaterial = Fury.Material.create({ shader: alphaShader, texture: textureArray, properties: { alpha: true, "fogColor": vec3.clone(skyColor), "fogDensity": 0.005 }});
 
 		loadingCallback();
 	};
