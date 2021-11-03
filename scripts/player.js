@@ -136,7 +136,7 @@ let Player = module.exports = (function(){
 			removalDistance = parameters.removalDistance;
 		}
 
-		let placeableBlocks = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12 ]; // TODO: Get from block config
+		let placeableBlocks = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 ]; // TODO: Get from block config
 		let blockIndex = 0; // TODO: UI to control & console option to toggle block placement (or equipable object)
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
 			let hitPoint = Maths.vec3Pool.request();

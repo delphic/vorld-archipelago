@@ -121,6 +121,8 @@ module.exports = (function(){
 
 	let halfCubeJson = createCubeMesh(0.0, 1.0, 0.0, 0.5, 0.0, 1.0);
 
+	let torchJson = createCubeMesh(0.4, 0.6, 0.0, 0.8, 0.4, 0.6);
+
 	// Combined pair of cubes - top quad halved on lower, no bottom on upper - TODO: single quad at back
 	let stepJson = {
 		vertices: [ 
@@ -369,7 +371,8 @@ module.exports = (function(){
 		"stone_step": 9,
 		"planks": 10,
 		"planks_half": 11,
-		"planks_step": 12
+		"planks_step": 12,
+		"torch": 13
 	};
 
 	let blockConfig = [
@@ -392,7 +395,8 @@ module.exports = (function(){
 		{ name: "stone_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision }, 
 		{ name: "planks", isOpaque: true, isSolid: true },
 		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson },
-		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision }
+		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision },
+		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];
@@ -412,7 +416,7 @@ module.exports = (function(){
 	*/
 	let meshingConfig = {
 		atlas: {
-			textureArraySize: 11,
+			textureArraySize: 13,
 			blockToTileIndex: [
 				null,
 				{ side: 3, top: 3, bottom: 3 }, // stone
@@ -427,6 +431,7 @@ module.exports = (function(){
 				{ side: 8, top: 8, bottom: 8 }, // planks
 				{ side: 8, top: 8, bottom: 8 }, // half-planks
 				{ side: 8, top: 8, bottom: 8 }, // step-planks
+				{ side: 11, top: 12, bottom: 8 } 	// torch
 			]
 		}
 		// blockConfig also effects meshing but this is stored on vorld data
