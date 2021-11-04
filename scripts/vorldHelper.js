@@ -649,13 +649,26 @@ module.exports = (function(){
 		let key = chunkIndices[0] + "_" + chunkIndices[1] + "_" + chunkIndices[2];
 		// ^^ TODO: Vorld Utils
 		Vorld.addBlock(vorld, x, y, z, block);
+		// TODO: Maybe addBlock could take an out for blocks/chunks modified
+		// Or we could mark chunks dirty and on remesh set them clean
+
+		let xMin = x, xMax = x, yMin = y, yMax = y, zMin = z, zMax = z;
+
+		// Remesh all adjacent chunks
+		// as light propogation changes can effect up to 16 blocks away
+		xMin -= vorld.chunkSize;
+		xMax += vorld.chunkSize;
+		yMin -= vorld.chunkSize;
+		yMax += vorld.chunkSize;
+		zMin -= vorld.chunkSize;
+		zMax += vorld.chunkSize;
+		// if no light propogation changes, could just remesh if on a boundary 
+		// and so would effect mesh faces and or AO on existing faces.
+
+		/* Attempt at calculating the chunks changed
 		let blockDef = Vorld.getBlockTypeDefinition(vorld, block); 
 		let light = blockDef ? blockDef.light : 0;
-
-		// Determine chunk bounds (Remeshing adjacent chunks if necessary)
-		// It might just be easier to always remesh all adacent chunks...
-		let xMin = x, xMax = x, yMin = y, yMax = y, zMin = z, zMax = z;
-		if (!block || blockDef.isOpaque) {
+		if (!block || (blockDef && !blockDef.isOpaque)) {
 			// Allows propogration of light where potentially there was none before
 			// TODO: check if there was a block here before and check adjacent light level 
 			// to determine actual level of repropogation needed
@@ -665,8 +678,15 @@ module.exports = (function(){
 			yMax += vorld.chunkSize;
 			zMin -= vorld.chunkSize;
 			zMax += vorld.chunkSize;
-
 		} else if (!light) {
+			// Up to light distance if block casts light
+			xMin = x - light; 
+			xMax = x + light;
+			yMin = y - light;
+			yMax = y + light;
+			zMin = z - light;
+			zMax = z + light;
+		} else {
 			// Need to check adjacent and diagonally adjacent to account for AO bake
 			for (let i = -1; i <= 1; i++) {
 				for (let j = -1; j <= 1; j++) {
@@ -682,15 +702,7 @@ module.exports = (function(){
 					}
 				}
 			}
-		} else {
-			// Up to light distance if block casts light
-			xMin = x - light; 
-			xMax = x + light;
-			yMin = y - light;
-			yMax = y + light;
-			zMin = z - light;
-			zMax = z + light;
-		}
+		}*/
 
 		boundsCache.iMin = Math.floor(xMin / vorld.chunkSize);
 		boundsCache.iMax = Math.floor(xMax / vorld.chunkSize);
