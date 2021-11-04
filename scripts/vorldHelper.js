@@ -396,7 +396,7 @@ module.exports = (function(){
 		{ name: "planks", isOpaque: true, isSolid: true },
 		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson },
 		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision },
-		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson }
+		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8 }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];
@@ -649,24 +649,49 @@ module.exports = (function(){
 		let key = chunkIndices[0] + "_" + chunkIndices[1] + "_" + chunkIndices[2];
 		// ^^ TODO: Vorld Utils
 		Vorld.addBlock(vorld, x, y, z, block);
+		let blockDef = Vorld.getBlockTypeDefinition(vorld, block); 
+		let light = blockDef ? blockDef.light : 0;
 
 		// Determine chunk bounds (Remeshing adjacent chunks if necessary)
-		// Need to check adjacent and diagonally adjacent to account for AO bake
+		// It might just be easier to always remesh all adacent chunks...
 		let xMin = x, xMax = x, yMin = y, yMax = y, zMin = z, zMax = z;
-		for (let i = -1; i <= 1; i++) {
-			for (let j = -1; j <= 1; j++) {
-				for (let k = -1; k <= 1; k++) {
-					if (Vorld.getBlock(vorld, x + i, y + j, z +k)) {
-						xMin = Math.min(xMin, x + i);
-						xMax = Math.max(xMax, x + i);
-						yMin = Math.min(yMin, y + j);
-						yMax = Math.max(yMax, y + j);
-						zMin = Math.min(zMin, z + k);
-						zMax = Math.max(zMax, z + k);
+		if (!block || blockDef.isOpaque) {
+			// Allows propogration of light where potentially there was none before
+			// TODO: check if there was a block here before and check adjacent light level 
+			// to determine actual level of repropogation needed
+			xMin -= vorld.chunkSize;
+			xMax += vorld.chunkSize;
+			yMin -= vorld.chunkSize;
+			yMax += vorld.chunkSize;
+			zMin -= vorld.chunkSize;
+			zMax += vorld.chunkSize;
+
+		} else if (!light) {
+			// Need to check adjacent and diagonally adjacent to account for AO bake
+			for (let i = -1; i <= 1; i++) {
+				for (let j = -1; j <= 1; j++) {
+					for (let k = -1; k <= 1; k++) {
+						if (Vorld.getBlock(vorld, x + i, y + j, z +k)) {
+							xMin = Math.min(xMin, x + i);
+							xMax = Math.max(xMax, x + i);
+							yMin = Math.min(yMin, y + j);
+							yMax = Math.max(yMax, y + j);
+							zMin = Math.min(zMin, z + k);
+							zMax = Math.max(zMax, z + k);
+						}
 					}
 				}
 			}
+		} else {
+			// Up to light distance if block casts light
+			xMin = x - light; 
+			xMax = x + light;
+			yMin = y - light;
+			yMax = y + light;
+			zMin = z - light;
+			zMax = z + light;
 		}
+
 		boundsCache.iMin = Math.floor(xMin / vorld.chunkSize);
 		boundsCache.iMax = Math.floor(xMax / vorld.chunkSize);
 		boundsCache.jMin = Math.floor(yMin / vorld.chunkSize);
