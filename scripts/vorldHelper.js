@@ -376,7 +376,7 @@ module.exports = (function(){
 	};
 
 	let blockConfig = [
-		// Note: isOpaque is used to determine culling, useAlpha currently used for alpha, isSolid used for collision logic
+		// Note: isOpaque is used to determine culling and light propogate, useAlpha currently used for alpha, isSolid used for collision logic
 		// Note: if custom mesh provided and no collision, game uses mesh bounds as default collision AABB
 		// TODO: option for different meshes / collisions based on adjaency (i.e. corner step meshes)
 		{ name: "air", isOpaque: false, isSolid: false },
@@ -384,18 +384,14 @@ module.exports = (function(){
 		{ name: "soil", isOpaque: true, isSolid: true },
 		{ name: "grass", isOpaque: true, isSolid: true },
 		{ name: "wood", isOpaque: true, isSolid: true },
-		{ name: "leaves", isOpaque: false, isSolid: true, meshInternals: true },
-		// TODO: need to mesh internal sides (for own blocks) & back faces on 'external sides' (meshInternals and meshBackFaces - but inset to avoid z-fighting)
-		// (or disable backface culling - would need a new material and then in bind material to do that, but would need to add an unbind method to reenable)
-		// In order to use a new material would need another mesh created instead of packing into existing mesh 
-		// Note turning off back face cull may result in z-fighting so will need to alter meshing algorithm to inset quad for cutouts slightly from solid blocks
-		{ name: "water", isOpaque: false, isSolid: false, useAlpha: true },
+		{ name: "leaves", isOpaque: false, isSolid: true, meshInternals: true, attenuation: 2 },
+		{ name: "water", isOpaque: false, isSolid: false, useAlpha: true, attenuation: 3 },
 		{ name: "stone_blocks", isOpaque: true, isSolid: true },
-		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson },
-		{ name: "stone_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision }, 
+		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2 },
+		{ name: "stone_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3 }, 
 		{ name: "planks", isOpaque: true, isSolid: true },
-		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson },
-		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision },
+		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2 },
+		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3 },
 		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8 }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
