@@ -154,9 +154,9 @@ let Generator = module.exports = (function(){
 							let up = Vorld.Cardinal.Direction.down;
 							let forward = Vorld.Cardinal.Direction.forward; 
 							if (x == xMin - 1) {
-								forward = Vorld.Cardinal.Direction.left;	// Think we've found a bug with our rotation code - as this is the opposite of when facing up
-							} else if (x == xMax + 1) {
 								forward = Vorld.Cardinal.Direction.right;
+							} else if (x == xMax + 1) {
+								forward = Vorld.Cardinal.Direction.left;
 							} else if (z == zMax + 1) {
 								forward = Vorld.Cardinal.Direction.back;
 							}

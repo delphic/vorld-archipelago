@@ -136,7 +136,7 @@ let Player = module.exports = (function(){
 			removalDistance = parameters.removalDistance;
 		}
 
-		let placeableBlocks = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13 ]; // TODO: Get from block config
+		let placeableBlocks = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]; // TODO: Get from block config
 		let blockIndex = 0; // TODO: UI to control & console option to toggle block placement (or equipable object)
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
 			let hitPoint = Maths.vec3Pool.request();
@@ -227,8 +227,8 @@ let Player = module.exports = (function(){
 			attemptJump = Input.keyDown(prefs.jumpKey, true);
 
 			// TODO: Move keys to prefs
-			attemptPlacement = Input.mouseDown(0, true);
-			attemptRemoval = Input.mouseDown(2, true);
+			attemptPlacement = Input.mouseDown(2, true);
+			attemptRemoval = Input.mouseDown(0, true);
 		};
 
 		let calculateGlobalXZInputVector = (out, localInputVector, forward, left) => {
@@ -572,18 +572,57 @@ let Player = module.exports = (function(){
 			if (attemptPlacement) {
 				castInCameraLookDirection(vorld, camera, placementDistance, (hitPoint, cameraLookDirection) => {
 					// Detect which face was hit and shift hit point way from that face
+					let hitAxis = 0;
 					for (let i = 0; i < 3; i++) {
 						if (Maths.approximately(Math.round(hitPoint[i]), hitPoint[i])) {
+							hitAxis = i;
 							hitPoint[i] -= 0.5 * cameraLookDirection[i];
 							break;
 						}
 					}
+
+					// MC placement study:
+					// for wood, up seems to be in either opposite or the same as normal of the block hit 
+					// Unless tree blocks are placed rotated?! - well we can orientate them in any direction with the stump so 
+					// perhaps best to say, the unique side points towards you
+					// For steps... well if you're placing on top or bottom - 'forward' seems to be towards you (i.e. you can step onto it) 
+					// if you're placing on a side, it's still facing towards you but up is determined by where on the block you click, top half upside down bottom half
+					// upright.
+					// (This is complicated further by triplanar mapping of textures meaning can't really tell which way it thinks about it).
+					// Slabs are the same as steps, doesn't seem to be possible to place them so that 'up' is sideways.
+					// (Unrealted: since when did placing two half blocks stack in MC?!)
+					// Crafting table (has a definitive 'up') can only be placed in one way
+					// So we seems to have different logic for different blocks
+					
+					// Well we'll just do the wood block approach for now up is towards you
+					let normal = vec3Pool.request();
+					vec3.zero(normal);
+					normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
+					let up = Vorld.Cardinal.getDirectionFromVector(normal);
+
+					// And for now we'll make forward which other of the other axis is largest
+					let maxAxis = 0;
+					let maxAxisValue = 0;
+					for(let i = 0; i < 3; i++) {
+						if (i != hitAxis && Math.abs(cameraLookDirection[i]) > maxAxisValue) {
+							maxAxis = i;
+							maxAxisValue = Math.abs(cameraLookDirection[i]);
+						}
+					}
+					vec3.zero(normal);
+					normal[maxAxis] = -Math.sign(cameraLookDirection[maxAxis]);
+					let forward = Vorld.Cardinal.getDirectionFromVector(normal);
+					vec3Pool.return(normal);
+
+					// console.log("Up calculated as " + Vorld.Cardinal.getDirectionDescription(up) + ", forward calculated as " + Vorld.Cardinal.getDirectionDescription(forward));
 					VorldHelper.addBlock(
 						vorld,
 						Math.floor(hitPoint[0]),
 						Math.floor(hitPoint[1]),
 						Math.floor(hitPoint[2]),
-						placeableBlocks[blockIndex]);
+						placeableBlocks[blockIndex],
+						up,
+						forward);
 				});
 			} else if (attemptRemoval) {
 				castInCameraLookDirection(vorld, camera, removalDistance, (hitPoint, cameraLookDirection) => {

@@ -13,11 +13,6 @@ module.exports = (function(){
 	let mesherWorkerPool = WorkerPool.create({ src: 'scripts/mesher-worker.js', maxWorkers: 4 });
 	let boundsCache = {};
 
-	// TODO: IMPORTANT we really need to do a pass on handness because when I updated the UVs for right what I thought was left updated instead...
-	// this is made more complex by the fact the camera points in -z. It updated right from the perspective of the camera, but I expected it to update the other side
-	// It's made even more complex by noting the camera does not spawn facing in -z it's at an angle to give a nice view... so it could in fact still be fine.
-	// On the other hand when I specificed step block to face right when spawning first on the left hand side it was stepping in the direction I thought it should....
-
 	// TODO: Move to Fury primitives - also, this is a Cuboid, not a cube.
 	let createCubeMesh = (xMin, xMax, yMin, yMax, zMin, zMax) => {
 		// Note no UV offset - mapped directly to world position
@@ -372,7 +367,8 @@ module.exports = (function(){
 		"planks": 10,
 		"planks_half": 11,
 		"planks_step": 12,
-		"torch": 13
+		"torch": 13,
+		"test": 14
 	};
 
 	let blockConfig = [
@@ -392,7 +388,8 @@ module.exports = (function(){
 		{ name: "planks", isOpaque: true, isSolid: true },
 		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2 },
 		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3 },
-		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8 }
+		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8 }, // TODO: Emissive mask to amp up light level and reduce fog build up
+		{ name: "test", isOpaque: true, isSolid: true }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];
@@ -412,22 +409,23 @@ module.exports = (function(){
 	*/
 	let meshingConfig = {
 		atlas: {
-			textureArraySize: 13,
+			textureArraySize: 19,
 			blockToTileIndex: [
 				null,
-				{ side: 3, top: 3, bottom: 3 }, // stone
-				{ side: 2, top: 2, bottom: 2 }, // soil
+				{ side: 3 }, // stone
+				{ side: 2 }, // soil
 				{ side: 1, top: 0, bottom: 2 }, // grass
 				{ side: 7, top: 6, bottom: 6 }, // wood
-				{ side: 9, top: 9, bottom: 9 }, // leaves
-				{ side: 10, top: 10, bottom: 10 }, // water
-				{ side: 4, top: 4, bottom: 4 }, // stone-blocks
-				{ side: 4, top: 4, bottom: 4 }, // half-stone
-				{ side: 4, top: 4, bottom: 4 }, // step-stone
-				{ side: 8, top: 8, bottom: 8 }, // planks
-				{ side: 8, top: 8, bottom: 8 }, // half-planks
-				{ side: 8, top: 8, bottom: 8 }, // step-planks
-				{ side: 11, top: 12, bottom: 8 } 	// torch
+				{ side: 9 }, // leaves
+				{ side: 10 }, // water
+				{ side: 4 }, // stone-blocks
+				{ side: 4 }, // half-stone
+				{ side: 4 }, // step-stone
+				{ side: 8 }, // planks
+				{ side: 8 }, // half-planks
+				{ side: 8 }, // step-planks
+				{ side: 11, top: 12, bottom: 8 }, 	// torch
+				{ top: 13, bottom: 14, forward: 15, back: 16, right: 18, left: 17 } // test
 			]
 		}
 		// blockConfig also effects meshing but this is stored on vorld data
@@ -637,14 +635,14 @@ module.exports = (function(){
 			callback);
 	};
 
-	exports.addBlock = (vorld, x, y, z, block) => {
+	exports.addBlock = (vorld, x, y, z, block, up, forward) => {
 		let chunkIndices = Maths.vec3Pool.request();
 		chunkIndices[0] = Math.floor(x / vorld.chunkSize);
 		chunkIndices[1] = Math.floor(y / vorld.chunkSize);
 		chunkIndices[2] = Math.floor(z / vorld.chunkSize); 
 		let key = chunkIndices[0] + "_" + chunkIndices[1] + "_" + chunkIndices[2];
 		// ^^ TODO: Vorld Utils
-		Vorld.addBlock(vorld, x, y, z, block);
+		Vorld.addBlock(vorld, x, y, z, block, up, forward);
 		// TODO: Maybe addBlock could take an out for blocks/chunks modified
 		// Or we could mark chunks dirty and on remesh set them clean
 
