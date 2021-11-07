@@ -431,6 +431,11 @@ module.exports = (function(){
 		// blockConfig also effects meshing but this is stored on vorld data
 	};
 
+	exports.getTileIndexBufferValueForBlock = (id) => {
+		let atlas = meshingConfig.atlas;
+		return (atlas.textureArraySize - 1) -  atlas.blockToTileIndex[blockIds[id]].side;
+	};
+
 	// These are technically *terrain* generation configs
 	let generationConfigs = {
 		"flat": {

@@ -103,7 +103,7 @@ let start = (initialBounds, worldConfigId) => {
 				vorld: vorld,
 				scene: scene,
 				position: vec3.fromValues(12, 32, 12),
-				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(0), material: alphaMaterial, position: vec3.create() }),
+				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(VorldHelper.getTileIndexBufferValueForBlock("water")), material: alphaMaterial, position: vec3.create() }),
 				camera: camera,
 				config: playerMovementConfig,
 				prefs: playerPrefs,

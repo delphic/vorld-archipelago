@@ -41,9 +41,12 @@ let Primitives = module.exports = (function(){
 
 	exports.createQuadMesh = (tileIndex) => {
 		let mesh = Fury.Mesh.create(quadJson);
+		// HACK: create other buffers
+		// TODO:make this just be normal quad without having to do all the voxel stuff
 		if (tileIndex !== undefined) {
 			mesh.tileBuffer = Fury.Renderer.createBuffer([ tileIndex, tileIndex, tileIndex, tileIndex ], 1);
 		}
+		mesh.lightBuffer = Fury.Renderer.createBuffer([ 1, 1, 1, 1 ], 1); 
 		return mesh;
 	};
 
