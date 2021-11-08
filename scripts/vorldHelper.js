@@ -372,7 +372,7 @@ module.exports = (function(){
 	};
 
 	let blockConfig = [
-		// Note: isOpaque is used to determine culling and light propogate, useAlpha currently used for alpha, isSolid used for collision logic
+		// Note: isOpaque is used to determine culling and light propagate, useAlpha currently used for alpha, isSolid used for collision logic
 		// Note: if custom mesh provided and no collision, game uses mesh bounds as default collision AABB
 		// TODO: option for different meshes / collisions based on adjaency (i.e. corner step meshes)
 		{ name: "air", isOpaque: false, isSolid: false },
@@ -500,7 +500,7 @@ module.exports = (function(){
 	generationConfigs["castle"] = generationConfigs["flat"]; // Reuse flat for castle test
 
 	let lightingConfigs = {
-		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.5, directionalMagnitude: 0.5 },
+		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0, directionalMagnitude: 0 }, // TODO: Set ambient back to non-zero and use directionMagnitude for sunlight amount
 		"foggy": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.05, ambientMagnitude: 0.5, directionalMagnitude: 0.5 },
 		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.05, ambientMagnitude: 0, directionalMagnitude: 0 } 
 	};
@@ -605,8 +605,79 @@ module.exports = (function(){
 
 		return vorld;
 	};
+
+	let lightingPass = (vorld, progressDelegate) => {
+		// TODO: Separate this into light propogation worker / class 
+		// (so we can do it after we've generated structures etc in later stages)
+		// Need to provide a slice 1 larger than bounds as per meshing
+
+
+		// Loop over heightmap, fill with full sunlight (15) in all blocks above yMax
+		let keys = Object.keys(vorld.heightMap);
+
+		let count = 0, total = keys.length * 2;
+
+		for (let keyIndex = 0, kl = keys.length; keyIndex < kl; keyIndex++) {
+			let heightMapEntry = vorld.heightMap[keys[keyIndex]];
+			let chunkI = heightMapEntry.chunkI,
+				chunkK = heightMapEntry.chunkK;
+			let chunkJ, j;
+				
+			for (let i = 0, l = vorld.chunkSize; i < l; i++) {
+				for (let k = 0; k < l; k++) {
+					let maxY = heightMapEntry.maxY[i + l * k]; // highest point
+					if (maxY !== undefined) {
+						chunkJ = Math.floor(maxY / l);
+						j = maxY - chunkJ * l + 1;
+					} else {
+						chunkJ = heightMapEntry.minChunkIndex;
+						j = 0;
+					}
+					Vorld.fillSunlight(vorld, heightMapEntry, chunkI, chunkJ, chunkK, i, j, k, 15);
+				}
+			}
+			count++;
+			progressDelegate("lighting", count, total);
+		}
+
+		// Need to propagate sunlight for non-opaque blocks beneath yMax with adjacent sunlight 
+		// I guess just loop over heightMap indexes again and gather adjacent sunlightValues
+		for (let keyIndex = 0, kl = keys.length; keyIndex < kl; keyIndex++) {
+			let heightMapEntry = vorld.heightMap[keys[keyIndex]];
+			let chunkI = heightMapEntry.chunkI,
+				chunkK = heightMapEntry.chunkK;
+			
+			for (let i = 0, l = vorld.chunkSize; i < l; i++) {
+				for (let k = 0; k < l; k++) {
+					let offset = 0;
+					let x = chunkI * l + i,
+						y = heightMapEntry.maxChunkIndex * l + 15,
+						z = chunkK * l + k;
+					// Assuming continuous again as it's quicker - TODO: Cope with missing chunks
+					while (!Vorld.isBlockOpaque(vorld, x, y - offset, z) && Vorld.getBlock(vorld, x, y - offset, z) !== null) {
+						// As we've pre-filled our full sunlight beams need to go block by block until we hit a block 
+						// (could use our heightMap value here, it's much the same though)
+						Vorld.propagateSunlight(vorld, x, y - offset, z);
+						offset += 1;
+					}
+					// TODO: refactor so propagateSunlight checks heightmap rather than light level for if to try to set and push new values
+					// this will allow us to just call propagate sunlight from top of world once rather than fill then propogate - in fact this would be a
+					// "addSunlight" method as per "addLight" - this would also give us a way to cope with missing chunk although it wouldn't prevent artifacts where
+					// solid chunks were on a boundary against an null chunk
+				}
+			}
+
+			count++;
+			progressDelegate("lighting", count, total);
+		}
+
+		// TODO: Loop over light sources and propagate light
+	};
 	
 	let meshVorld = (vorld, bounds, callback, progressDelegate) => {	
+
+		lightingPass(vorld, progressDelegate); // TODO: Move off main thread and to separate pass 
+
 		performWorkOnBounds(
 			mesherWorkerPool,
 			bounds,

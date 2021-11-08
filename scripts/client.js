@@ -93,6 +93,7 @@ let start = (initialBounds, worldConfigId) => {
 
 	let loadingScreen = createProgressScreen("Generating Vorld", "playPrompt");
 	let currentLoadingText = "Generating Vorld";
+	let lightingLoadingText = "Lighting Vorld";
 	let meshingLoadingText = "Meshing Vorld";
 
 	let spawnPlayer = () => {
@@ -128,6 +129,7 @@ let start = (initialBounds, worldConfigId) => {
 
 	let onVorldCreated = (data) => {
 		generating = false;
+		// TODO: if GameLoop paused call scene render manually to update view
 		loadingScreen.showReadyButton("Enter Vorld", spawnPlayer);
 	};
 
@@ -141,6 +143,12 @@ let start = (initialBounds, worldConfigId) => {
 		},
 		onVorldCreated,
 		(stage, count, total) => {
+			if (stage == "lighting") {
+				if (currentLoadingText != lightingLoadingText) {
+					loadingScreen.setTitle(lightingLoadingText);
+					currentLoadingText = lightingLoadingText;
+				}
+			}
 			if (stage == "meshing") {
 				if (count == total) {
 					loadingScreen.setTitle("Ready!");
