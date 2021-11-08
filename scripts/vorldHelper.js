@@ -10,6 +10,7 @@ module.exports = (function(){
 	let scene = null, material = null, alphaMaterial = null;
 	let sceneChunkObjects = {};
 	let generationWorkerPool = WorkerPool.create({ src: 'scripts/generator-worker.js', maxWorkers: 8 });
+	let lightingWorkerPool = WorkerPool.create({ src: 'scripts/lighting-worker.js', maxWorkers: 8 });
 	let mesherWorkerPool = WorkerPool.create({ src: 'scripts/mesher-worker.js', maxWorkers: 4 });
 	let boundsCache = {};
 
@@ -596,88 +597,89 @@ module.exports = (function(){
 					}
 					CastleGenerator.generate(config, (data) => {
 						Vorld.tryMerge(vorld, data.vorld)
-						meshVorld(vorld, bounds, callback, progressDelegate);
+						lightingPass(vorld, bounds, callback, progressDelegate);
 					});
 				} else {
-					meshVorld(vorld, bounds, callback, progressDelegate);
+					lightingPass(vorld, bounds, callback, progressDelegate);
 				}
 			});
 
 		return vorld;
 	};
 
-	let lightingPass = (vorld, progressDelegate) => {
-		// TODO: Separate this into light propogation worker / class 
-		// (so we can do it after we've generated structures etc in later stages)
-		// Need to provide a slice 1 larger than bounds as per meshing
+	let lightingPass = (vorld, bounds, callback, progressDelegate) => {
 
+		let startTime = Date.now();
+		/* Single Pass Approach
+		let total = Object.keys(vorld.heightMap).length * 2;
+		let firstMessage = null;
+		let lastMessage = null;
 
-		// Loop over heightmap, fill with full sunlight (15) in all blocks above yMax
-		let keys = Object.keys(vorld.heightMap);
-
-		let count = 0, total = keys.length * 2;
-
-		for (let keyIndex = 0, kl = keys.length; keyIndex < kl; keyIndex++) {
-			let heightMapEntry = vorld.heightMap[keys[keyIndex]];
-			let chunkI = heightMapEntry.chunkI,
-				chunkK = heightMapEntry.chunkK;
-			let chunkJ, j;
-				
-			for (let i = 0, l = vorld.chunkSize; i < l; i++) {
-				for (let k = 0; k < l; k++) {
-					let maxY = heightMapEntry.maxY[i + l * k]; // highest point
-					if (maxY !== undefined) {
-						chunkJ = Math.floor(maxY / l);
-						j = maxY - chunkJ * l + 1;
-					} else {
-						chunkJ = heightMapEntry.minChunkIndex;
-						j = 0;
-					}
-					Vorld.fillSunlight(vorld, heightMapEntry, chunkI, chunkJ, chunkK, i, j, k, 15);
-				}
+		let worker = lightingWorkerPool.requestWorker();
+		worker.onmessage = (e) => {
+			if (firstMessage === null) {
+				firstMessage = Date.now();
 			}
-			count++;
-			progressDelegate("lighting", count, total);
-		}
-
-		// Need to propagate sunlight for non-opaque blocks beneath yMax with adjacent sunlight 
-		// I guess just loop over heightMap indexes again and gather adjacent sunlightValues
-		for (let keyIndex = 0, kl = keys.length; keyIndex < kl; keyIndex++) {
-			let heightMapEntry = vorld.heightMap[keys[keyIndex]];
-			let chunkI = heightMapEntry.chunkI,
-				chunkK = heightMapEntry.chunkK;
-			
-			for (let i = 0, l = vorld.chunkSize; i < l; i++) {
-				for (let k = 0; k < l; k++) {
-					let offset = 0;
-					let x = chunkI * l + i,
-						y = heightMapEntry.maxChunkIndex * l + 15,
-						z = chunkK * l + k;
-					// Assuming continuous again as it's quicker - TODO: Cope with missing chunks
-					while (!Vorld.isBlockOpaque(vorld, x, y - offset, z) && Vorld.getBlock(vorld, x, y - offset, z) !== null) {
-						// As we've pre-filled our full sunlight beams need to go block by block until we hit a block 
-						// (could use our heightMap value here, it's much the same though)
-						Vorld.propagateSunlight(vorld, x, y - offset, z);
-						offset += 1;
-					}
-					// TODO: refactor so propagateSunlight checks heightmap rather than light level for if to try to set and push new values
-					// this will allow us to just call propagate sunlight from top of world once rather than fill then propogate - in fact this would be a
-					// "addSunlight" method as per "addLight" - this would also give us a way to cope with missing chunk although it wouldn't prevent artifacts where
-					// solid chunks were on a boundary against an null chunk
-				}
+			if (!e.data.complete) {
+				lastMessage = Date.now();
 			}
+			let data = e.data;
+			progressDelegate("lighting", data.progress * total, total);
+			if (data.complete) {
+				Vorld.tryMerge(vorld, data.vorld);
 
-			count++;
-			progressDelegate("lighting", count, total);
-		}
+				let elapsed = Date.now() - startTime;
+				console.log("Lighting pass took " + elapsed); // 11743 
+				console.log("Time to init " + (firstMessage - startTime)); // 1387
+				console.log("Time to parse result " + (Date.now() - lastMessage)); // 1558
 
-		// TODO: Loop over light sources and propagate light
+				meshVorld(vorld, bounds, callback, progressDelegate);
+				lightingWorkerPool.returnWorker(worker);
+			}
+		};
+		worker.postMessage({ vorld: vorld });*/
+
+		// Average time for single pass ~11700
+		// Times with by section size:
+		/* 
+			1 - 19209 
+			2 - 9457
+			3 - 7194
+			4 - 6241
+			5 - 5400
+			6 - 5369
+			7 - 4732
+			8 - 5789
+		 */
+		performWorkOnBounds(
+			lightingWorkerPool,
+			bounds, 
+			7, 
+			(sectionBounds) => {
+				let slice = Vorld.createSlice(
+					vorld,
+					sectionBounds.iMin - 1,
+					sectionBounds.iMax + 1,
+					sectionBounds.jMin - 1,
+					sectionBounds.jMax + 1,
+					sectionBounds.kMin - 1,
+					sectionBounds.kMax + 1);
+				return { vorld: slice, bounds: sectionBounds };
+			}, 
+			(data, count, total) => {
+				progressDelegate("lighting", count, total);
+				if (data.complete) {
+					Vorld.tryMerge(vorld, data.vorld);
+				}
+			},
+			() => {
+				let elapsed = Date.now() - startTime;
+				console.log("Lighting pass took " + elapsed); // 7194 - marginally quicker
+				meshVorld(vorld, bounds, callback, progressDelegate);
+			});
 	};
 	
-	let meshVorld = (vorld, bounds, callback, progressDelegate) => {	
-
-		lightingPass(vorld, progressDelegate); // TODO: Move off main thread and to separate pass 
-
+	let meshVorld = (vorld, bounds, callback, progressDelegate) => {
 		performWorkOnBounds(
 			mesherWorkerPool,
 			bounds,
