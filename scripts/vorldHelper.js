@@ -608,49 +608,6 @@ module.exports = (function(){
 	};
 
 	let lightingPass = (vorld, bounds, callback, progressDelegate) => {
-
-		let startTime = Date.now();
-		/* Single Pass Approach
-		let total = Object.keys(vorld.heightMap).length * 2;
-		let firstMessage = null;
-		let lastMessage = null;
-
-		let worker = lightingWorkerPool.requestWorker();
-		worker.onmessage = (e) => {
-			if (firstMessage === null) {
-				firstMessage = Date.now();
-			}
-			if (!e.data.complete) {
-				lastMessage = Date.now();
-			}
-			let data = e.data;
-			progressDelegate("lighting", data.progress * total, total);
-			if (data.complete) {
-				Vorld.tryMerge(vorld, data.vorld);
-
-				let elapsed = Date.now() - startTime;
-				console.log("Lighting pass took " + elapsed); // 11743 
-				console.log("Time to init " + (firstMessage - startTime)); // 1387
-				console.log("Time to parse result " + (Date.now() - lastMessage)); // 1558
-
-				meshVorld(vorld, bounds, callback, progressDelegate);
-				lightingWorkerPool.returnWorker(worker);
-			}
-		};
-		worker.postMessage({ vorld: vorld });*/
-
-		// Average time for single pass ~11700
-		// Times with by section size:
-		/* 
-			1 - 19209 
-			2 - 9457
-			3 - 7194
-			4 - 6241
-			5 - 5400
-			6 - 5369
-			7 - 4732
-			8 - 5789
-		 */
 		performWorkOnBounds(
 			lightingWorkerPool,
 			bounds, 
@@ -673,8 +630,6 @@ module.exports = (function(){
 				}
 			},
 			() => {
-				let elapsed = Date.now() - startTime;
-				console.log("Lighting pass took " + elapsed); // 7194 - marginally quicker
 				meshVorld(vorld, bounds, callback, progressDelegate);
 			});
 	};
