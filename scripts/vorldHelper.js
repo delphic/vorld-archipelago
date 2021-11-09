@@ -501,9 +501,9 @@ module.exports = (function(){
 	generationConfigs["castle"] = generationConfigs["flat"]; // Reuse flat for castle test
 
 	let lightingConfigs = {
-		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0, directionalMagnitude: 0 }, // TODO: Set ambient back to non-zero and use directionMagnitude for sunlight amount
-		"foggy": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.05, ambientMagnitude: 0.5, directionalMagnitude: 0.5 },
-		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.05, ambientMagnitude: 0, directionalMagnitude: 0 } 
+		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.05, directionalMagnitude: 0.9 },
+		"foggy": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.05, ambientMagnitude: 0.2, directionalMagnitude: 0.5 },
+		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.05, ambientMagnitude: 0.05, directionalMagnitude: 0 } 
 	};
 
 	let performWorkOnBounds = (workerPool, bounds, sectionSize, configDelegate, messageCallback, completeCallback) => {
@@ -608,10 +608,11 @@ module.exports = (function(){
 	};
 
 	let lightingPass = (vorld, bounds, callback, progressDelegate) => {
+		let startTime = Date.now();
 		performWorkOnBounds(
 			lightingWorkerPool,
 			bounds, 
-			7, 
+			7, // Maybe re-test on larger set, on the small set this is going to be affected by empty chunks
 			(sectionBounds) => {
 				let slice = Vorld.createSlice(
 					vorld,
@@ -624,12 +625,16 @@ module.exports = (function(){
 				return { vorld: slice, bounds: sectionBounds };
 			}, 
 			(data, count, total) => {
+				// count is number of sections completed not number of progress callbacks 
+				// which is why this bar appears to jump (we have big sections)
 				progressDelegate("lighting", count, total);
 				if (data.complete) {
 					Vorld.tryMerge(vorld, data.vorld);
 				}
 			},
 			() => {
+				let elapsed = Date.now() - startTime;
+				// console.log("Lighting pass took " + elapsed + "ms");
 				meshVorld(vorld, bounds, callback, progressDelegate);
 			});
 	};
@@ -835,9 +840,9 @@ module.exports = (function(){
 		// Apply lighting settings - arguably should be on scene and materials should have bindLighting method taking scene
 		let lightingConfig = null;
 		switch(parameters.configId) {
-			case "castle": 
-				lightingConfig = lightingConfigs["night"];
-				break;
+			//case "castle": 
+			//	lightingConfig = lightingConfigs["night"];
+			//	break;
 			default:
 				lightingConfig = lightingConfigs["day"];
 				break;
