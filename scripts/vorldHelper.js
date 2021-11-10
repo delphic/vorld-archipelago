@@ -501,9 +501,9 @@ module.exports = (function(){
 	generationConfigs["castle"] = generationConfigs["flat"]; // Reuse flat for castle test
 
 	let lightingConfigs = {
-		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0, directionalMagnitude: 0 }, // 0.05, 0.9
-		"foggy": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.05, ambientMagnitude: 0.2, directionalMagnitude: 0.5 }, 
-		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.05, ambientMagnitude: 0.05, directionalMagnitude: 0 }
+		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.02, directionalMagnitude: 0.9 },
+		"foggy": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.05, ambientMagnitude: 0.05, directionalMagnitude: 0.5 }, 
+		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.05, ambientMagnitude: 0.02, directionalMagnitude: 0 }
 	};
 
 	let performWorkOnBounds = (workerPool, bounds, sectionSize, configDelegate, messageCallback, completeCallback) => {
@@ -840,9 +840,9 @@ module.exports = (function(){
 		// Apply lighting settings - arguably should be on scene and materials should have bindLighting method taking scene
 		let lightingConfig = null;
 		switch(parameters.configId) {
-			//case "castle": 
-			//	lightingConfig = lightingConfigs["night"];
-			//	break;
+			case "castle": 
+				lightingConfig = lightingConfigs["night"];
+				break;
 			default:
 				lightingConfig = lightingConfigs["day"];
 				break;
