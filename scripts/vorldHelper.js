@@ -854,6 +854,13 @@ module.exports = (function(){
 		alphaMaterial.setProperties(lightingConfig);
 		Fury.Renderer.clearColor(lightingConfig.fogColor[0], lightingConfig.fogColor[1], lightingConfig.fogColor[2], 1.0);
 
+		// Fragments using alpha blending can finish with non-ONE alpha, so they show the HTML background color
+		// So let's set the body colour to the fog color which results in unchanged asthetic for day light, and improved the glowing water at night 
+		let cssColor = "rgb(" + Math.round(lightingConfig.fogColor[0] * 255) + ", " + Math.round(lightingConfig.fogColor[1] * 255) + ", " + Math.round(lightingConfig.fogColor[2] * 255) + ")";
+		document.body.style.backgroundColor = cssColor;
+		// Arguably we should set this to the water colour * sunlight colour, or we could just have fun with it.
+		// Or perhaps investigate if we can blend colours how we want whilst keeping the output alpha at 1.0
+
 		return generate(parameters.bounds, parameters.configId, callback, progressDelegate);
 	};
 
