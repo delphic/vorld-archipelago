@@ -14,7 +14,7 @@ let Menu = require('./gui/menu');
 let scene, overlayScene, camera, cameraRatio = 16 / 9;
 let freeFlyCamera = null;
 let world = { boxes: [] }, vorld = null;
-let material, alphaMaterial;
+let material, cutoutMaterial, alphaMaterial;
 let player;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 // waterColor : 0, 113, 144
@@ -137,6 +137,7 @@ let start = (initialBounds, worldConfigId) => {
 	vorld = VorldHelper.init({
 			scene: scene,
 			material: material,
+			cutoutMaterial: cutoutMaterial,
 			alphaMaterial: alphaMaterial,
 			bounds: initialBounds,
 			configId: worldConfigId
@@ -367,19 +368,35 @@ window.addEventListener('load', (event) => {
 	totalAssetsToLoad = assetLoadingCount++;
 	let image = new Image();
 	image.onload = function() {
-		let shaderConfig = VoxelShader.create(1.0);
-		let alphaShaderConfig = VoxelShader.create(); // TODO: Consider adding cutout uniform so can avoid shader program switches
+		let shaderConfig = VoxelShader.create();
+		let cutoutShaderConfig = VoxelShader.create(0.5); 
+		// Cutout threshold needs to be 0.5 to prevent the shader 'evapourating' at distance, 
+		// however this also requires a mag filter of nearest pixel to remove visible lines at edges
 		let shader = Fury.Shader.create(shaderConfig);
-		let alphaShader = Fury.Shader.create(alphaShaderConfig);
+		let cutoutShader = Fury.Shader.create(cutoutShaderConfig);
 
 		let targetWidth = 128; // => Scale 8 for 16 pixels, 4 for 32 pixels, 2 for 64 pixels, 1 for 128 pixels+
 		scale = Math.ceil(targetWidth / image.width);  
 		let upscaled = Fury.Utils.createScaledImage({ image: image, scale: scale });
 		let textureSize = upscaled.width, textureCount = Math.round(upscaled.height / upscaled.width);
 		let textureArray = Fury.Renderer.createTextureArray(upscaled, textureSize, textureSize, textureCount, "pixel", true);
+		let nearestFilteredTextureArray = Fury.Renderer.createTextureArray(upscaled, textureSize, textureSize, textureCount, "low", true);
 
-		material = Fury.Material.create({ shader: shader, texture: textureArray,  properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.005 }});
-		alphaMaterial = Fury.Material.create({ shader: alphaShader, texture: textureArray, properties: { alpha: true, "fogColor": vec3.clone(skyColor), "fogDensity": 0.005 }});
+		material = Fury.Material.create({
+			shader: shader,
+			texture: textureArray,
+			 properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.005 }
+			});
+		cutoutMaterial = Fury.Material.create({
+			shader: cutoutShader,
+			texture: nearestFilteredTextureArray,
+			properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.005 }
+		});
+		alphaMaterial = Fury.Material.create({
+			shader: shader,
+			texture: textureArray,
+			properties: { alpha: true, "fogColor": vec3.clone(skyColor), "fogDensity": 0.005 }
+		});
 
 		loadingCallback();
 	};

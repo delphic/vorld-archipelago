@@ -7,7 +7,7 @@ let Vorld = require('../vorld/core/vorld');
 module.exports = (function(){
 	let exports = {};
 
-	let scene = null, material = null, alphaMaterial = null;
+	let scene = null, material = null, cutoutMaterial = null, alphaMaterial = null;
 	let sceneChunkObjects = {};
 	let generationWorkerPool = WorkerPool.create({ src: 'scripts/generator-worker.js', maxWorkers: 8 });
 	let lightingWorkerPool = WorkerPool.create({ src: 'scripts/lighting-worker.js', maxWorkers: 8 });
@@ -381,7 +381,7 @@ module.exports = (function(){
 		{ name: "soil", isOpaque: true, isSolid: true },
 		{ name: "grass", isOpaque: true, isSolid: true },
 		{ name: "wood", isOpaque: true, isSolid: true },
-		{ name: "leaves", isOpaque: false, isSolid: true, meshInternals: true, attenuation: 2 },
+		{ name: "leaves", isOpaque: false, isSolid: true, useCutout: true, meshInternals: true, attenuation: 2 },
 		{ name: "water", isOpaque: false, isSolid: false, useAlpha: true, attenuation: 3 },
 		{ name: "stone_blocks", isOpaque: true, isSolid: true },
 		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2 },
@@ -662,7 +662,7 @@ module.exports = (function(){
 					let mesh = Fury.Mesh.create(data.mesh);
 					let position = vec3.clone(data.chunkIndices);
 					vec3.scale(position, position, vorld.chunkSize);
-					let chunkMaterial = data.alpha ? alphaMaterial : material;
+					let chunkMaterial = data.alpha ? alphaMaterial : data.cutout ? cutoutMaterial : material;
 					let key = data.chunkIndices[0] + "_" + data.chunkIndices[1] + "_" + data.chunkIndices[2];
 					if (!sceneChunkObjects[key]) {
 						sceneChunkObjects[key] = [];
@@ -794,11 +794,12 @@ module.exports = (function(){
 				// The Remeshening
 				for (let i = 0, l = pendingMeshData.length; i < l; i++) {
 					let data = pendingMeshData[i];
-					let key = data.chunkIndices[0] + "_" + data.chunkIndices[1] + "_" + data.chunkIndices[2];
+					// TODO: This logic is duplicated between generation meshing ands remeshening
+					let key = data.chunkIndices[0] + "_" + data.chunkIndices[1] + "_" + data.chunkIndices[2]; // TODO: Move this to Vorld.helper method
 					let mesh = Fury.Mesh.create(data.mesh);
 					let position = vec3.clone(data.chunkIndices);
 					vec3.scale(position, position, vorld.chunkSize);
-					let chunkMaterial = data.alpha ? alphaMaterial : material;
+					let chunkMaterial = data.alpha ? alphaMaterial : data.cutout ? cutoutMaterial : material;
 					sceneChunkObjects[key].push(scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true }));
 				}
 			});
@@ -835,6 +836,7 @@ module.exports = (function(){
 	exports.init = (parameters, callback, progressDelegate) => {
 		scene = parameters.scene;
 		material = parameters.material;
+		cutoutMaterial = parameters.cutoutMaterial;
 		alphaMaterial = parameters.alphaMaterial;
 
 		// Apply lighting settings - arguably should be on scene and materials should have bindLighting method taking scene
@@ -848,6 +850,7 @@ module.exports = (function(){
 				break;
 		}
 		material.setProperties(lightingConfig);
+		cutoutMaterial.setProperties(lightingConfig);
 		alphaMaterial.setProperties(lightingConfig);
 		Fury.Renderer.clearColor(lightingConfig.fogColor[0], lightingConfig.fogColor[1], lightingConfig.fogColor[2], 1.0);
 
