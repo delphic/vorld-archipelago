@@ -395,7 +395,7 @@ window.addEventListener('load', (event) => {
 		alphaMaterial = Fury.Material.create({
 			shader: shader,
 			texture: textureArray,
-			properties: { alpha: true, "fogColor": vec3.clone(skyColor), "fogDensity": 0.005 }
+			properties: { alpha: true, "fogColor": vec3.clone(skyColor), "fogDensity": 0.005, blendSeparate: true }
 		});
 
 		loadingCallback();

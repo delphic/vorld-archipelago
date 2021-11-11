@@ -381,7 +381,7 @@ module.exports = (function(){
 		{ name: "soil", isOpaque: true, isSolid: true },
 		{ name: "grass", isOpaque: true, isSolid: true },
 		{ name: "wood", isOpaque: true, isSolid: true },
-		{ name: "leaves", isOpaque: false, isSolid: true, useCutout: true, meshInternals: true, attenuation: 2 },
+		{ name: "leaves", isOpaque: false, isSolid: true, useCutout: true, meshInternals: true, attenuation: 3 },
 		{ name: "water", isOpaque: false, isSolid: false, useAlpha: true, attenuation: 3 },
 		{ name: "stone_blocks", isOpaque: true, isSolid: true },
 		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2 },
@@ -501,9 +501,9 @@ module.exports = (function(){
 	generationConfigs["castle"] = generationConfigs["flat"]; // Reuse flat for castle test
 
 	let lightingConfigs = {
-		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.02, directionalMagnitude: 0.9 },
+		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.04, directionalMagnitude: 0.9 },
 		"foggy": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.05, ambientMagnitude: 0.05, directionalMagnitude: 0.5 }, 
-		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.05, ambientMagnitude: 0.02, directionalMagnitude: 0 }
+		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.02, ambientMagnitude: 0.04, directionalMagnitude: 0 }
 	};
 
 	let performWorkOnBounds = (workerPool, bounds, sectionSize, configDelegate, messageCallback, completeCallback) => {
@@ -854,12 +854,9 @@ module.exports = (function(){
 		alphaMaterial.setProperties(lightingConfig);
 		Fury.Renderer.clearColor(lightingConfig.fogColor[0], lightingConfig.fogColor[1], lightingConfig.fogColor[2], 1.0);
 
-		// Fragments using alpha blending can finish with non-ONE alpha, so they show the HTML background color
-		// So let's set the body colour to the fog color which results in unchanged asthetic for day light, and improved the glowing water at night 
+		// Set background colour to fog color so CSS effects like blur look good
 		let cssColor = "rgb(" + Math.round(lightingConfig.fogColor[0] * 255) + ", " + Math.round(lightingConfig.fogColor[1] * 255) + ", " + Math.round(lightingConfig.fogColor[2] * 255) + ")";
 		document.body.style.backgroundColor = cssColor;
-		// Arguably we should set this to the water colour * sunlight colour, or we could just have fun with it.
-		// Or perhaps investigate if we can blend colours how we want whilst keeping the output alpha at 1.0
 
 		return generate(parameters.bounds, parameters.configId, callback, progressDelegate);
 	};
