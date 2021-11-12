@@ -19,6 +19,9 @@ let player;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 // waterColor : 0, 113, 144
 
+// TODO: We're going to start needing a gameplay scene concept soon
+let ccc;
+
 let smallInitialBounds = {
 	iMin: -6, iMax: 6,
 	jMin: -1, jMax: 3,
@@ -160,6 +163,16 @@ let start = (initialBounds, worldConfigId) => {
 			}
 			loadingScreen.setProgress(count / total);
 		});
+	/* materials, startTime, timePeriod, updatePeriod, sunlightLevels, fogColors */
+	let CCC = require('./circadianCycleController');
+	ccc = CCC.create({
+		materials: [ material, cutoutMaterial, alphaMaterial],
+		startTime: 0.5,
+		timePeriod: 120,
+		sunlightLevels: CCC.lightCycle,
+		fogColors: CCC.fogColorCycle,
+		fogDensities: CCC.fogDensityCycle
+	});
 };
 
 let pauseMenu = null, requestingLock = false, spinner = null;
@@ -228,6 +241,10 @@ let loop = (elapsed) => {
 		freeFlyCamera.update(elapsed);
 	}
 
+	if (ccc) {
+		ccc.update(elapsed);
+	}
+
 	camera.clear = true;
 	scene.render();
 	camera.clear = false;
@@ -274,6 +291,7 @@ let createPauseMenu = (onClose) => {
 			{ text: "Main Menu", callback: () => {
 				playButtonClickSfx();
 				player = null;
+				ccc = null;
 				clearWorld();
 				menu.remove();
 				setCameraInitialPosition(camera);

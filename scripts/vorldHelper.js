@@ -501,9 +501,9 @@ module.exports = (function(){
 	generationConfigs["castle"] = generationConfigs["flat"]; // Reuse flat for castle test
 
 	let lightingConfigs = {
-		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.04, directionalMagnitude: 0.9 },
+		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.03, directionalMagnitude: 0.9 },
 		"foggy": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.05, ambientMagnitude: 0.05, directionalMagnitude: 0.5 }, 
-		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.02, ambientMagnitude: 0.04, directionalMagnitude: 0 }
+		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.02, ambientMagnitude: 0.03, directionalMagnitude: 0 }
 	};
 
 	let performWorkOnBounds = (workerPool, bounds, sectionSize, configDelegate, messageCallback, completeCallback) => {
