@@ -61,6 +61,8 @@ let CircadianCycleController = module.exports = (function(){
 
 	// Test values!
 	// Fog changes preceed dawn light and lag dusk
+	// TODO: should probably have a light value sooner after dawn that's close to noon light levels rather than linear lerp 
+	// (alternatively we could just calculate light level via incidence) rather than using this manual gradient style
 	exports.lightCycle = [ { time: 0.20, value: 0 }, { time: 0.25, value: 0.4 }, { time: 0.5, value: 0.9 }, { time: 0.75, value: 0.4 }, { time: 0.8, value: 0 } ];
 	exports.fogColorCycle = [ { time: 0.19, value: nightFog }, { time: 0.24, value: transitionFog }, { time: 0.5, value: dayFog }, { time: 0.79, value: transitionFog }, { time: 0.81 , value: nightFog } ];
 	exports.fogDensityCycle = [ { time: 0.19, value: nightFogDensity }, { time: 0.24, value: twilightFogDensity }, { time: 0.5, value: noonFogDensity }, { time: 0.79, value: twilightFogDensity }, { time: 0.81, value: nightFogDensity } ];
@@ -73,8 +75,8 @@ let CircadianCycleController = module.exports = (function(){
 	// you're in sunlight and if they're in sunlight - for dynamic objects we'd need to bind a material uniform to 'sunlight' level rather than reading from vertex, but that's
 	// perfectly managable.
 
-	// This is duping the settings in vorldHelper lightingConfigs - although those also arguably contain weather info (fog density)
-	// I think the ambient is too high for this fog density level - although maybe we should increase the fog at night...
+	// This is duping the settings in vorldHelper lightingConfigs
+	// Arguably fog level is weather not day/night, although we're increasing it at night for effect 
 
 	exports.create = (config) => { /* materials, startTime, timePeriod, updatePeriod, sunlightLevels, fogColors */
 		let ccc = {};
