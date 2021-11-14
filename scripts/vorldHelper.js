@@ -511,13 +511,30 @@ module.exports = (function(){
 		let generatedSectionsCount = 0;
 		let totalSectionsToGenerate = Math.ceil((iMax - iMin + 1) / sectionSize) * Math.ceil((kMax - kMin + 1) / sectionSize);
 
+		let nextWorkerId = 0;
+		let progress = [];
+
 		let i = iMin, k = kMin;
 
 		let workerMessageCallback = (data) => {
 			if (data.complete) {
 				generatedSectionsCount += 1;
 			}
-			messageCallback(data, generatedSectionsCount, totalSectionsToGenerate);
+
+			let totalProgress = generatedSectionsCount;
+			if (data.id !== undefined) { // We're only tracking incremental progress on lighting - other workers do not pass back id 
+				if (data.progress !== undefined) {
+					progress[data.id] = data.progress;
+				}
+				totalProgress = 0;
+				for (let i = 0, l = progress.length; i < l; i++) {
+					if (progress[i]) {
+						totalProgress += progress[i];
+					}
+				}
+			}
+			
+			messageCallback(data, totalProgress, totalSectionsToGenerate);
 			if (data.complete) {
 				if (generatedSectionsCount >= totalSectionsToGenerate && completeCallback) {
 					completeCallback();
@@ -558,6 +575,7 @@ module.exports = (function(){
 					callback(e.data);
 				}
 			};
+			config.id = nextWorkerId++;
 			worker.postMessage(config);
 		};
 
