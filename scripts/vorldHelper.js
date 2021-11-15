@@ -372,6 +372,11 @@ module.exports = (function(){
 		"test": 14
 	};
 
+	// placement styles:
+	// "up_normal" - up of block towards normal of face placed (todo - test against MC wood placement)
+	// "half" - block up can only be up or down, based on normal or fract(y) if on sideways face
+	// "steps" - block up as with half, but front of steps towards camera
+
 	let blockConfig = [
 		// Note: isOpaque is used to determine culling and light propagate, useAlpha currently used for alpha, isSolid used for collision logic
 		// Note: if custom mesh provided and no collision, game uses mesh bounds as default collision AABB
@@ -380,15 +385,15 @@ module.exports = (function(){
 		{ name: "stone", isOpaque: true, isSolid: true },
 		{ name: "soil", isOpaque: true, isSolid: true },
 		{ name: "grass", isOpaque: true, isSolid: true },
-		{ name: "wood", isOpaque: true, isSolid: true },
+		{ name: "wood", isOpaque: true, isSolid: true, placement: "up_normal" },
 		{ name: "leaves", isOpaque: false, isSolid: true, useCutout: true, meshInternals: true, attenuation: 3 },
 		{ name: "water", isOpaque: false, isSolid: false, useAlpha: true, attenuation: 3 },
 		{ name: "stone_blocks", isOpaque: true, isSolid: true },
-		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2 },
-		{ name: "stone_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3 }, 
+		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2, placement: "half" },
+		{ name: "stone_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" }, 
 		{ name: "planks", isOpaque: true, isSolid: true },
-		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2 },
-		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3 },
+		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2, placement: "half" },
+		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" },
 		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8 }, // TODO: Emissive mask to amp up light level and reduce fog build up
 		{ name: "test", isOpaque: true, isSolid: true }
 		// TODO: Add fence post mesh and block (provide full collision box)

@@ -581,6 +581,8 @@ let Player = module.exports = (function(){
 						}
 					}
 
+					let placement = Vorld.getBlockTypeDefinition(vorld, placeableBlocks[blockIndex]).placement;
+
 					// MC placement study:
 					// for wood, up seems to be in either opposite or the same as normal of the block hit 
 					// Unless tree blocks are placed rotated?! - well we can orientate them in any direction with the stump so 
@@ -594,27 +596,65 @@ let Player = module.exports = (function(){
 					// Crafting table (has a definitive 'up') can only be placed in one way
 					// So we seems to have different logic for different blocks
 					
+					let up = Vorld.Cardinal.Direction.up;
+					let forward = Vorld.Cardinal.Direction.forward;
+					if (placement === "up_normal") {
+						let normal = vec3Pool.request();
+						vec3.zero(normal);
+						normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
+						up = Vorld.Cardinal.getDirectionFromVector(normal);
+						vec3Pool.return(normal);
+					} else if (placement === "half" || placement === "steps") {
+						let normal = vec3Pool.request();
+						vec3.zero(normal);
+						normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
+						let normalDir = Vorld.Cardinal.getDirectionFromVector(normal);
+						if (normalDir !== Vorld.Cardinal.Direction.up && normalDir !== Vorld.Cardinal.Direction.down) {
+							if (hitPoint[1] - Math.floor(hitPoint[1]) < 0.5) {
+								up = Vorld.Cardinal.Direction.up;
+							} else {
+								up = Vorld.Cardinal.Direction.down;
+							}
+						} else {
+							up = normalDir;
+						}
+
+						if (placement == "steps") {
+							// Forward towards the camera
+							if (normalDir !== Vorld.Cardinal.Direction.up && normalDir !== Vorld.Cardinal.Direction.down) {
+								vec3.zero(normal);
+								normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
+							} else {
+								let maxAxis = 0;
+								let maxAxisValue = 0;
+								for(let i = 0; i < 3; i++) {
+									if (i != hitAxis && Math.abs(cameraLookDirection[i]) > maxAxisValue) {
+										maxAxis = i;
+										maxAxisValue = Math.abs(cameraLookDirection[i]);
+									}
+								}
+								vec3.zero(normal);
+								normal[maxAxis] = -Math.sign(cameraLookDirection[maxAxis]);
+							}
+							forward = Vorld.Cardinal.getDirectionFromVector(normal);
+							// Invert because steps forward is not steps front (oops)
+							if (forward % 2 == 0) {
+								forward += 1;
+							} else {
+								forward -= 1;
+							}
+						}
+						vec3Pool.return(normal);
+					}
+
 					// Well we'll just do the wood block approach for now up is towards you
-					let normal = vec3Pool.request();
+					/* up_towards
 					vec3.zero(normal);
 					normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
 					let up = Vorld.Cardinal.getDirectionFromVector(normal);
+					*/
 
-					// And for now we'll make forward which other of the other axis is largest
-					let maxAxis = 0;
-					let maxAxisValue = 0;
-					for(let i = 0; i < 3; i++) {
-						if (i != hitAxis && Math.abs(cameraLookDirection[i]) > maxAxisValue) {
-							maxAxis = i;
-							maxAxisValue = Math.abs(cameraLookDirection[i]);
-						}
-					}
-					vec3.zero(normal);
-					normal[maxAxis] = -Math.sign(cameraLookDirection[maxAxis]);
-					let forward = Vorld.Cardinal.getDirectionFromVector(normal);
-					vec3Pool.return(normal);
-
-					// console.log("Up calculated as " + Vorld.Cardinal.getDirectionDescription(up) + ", forward calculated as " + Vorld.Cardinal.getDirectionDescription(forward));
+					console.log("Up calculated as " + Vorld.Cardinal.getDirectionDescription(up) + ", forward calculated as " + Vorld.Cardinal.getDirectionDescription(forward));
 					VorldHelper.addBlock(
 						vorld,
 						Math.floor(hitPoint[0]),
