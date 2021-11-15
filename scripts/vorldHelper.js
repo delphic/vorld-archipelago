@@ -394,7 +394,7 @@ module.exports = (function(){
 		{ name: "planks", isOpaque: true, isSolid: true },
 		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2, placement: "half" },
 		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" },
-		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8 }, // TODO: Emissive mask to amp up light level and reduce fog build up
+		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8, placement: "up_normal" }, // TODO: Emissive mask to amp up light level and reduce fog build up
 		{ name: "test", isOpaque: true, isSolid: true }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout

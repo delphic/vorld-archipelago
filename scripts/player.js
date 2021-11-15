@@ -647,13 +647,6 @@ let Player = module.exports = (function(){
 						vec3Pool.return(normal);
 					}
 
-					// Well we'll just do the wood block approach for now up is towards you
-					/* up_towards
-					vec3.zero(normal);
-					normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
-					let up = Vorld.Cardinal.getDirectionFromVector(normal);
-					*/
-
 					console.log("Up calculated as " + Vorld.Cardinal.getDirectionDescription(up) + ", forward calculated as " + Vorld.Cardinal.getDirectionDescription(forward));
 					VorldHelper.addBlock(
 						vorld,
