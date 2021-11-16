@@ -132,7 +132,10 @@ let start = (initialBounds, worldConfigId) => {
 
 	let onVorldCreated = (data) => {
 		generating = false;
-		// TODO: if GameLoop paused call scene render manually to update view
+		if (!Fury.GameLoop.isRunning()) {
+			// If GameLoop paused call scene render manually to update view
+			scene.render();
+		}
 		loadingScreen.showReadyButton("Enter Vorld", spawnPlayer);
 	};
 
@@ -334,6 +337,7 @@ let createProgressScreen = (title, className) => {
 let clearWorld = () => {
 	Vorld.clear(vorld);
 	scene.clear();
+	overlayScene.clear();
 	Fury.Scene.clearResources();
 };
 
