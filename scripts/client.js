@@ -229,6 +229,10 @@ let pauseGame = () => {
 
 let loop = (elapsed) => {
 	if (player) {
+		if (ccc) {
+			ccc.update(elapsed);
+		}
+
 		player.update(elapsed);
 		Audio.setListenerPosition(player.position);
 		// TODO: listener orientation
@@ -238,10 +242,6 @@ let loop = (elapsed) => {
 		// for over a second however closing that tab and openning a new one made it disappear
 	} else if (!generating && freeFlyCamera) {
 		freeFlyCamera.update(elapsed);
-	}
-
-	if (ccc) {
-		ccc.update(elapsed);
 	}
 
 	camera.clear = true;
