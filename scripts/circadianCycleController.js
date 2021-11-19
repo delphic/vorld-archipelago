@@ -50,6 +50,7 @@ let CircadianCycleController = module.exports = (function(){
 		getGradientValues(gradientValues, gradient, value);
 		Maths.vec3.lerp(out, gradientValues[0], gradientValues[1], gradientValues[2]);
 		// TODO: Probably want to do something other than lerping rgb as it leads to greys
+		// ^^ Yes hsv or hsl please
 	};
 
 	let nightFog = Maths.vec3.fromValues(0, 0, 0.02);
@@ -61,12 +62,30 @@ let CircadianCycleController = module.exports = (function(){
 
 	// Test values!
 	// Fog changes preceed dawn light and lag dusk
-	// TODO: should probably have a light value sooner after dawn that's close to noon light levels rather than linear lerp 
-	// (alternatively we could just calculate light level via incidence) rather than using this manual gradient style
-	exports.lightCycle = [ { time: 0.20, value: 0 }, { time: 0.25, value: 0.4 }, { time: 0.5, value: 0.9 }, { time: 0.75, value: 0.4 }, { time: 0.8, value: 0 } ];
-	exports.fogColorCycle = [ { time: 0.19, value: nightFog }, { time: 0.24, value: transitionFog }, { time: 0.5, value: dayFog }, { time: 0.79, value: transitionFog }, { time: 0.81 , value: nightFog } ];
-	exports.fogDensityCycle = [ { time: 0.19, value: nightFogDensity }, { time: 0.24, value: twilightFogDensity }, { time: 0.5, value: noonFogDensity }, { time: 0.79, value: twilightFogDensity }, { time: 0.81, value: nightFogDensity } ];
-	// This is something would ben ice to have inspectors for to play with and then serialize...
+	// Alternatively we could just calculate light level via incidence, rather than using this manual gradient style
+	exports.lightCycle = [ 
+		{ time: 0.20, value: 0 }, 
+		{ time: 0.25, value: 0.4 },
+		{ time: 0.325, value: 0.8 },
+		{ time: 0.5, value: 0.9 },
+		{ time: 0.625, value: 0.8 },
+		{ time: 0.75, value: 0.4 },
+		{ time: 0.8, value: 0 } ];
+	exports.fogColorCycle = [ 
+		{ time: 0.19, value: nightFog },
+		{ time: 0.24, value: transitionFog },
+		{ time: 0.5, value: dayFog },
+		{ time: 0.79, value: transitionFog },
+		{ time: 0.81 , value: nightFog }
+	];
+	exports.fogDensityCycle = [
+		{ time: 0.19, value: nightFogDensity },
+		{ time: 0.24, value: twilightFogDensity },
+		{ time: 0.5, value: noonFogDensity },
+		{ time: 0.79, value: twilightFogDensity },
+		{ time: 0.81, value: nightFogDensity }
+	];
+	// This is something would be nice to have inspectors for to play with and then serialize...
 
 	// Ambient Light and fake HDR thoughts
 	// The lack of independent control of ambient light based current sunlight color is sad... would be easy enough to do but it would effect underground
