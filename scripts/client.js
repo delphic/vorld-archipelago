@@ -407,17 +407,17 @@ window.addEventListener('load', (event) => {
 		material = Fury.Material.create({
 			shader: shader,
 			texture: textureArray,
-			 properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.005 }
+			 properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.005, "ambientMagnitude": 0.5, "directionalMagnitude": 0.5 }
 			});
 		cutoutMaterial = Fury.Material.create({
 			shader: cutoutShader,
 			texture: nearestFilteredTextureArray,
-			properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.005 }
+			properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.005, "ambientMagnitude": 0.5, "directionalMagnitude": 0.5 }
 		});
 		alphaMaterial = Fury.Material.create({
 			shader: shader,
 			texture: textureArray,
-			properties: { alpha: true, "fogColor": vec3.clone(skyColor), "fogDensity": 0.005, blendSeparate: true }
+			properties: { alpha: true, blendSeparate: true, "fogColor": vec3.clone(skyColor), "fogDensity": 0.005, "ambientMagnitude": 0.5, "directionalMagnitude": 0.5 }
 		});
 
 		loadingCallback();
