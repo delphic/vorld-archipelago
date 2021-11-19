@@ -647,7 +647,7 @@ let Player = module.exports = (function(){
 						vec3Pool.return(normal);
 					}
 
-					console.log("Up calculated as " + Vorld.Cardinal.getDirectionDescription(up) + ", forward calculated as " + Vorld.Cardinal.getDirectionDescription(forward));
+					// console.log("Up calculated as " + Vorld.Cardinal.getDirectionDescription(up) + ", forward calculated as " + Vorld.Cardinal.getDirectionDescription(forward));
 					VorldHelper.addBlock(
 						vorld,
 						Math.floor(hitPoint[0]),
