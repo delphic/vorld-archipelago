@@ -1,3 +1,4 @@
+// Player Module
 const Fury = require('../fury/src/fury');
 const { Input, Physics, Maths } = require('../fury/src/fury');
 const { vec3, quat, vec3Pool } = require('../fury/src/maths');
@@ -7,7 +8,7 @@ const Vorld = require('../vorld/core/vorld');
 const VorldHelper = require('./vorldHelper');
 const VorldPhysics = require('../vorld/core/physics');
 
-let Player = module.exports = (function(){
+module.exports = (function(){
 	let exports = {};
 	let prototype = {};
 

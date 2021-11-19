@@ -1,8 +1,8 @@
+// Day / night cycle controller
 let Fury = require('../fury/src/fury');
 let Maths = require('../fury/src/maths');
 
-// Day / night cycle controller
-let CircadianCycleController = module.exports = (function(){
+module.exports = (function(){
 	let exports = {};
 
 	// Maybe we should have a gradient module

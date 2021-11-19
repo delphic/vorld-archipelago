@@ -1,10 +1,9 @@
 let Fury = require('../fury/src/fury');
-const { GameLoop, Input, Maths } = require('../fury/src/fury');
+const { GameLoop } = require('../fury/src/fury');
 const { vec3, quat } = require('../fury/src/maths');
 let Vorld = require('../vorld/core/vorld');
 let VoxelShader = require('../vorld/core/shader');
 let VorldHelper = require('./vorldHelper');
-let VorldPhysics = require('../vorld/core/physics');
 let Player = require('./player');
 let GUI = require('./gui');
 let Audio = require('./audio');
@@ -130,7 +129,7 @@ let start = (initialBounds, worldConfigId) => {
 		document.addEventListener('pointerlockchange', handlePointLockChange);
 	};
 
-	let onVorldCreated = (data) => {
+	let onVorldCreated = () => { // data param is available
 		generating = false;
 		if (!Fury.GameLoop.isRunning()) {
 			// If GameLoop paused call scene render manually to update view
@@ -180,18 +179,18 @@ let start = (initialBounds, worldConfigId) => {
 
 let pauseMenu = null, requestingLock = false, spinner = null;
 
-let handlePointLockChange = (e) => {
+let handlePointLockChange = () => {
 	if (!Fury.Input.isPointerLocked()) {
 		pauseGame();
 	}
 };
 
-let pauseGame = (e) => {
+let pauseGame = () => {
 	if (player && pauseMenu == null) {
 		GameLoop.stop();
 		pauseMenu = createPauseMenu((resume) => {
 			if (resume && !requestingLock) {
-				let onSuccess = (e) => { 
+				let onSuccess = () => { 
 					requestingLock = false;
 					if (spinner) { 
 						GUI.root.removeChild(spinner);
@@ -201,7 +200,7 @@ let pauseGame = (e) => {
 					GameLoop.start();
 				};
 				// On Failing - try again
-				let onFail = (e) => { 
+				let onFail = () => { 
 					requestingLock = true;
 					if (!spinner) {
 						spinner = GUI.appendElement(GUI.root, "div", { "class": "spin" });
@@ -228,10 +227,7 @@ let pauseGame = (e) => {
 	}
 };
 
-let time = 0;
 let loop = (elapsed) => {
-	time += elapsed;
-
 	if (player) {
 		player.update(elapsed);
 		Audio.setListenerPosition(player.position);
@@ -302,7 +298,7 @@ let createPauseMenu = (onClose) => {
 				scene.render();
 				createMainMenu();
 				onClose(false);
-			 } }
+			} }
 		]);
 	return menu;
 };
@@ -320,7 +316,7 @@ let createProgressScreen = (title, className) => {
 	let showReadyButton = (text, onclick) => {
 		progressBarContainer.removeChild(progressBar.element);
 		let playButton = GUI.appendElement(progressBarContainer, "input", { "type": "button", "value": text });
-		playButton.onclick = (e) => {
+		playButton.onclick = () => {
 			playButtonClickSfx();
 			GUI.root.removeChild(playPromptDiv);
 			onclick();
@@ -341,7 +337,7 @@ let clearWorld = () => {
 	Fury.Scene.clearResources();
 };
 
-window.addEventListener('load', (event) => {
+window.addEventListener('load', () => {
 	let glCanvasId = 'fury';
 	
 	// Full screen logic
@@ -350,7 +346,7 @@ window.addEventListener('load', (event) => {
 	let glCanvas = document.getElementById(glCanvasId);
 	glCanvas.style = "width: 100%; height: 100vh";
 	document.body.style = "margin: 0; overflow-y: hidden;";
-	let updateCanvasSize = (event) => {
+	let updateCanvasSize = () => {
 		glCanvas.width = resolutionFactor * glCanvas.clientWidth;
 		glCanvas.height = resolutionFactor * glCanvas.clientHeight;
 		cameraRatio = glCanvas.clientWidth  / glCanvas.clientHeight;
@@ -398,7 +394,7 @@ window.addEventListener('load', (event) => {
 		let cutoutShader = Fury.Shader.create(cutoutShaderConfig);
 
 		let targetWidth = 128; // => Scale 8 for 16 pixels, 4 for 32 pixels, 2 for 64 pixels, 1 for 128 pixels+
-		scale = Math.ceil(targetWidth / image.width);  
+		let scale = Math.ceil(targetWidth / image.width);  
 		let upscaled = Fury.Utils.createScaledImage({ image: image, scale: scale });
 		let textureSize = upscaled.width, textureCount = Math.round(upscaled.height / upscaled.width);
 		let textureArray = Fury.Renderer.createTextureArray(upscaled, textureSize, textureSize, textureCount, "pixel", true);
@@ -407,7 +403,7 @@ window.addEventListener('load', (event) => {
 		material = Fury.Material.create({
 			shader: shader,
 			texture: textureArray,
-			 properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.005, "ambientMagnitude": 0.5, "directionalMagnitude": 0.5 }
+			properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.005, "ambientMagnitude": 0.5, "directionalMagnitude": 0.5 }
 			});
 		cutoutMaterial = Fury.Material.create({
 			shader: cutoutShader,
