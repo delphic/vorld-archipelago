@@ -3,6 +3,7 @@ let Fury = require('../fury/src/fury');
 let Maths = require('../fury/src/maths');
 let vec3 = Maths.vec3;
 let Vorld = require('../vorld/core/vorld');
+let VorldPrimitives = require('../vorld/core/primitives');
 
 module.exports = (function(){
 	let exports = {};
@@ -14,110 +15,9 @@ module.exports = (function(){
 	let mesherWorkerPool = WorkerPool.create({ src: 'scripts/mesher-worker.js', maxWorkers: 4 });
 	let boundsCache = {};
 
-	// TODO: Move to Fury primitives - also, this is a Cuboid, not a cube.
-	let createCubeMesh = (xMin, xMax, yMin, yMax, zMin, zMax) => {
-		// Note no UV offset - mapped directly to world position
-		return {
-			vertices: [
-				// forward
-				xMin, yMin, zMax,
-				xMax, yMin, zMax,
-				xMax, yMax, zMax,
-				xMin, yMax, zMax,
-				// back
-				xMin, yMin, zMin,
-				xMin, yMax, zMin,
-				xMax, yMax, zMin,
-				xMax, yMin, zMin,
-				// up
-				xMin, yMax, zMin,
-				xMin, yMax, zMax,
-				xMax, yMax, zMax,
-				xMax, yMax, zMin,
-				// down
-				xMin, yMin, zMin,
-				xMax, yMin, zMin,
-				xMax, yMin, zMax,
-				xMin, yMin, zMax,
-				// right
-				xMax, yMin, zMin,
-				xMax, yMax, zMin,
-				xMax, yMax, zMax,
-				xMax, yMin, zMax,
-				// left
-				xMin, yMin, zMin,
-				xMin, yMin, zMax,
-				xMin, yMax, zMax,
-				xMin, yMax, zMin ],
-			normals: [
-				// forward
-				0.0, 0.0, 1.0,
-				0.0, 0.0, 1.0,
-				0.0, 0.0, 1.0,
-				0.0, 0.0, 1.0,
-				// back
-				0.0, 0.0, -1.0,
-				0.0, 0.0, -1.0,
-				0.0, 0.0, -1.0,
-				0.0, 0.0, -1.0,
-				// up
-				0.0, 1.0, 0.0,
-				0.0, 1.0, 0.0,
-				0.0, 1.0, 0.0,
-				0.0, 1.0, 0.0,
-				// down
-				0.0, -1.0, 0.0,
-				0.0, -1.0, 0.0,
-				0.0, -1.0, 0.0,
-				0.0, -1.0, 0.0,
-				// right
-				1.0, 0.0, 0.0,
-				1.0, 0.0, 0.0,
-				1.0, 0.0, 0.0,
-				1.0, 0.0, 0.0,
-				// left
-				-1.0, 0.0, 0.0,
-				-1.0, 0.0, 0.0,
-				-1.0, 0.0, 0.0,
-				-1.0, 0.0, 0.0],
-			textureCoordinates: [
-				// forward
-				xMin, yMin,
-				xMax, yMin,
-				xMax, yMax,
-				xMin, yMax,
-				// back
-				xMax, yMin,
-				xMax, yMax,
-				xMin, yMax,
-				xMin, yMin,
-				// up - NOTE: +y => -z
-				xMin, zMax,
-				xMin, zMin,
-				xMax, zMin,
-				xMax, zMax,
-				// down - NOTE: +y => -z
-				xMax, zMax,
-				xMin, zMax,
-				xMin, zMin,
-				xMax, zMin,
-				// right
-				zMax, yMin,
-				zMax, yMax,
-				zMin, yMax,
-				zMin, yMin,
-				// left
-				zMin, yMin,
-				zMax, yMin,
-				zMax, yMax,
-				zMin, yMax ],
-			indices: [ 0, 1, 2, 0, 2, 3, 4, 5, 6, 4, 6, 7, 8, 9, 10, 8, 10, 11, 12, 13, 14, 12, 14, 15, 16, 17, 18, 16, 18, 19, 20, 21, 22, 20, 22, 23 ]
-		};
-	}; 
+	let halfCubeJson = VorldPrimitives.createCuboidMeshJson(0.0, 1.0, 0.0, 0.5, 0.0, 1.0);
 
-	let halfCubeJson = createCubeMesh(0.0, 1.0, 0.0, 0.5, 0.0, 1.0);
-
-	let torchJson = createCubeMesh(0.4, 0.6, 0.0, 0.8, 0.4, 0.6);
+	let torchJson = VorldPrimitives.createCuboidMeshJson(0.4, 0.6, 0.0, 0.8, 0.4, 0.6);
 
 	// Combined pair of cubes - top quad halved on lower, no bottom on upper - TODO: single quad at back
 	let stepJson = {
@@ -323,7 +223,7 @@ module.exports = (function(){
 			36, 38, 39,
 			40, 41, 42,
 			40, 42, 43,
-		 ]
+		]
 	};
 
 	// TODO: Extract to config files rather than inline
@@ -335,18 +235,19 @@ module.exports = (function(){
 		sdx: 128,
 		sdz: 256
 	};
-	let negativeYShapingConfig = {
+	// negativeYShapingConfig
+	/* {
 		name: "negative_y",
 		yDenominator: 32,
 		yOffset: 128,
-	};
-
-	// Do not use with negative vertical extents unless you want insanity.
-	let inverseYShapingConfig = {
+	}; */
+	//  inverseYShapingConfig
+	// Do not use with negative vertical extents unless you want insanity, fun insanity but insanity
+	/* 
 		name: "inverse_y",
 		numerator: 100,
 		yOffset: 0,
-	};
+	}; */
 
 	// Custom collision specified as an array of AABB relative to mesh.bounds min
 	let stepCollision = [
@@ -394,7 +295,7 @@ module.exports = (function(){
 		{ name: "planks", isOpaque: true, isSolid: true },
 		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2, placement: "half" },
 		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" },
-		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8, placement: "up_normal" }, // TODO: Emissive mask to amp up light level and reduce fog build up
+		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8, placement: "up_normal", rotateTextureCoords: true }, // TODO: Emissive mask to amp up light level and reduce fog build up
 		{ name: "test", isOpaque: true, isSolid: true }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
@@ -584,7 +485,7 @@ module.exports = (function(){
 			worker.postMessage(config);
 		};
 
-		while (workerPool.isWorkerAvailable() && tryStartNextWorker()) { }
+		while (workerPool.isWorkerAvailable() && tryStartNextWorker()) { /* Try make next worker! */ }
 	}; 
 
 	let generate = (bounds, id, callback, progressDelegate) => {
@@ -631,7 +532,7 @@ module.exports = (function(){
 	};
 
 	let lightingPass = (vorld, bounds, callback, progressDelegate) => {
-		let startTime = Date.now();
+		// let startTime = Date.now();
 		performWorkOnBounds(
 			lightingWorkerPool,
 			bounds, 
@@ -656,7 +557,7 @@ module.exports = (function(){
 				}
 			},
 			() => {
-				let elapsed = Date.now() - startTime;
+				// let elapsed = Date.now() - startTime;
 				// console.log("Lighting pass took " + elapsed + "ms");
 				meshVorld(vorld, bounds, callback, progressDelegate);
 			});
@@ -782,7 +683,7 @@ module.exports = (function(){
 					sectionBounds.kMin - 1,
 					sectionBounds.kMax + 1);
 				return meshingConfig;
-			}, (data, count, total) => {
+			}, (data) => { // count, total arguments available
 				if (data.mesh) {
 					pendingMeshData.push(data);
 				}
