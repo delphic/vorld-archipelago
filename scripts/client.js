@@ -418,5 +418,5 @@ window.addEventListener('load', () => {
 
 		loadingCallback();
 	};
-	image.src = "images/atlas_array.png";
+	image.src = "images/atlas.png";
 });

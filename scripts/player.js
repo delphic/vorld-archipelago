@@ -620,7 +620,7 @@ module.exports = (function(){
 							up = normalDir;
 						}
 
-						if (placement == "steps") {
+						if (placement === "steps") {
 							// Forward towards the camera
 							if (normalDir !== Vorld.Cardinal.Direction.up && normalDir !== Vorld.Cardinal.Direction.down) {
 								vec3.zero(normal);
@@ -645,6 +645,22 @@ module.exports = (function(){
 								forward -= 1;
 							}
 						}
+						vec3Pool.return(normal);
+					} else if (placement === "front_facing") {
+						// Point forward towards camera 
+						let maxAxis = 0;
+						let maxAxisValue = 0;
+						// Find max on x/z axis
+						for (let i = 0; i < 3; i++) {
+							if (i != 1 && Math.abs(cameraLookDirection[i]) > maxAxisValue) {
+								maxAxis = i;
+								maxAxisValue = Math.abs(cameraLookDirection[i]);
+							}
+						}
+						let normal = vec3Pool.request();
+						vec3.zero(normal);
+						normal[maxAxis] = -Math.sign(cameraLookDirection[maxAxis]);
+						forward = Vorld.Cardinal.getDirectionFromVector(normal);
 						vec3Pool.return(normal);
 					}
 

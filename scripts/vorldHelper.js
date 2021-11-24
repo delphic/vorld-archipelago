@@ -274,6 +274,7 @@ module.exports = (function(){
 	};
 
 	// placement styles:
+	// "front_facing" - up is up and front of the block is pointed towards camera
 	// "up_normal" - up of block towards normal of face placed (todo - test against MC wood placement)
 	// "half" - block up can only be up or down, based on normal or fract(y) if on sideways face
 	// "steps" - block up as with half, but front of steps towards camera
@@ -286,7 +287,7 @@ module.exports = (function(){
 		{ name: "stone", isOpaque: true, isSolid: true },
 		{ name: "soil", isOpaque: true, isSolid: true },
 		{ name: "grass", isOpaque: true, isSolid: true },
-		{ name: "wood", isOpaque: true, isSolid: true, placement: "up_normal" },
+		{ name: "wood", isOpaque: true, isSolid: true, placement: "up_normal", rotateTextureCoords: true },
 		{ name: "leaves", isOpaque: false, isSolid: true, useCutout: true, meshInternals: true, attenuation: 3 },
 		{ name: "water", isOpaque: false, isSolid: false, useAlpha: true, attenuation: 3 },
 		{ name: "stone_blocks", isOpaque: true, isSolid: true },
@@ -296,7 +297,7 @@ module.exports = (function(){
 		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2, placement: "half" },
 		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" },
 		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8, placement: "up_normal", rotateTextureCoords: true }, // TODO: Emissive mask to amp up light level and reduce fog build up
-		{ name: "test", isOpaque: true, isSolid: true }
+		{ name: "test", isOpaque: true, isSolid: true, placement: "front_facing", rotateTextureCoords: true }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];
@@ -315,24 +316,27 @@ module.exports = (function(){
 	* 10: Water
 	*/
 	let meshingConfig = {
+		// TODO: Update Atlas to array of tile ids (e.g. stone, soil, grass_top, grass_side etc)
+		// Move what textures on what sides to block definition and build the index lookup, the lookup could then just be
+		// an array of indices with the array index based on the cardinal enum values, would simplify the mesher code 
 		atlas: {
-			textureArraySize: 19,
+			textureArraySize: 21,
 			blockToTileIndex: [
 				null,
 				{ side: 3 }, // stone
 				{ side: 2 }, // soil
 				{ side: 1, top: 0, bottom: 2 }, // grass
-				{ side: 7, top: 6, bottom: 6 }, // wood
-				{ side: 9 }, // leaves
-				{ side: 10 }, // water
+				{ side: 9, top: 8, bottom: 8 }, // wood
+				{ side: 11 }, // leaves
+				{ side: 12 }, // water
 				{ side: 4 }, // stone-blocks
-				{ side: 4 }, // half-stone
+				{ side: 5, top: 6, bottom: 6 }, // half-stone
 				{ side: 4 }, // step-stone
-				{ side: 8 }, // planks
-				{ side: 8 }, // half-planks
-				{ side: 8 }, // step-planks
-				{ side: 11, top: 12, bottom: 8 }, 	// torch
-				{ top: 13, bottom: 14, forward: 15, back: 16, right: 18, left: 17 } // test
+				{ side: 10 }, // planks
+				{ side: 10 }, // half-planks
+				{ side: 10 }, // step-planks
+				{ side: 13, top: 14, bottom: 13 }, // torch
+				{ top: 15, bottom: 16, forward: 17, back: 18, right: 20, left: 19 } // test
 			]
 		}
 		// blockConfig also effects meshing but this is stored on vorld data
