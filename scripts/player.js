@@ -137,7 +137,17 @@ module.exports = (function(){
 			removalDistance = parameters.removalDistance;
 		}
 
-		let placeableBlocks = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ]; // TODO: Get from block config
+		// TODO: Pass this in or make it based on equipment 
+		let placementConfig = {
+			isCreativeMode: false,
+			destroyableBlocks: [],
+			pickupableBlocks: [ 13, 15 ] // torch and orb
+		};
+		let blockInventory = [ 13 ]; // DEBUG: Start with a torch
+		if (placementConfig.isCreativeMode) {
+			// TODO: just get full block this from block config
+			blockInventory = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ];
+		}
 		let blockIndex = 0; // TODO: UI to control & console option to toggle block placement (or equipable object)
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
 			let hitPoint = Maths.vec3Pool.request();
@@ -562,15 +572,19 @@ module.exports = (function(){
 			// Block placement
 			// DEBUG - block placement change
 			// TODO: Need a throttle on changes due to MouseWheel
-			if (Input.keyDown("[", true) || Input.MouseWheel[1] > 0) {
-				blockIndex = (blockIndex - 1) % placeableBlocks.length;
-				if (blockIndex < 0) blockIndex = placeableBlocks.length - 1;
-			}
-			if (Input.keyDown("]", true) || Input.MouseWheel[1] < 0) {
-				blockIndex = (blockIndex + 1) % placeableBlocks.length;
+			if (blockInventory.length) {
+				if (Input.keyDown("[", true) || Input.MouseWheel[1] > 0) {
+					blockIndex = (blockIndex - 1) % blockInventory.length;
+					if (blockIndex < 0) blockIndex = blockInventory.length - 1;
+				}
+				if (Input.keyDown("]", true) || Input.MouseWheel[1] < 0) {
+					blockIndex = (blockIndex + 1) % blockInventory.length;
+				}
 			}
 
-			if (attemptPlacement) {
+			let blockToPlace = blockInventory[blockIndex];
+
+			if (attemptPlacement && blockToPlace) {
 				castInCameraLookDirection(vorld, camera, placementDistance, (hitPoint, cameraLookDirection) => {
 					// Detect which face was hit and shift hit point way from that face
 					let hitAxis = 0;
@@ -582,20 +596,7 @@ module.exports = (function(){
 						}
 					}
 
-					let placement = Vorld.getBlockTypeDefinition(vorld, placeableBlocks[blockIndex]).placement;
-
-					// MC placement study:
-					// for wood, up seems to be in either opposite or the same as normal of the block hit 
-					// Unless tree blocks are placed rotated?! - well we can orientate them in any direction with the stump so 
-					// perhaps best to say, the unique side points towards you
-					// For steps... well if you're placing on top or bottom - 'forward' seems to be towards you (i.e. you can step onto it) 
-					// if you're placing on a side, it's still facing towards you but up is determined by where on the block you click, top half upside down bottom half
-					// upright.
-					// (This is complicated further by triplanar mapping of textures meaning can't really tell which way it thinks about it).
-					// Slabs are the same as steps, doesn't seem to be possible to place them so that 'up' is sideways.
-					// (Unrealted: since when did placing two half blocks stack in MC?!)
-					// Crafting table (has a definitive 'up') can only be placed in one way
-					// So we seems to have different logic for different blocks
+					let placement = Vorld.getBlockTypeDefinition(vorld, blockToPlace).placement;
 					
 					let up = Vorld.Cardinal.Direction.up;
 					let forward = Vorld.Cardinal.Direction.forward;
@@ -670,9 +671,13 @@ module.exports = (function(){
 						Math.floor(hitPoint[0]),
 						Math.floor(hitPoint[1]),
 						Math.floor(hitPoint[2]),
-						placeableBlocks[blockIndex],
+						blockToPlace,
 						up,
 						forward);
+
+					if (!placementConfig.isCreativeMode) { // TODO: Option to carry more than one
+						blockInventory.splice(blockIndex, 1); // Remove placed block
+					}
 				});
 			} else if (attemptRemoval) {
 				castInCameraLookDirection(vorld, camera, removalDistance, (hitPoint, cameraLookDirection) => {
@@ -683,11 +688,22 @@ module.exports = (function(){
 							break;
 						}
 					}
-					VorldHelper.removeBlock(
-						vorld,
-						Math.floor(hitPoint[0]),
-						Math.floor(hitPoint[1]),
-						Math.floor(hitPoint[2]));
+					let x = Math.floor(hitPoint[0]), y = Math.floor(hitPoint[1]), z = Math.floor(hitPoint[2]);
+					let blockToRemove = Vorld.getBlock(vorld, x, y, z);
+					if (placementConfig.pickupableBlocks.includes(blockToRemove) 
+						&& (placementConfig.isCreativeMode || !blockInventory.includes(blockToRemove))) {
+						// NOTE: can only pick up one of each block type at a time right now - no stacks
+						// arguably should only be able to carry one block type in current design
+						VorldHelper.removeBlock(vorld, x, y, z);
+						if (!placementConfig.isCreativeMode || !blockInventory.includes(blockToRemove)) {
+							// HACK - In creative mode items are never removed from your inventory 
+							// TODO: Tidy this up by making inventory a module with an create option to not consume
+							// always contain etc then we can just call inventory.remove(block) and not have the extra logic here
+							blockInventory.push(blockToRemove);
+						}
+					} else if (placementConfig.isCreativeMode || placementConfig.destroyableBlocks.includes(blockToRemove)) {
+						VorldHelper.removeBlock(vorld, x, y, z);
+					}
 				});
 			} else if (blockPreview) {
 				castInCameraLookDirection(vorld, camera, removalDistance, (hitPoint, cameraLookDirection) => {
@@ -697,10 +713,18 @@ module.exports = (function(){
 							break;
 						}
 					}
-					blockPreview.active = true;
-					blockPreview.transform.position[0] = Math.floor(hitPoint[0]);
-					blockPreview.transform.position[1] = Math.floor(hitPoint[1]);
-					blockPreview.transform.position[2] = Math.floor(hitPoint[2]);
+					let x = Math.floor(hitPoint[0]), y = Math.floor(hitPoint[1]), z = Math.floor(hitPoint[2]);
+					let targetBlock = Vorld.getBlock(vorld, x, y, z);
+					if (placementConfig.isCreativeMode
+						|| placementConfig.destroyableBlocks.includes(targetBlock) 
+						|| placementConfig.pickupableBlocks.includes(targetBlock)) {
+						blockPreview.active = true;
+						blockPreview.transform.position[0] = x;
+						blockPreview.transform.position[1] = y;
+						blockPreview.transform.position[2] = z;
+					} else {
+						blockPreview.active = false;
+					}
 				}, () => {
 					blockPreview.active = false;
 				});
