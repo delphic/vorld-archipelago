@@ -548,51 +548,6 @@ module.exports = (function(){
 				}
 			},
 			() => {
-				// Orb Placement step
-				let maximaFinder = require('../vorld/analysis/maximaFinder');
-				let maxima = maximaFinder.findChunkMaxima(vorld);
-
-				if (maxima.length < 4) {
-					throw new Error("We need at least as many chunks as orbs to place");
-				}
-
-				let pickedPoints = [ maxima[0] ];
-				let maxOffset = 5;
-				// Find 4 points most spread out within 10 units of max - place orbs on them
-				// This will cause the placement to cluster around a large peak though - might want a minimum separately
-				while (pickedPoints.length < 4) {
-					let bestPoint = null;
-					while (bestPoint == null) {
-						let bestScore = undefined;
-						for (let i = 0, l = maxima.length; i < l; i++) {
-							if (maxima[i][1] + maxOffset >= pickedPoints[0][1] && !pickedPoints.includes(maxima[i])) {
-								let score = 0;
-								
-								for (let j = 0, n = pickedPoints.length; j < n; j++) {
-									let distance = vec3.dist(pickedPoints[j], maxima[i]); 
-									score += distance;
-								}
-								score -= maxima[i][1] - pickedPoints[0][1]; // the further you are below the lowest point the lower the score
-								if (bestScore == undefined || score > bestScore) {
-									bestScore = score;
-									bestPoint = maxima[i];
-								}
-							}
-						}
-						if (bestPoint == null) {
-							maxOffset += 10;
-						}
-					}
-
-					pickedPoints.push(bestPoint);
-				}
-
-				for (let i = 0, l = pickedPoints.length; i < l; i++) {
-					Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], 15);
-				}
-				
-				// TODO: make sure we don't overwrite the orbs when generating buildings :scream:
-
 				if (id == "castle") {
 					// Castle Generator TEST
 					// TODO: generation should be multi-pass, first terrain, then buildings, then meshing
@@ -610,6 +565,73 @@ module.exports = (function(){
 						lightingPass(vorld, bounds, callback, progressDelegate);
 					});
 				} else {
+					// Orb Placement step
+					let maximaFinder = require('../vorld/analysis/maximaFinder');
+					let maxima = maximaFinder.findChunkMaxima(vorld);
+					// TODO: Could probably improve this with passes - taking maxima of nearby points
+					// Still arguably should just do the proper analysis for find localMaxima rather than
+					// chunk maxima instead
+
+					if (maxima.length < 4) {
+						throw new Error("We need at least as many chunks as orbs to place");
+					}
+
+					let pickedPoints = [ maxima[0] ];
+					let maxOffset = 5;
+					// Find 4 points most spread out within 10 units of max - place orbs on them
+					// This will cause the placement to cluster around a large peak though - might want a minimum separately
+					while (pickedPoints.length < 4) {
+						let bestPoint = null;
+						while (bestPoint == null) {
+							let bestScore = undefined;
+							for (let i = 0, l = maxima.length; i < l; i++) {
+								if (maxima[i][1] + maxOffset >= pickedPoints[0][1] && !pickedPoints.includes(maxima[i])) {
+									let score = 0;
+									
+									for (let j = 0, n = pickedPoints.length; j < n; j++) {
+										let distance = vec3.dist(pickedPoints[j], maxima[i]); 
+										score += distance;
+									}
+									score -= maxima[i][1] - pickedPoints[0][1]; // the further you are below the lowest point the lower the score
+									if (bestScore == undefined || score > bestScore) {
+										bestScore = score;
+										bestPoint = maxima[i];
+									}
+								}
+							}
+							if (bestPoint == null) {
+								maxOffset += 10;
+							}
+						}
+
+						pickedPoints.push(bestPoint);
+					}
+
+					for (let i = 0, l = pickedPoints.length; i < l; i++) {
+						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], 15);
+					}
+
+					// Pick spawn point
+					let origin = [0,0,0];
+					let spawnPoint = null;
+					let bestScore = 0;
+					maxOffset = 5;
+					
+					while (spawnPoint == null) {
+						for (let i = 0, l = maxima.length; i < l; i++) {
+							let score = - vec3.dist(origin, maxima[i]);
+							if (maxima[i][1] + maxOffset >= maxima[0][1] && (score > bestScore || spawnPoint == null)) {
+								bestScore = score;
+								spawnPoint = maxima[i];
+							}
+						}
+						if (spawnPoint == null) {
+							maxOffset += 5;
+						}
+					}
+
+					vorld.meta = { spawnPoint: [ spawnPoint[0], spawnPoint[1] + 5, spawnPoint[2] ] };
+
 					lightingPass(vorld, bounds, callback, progressDelegate);
 				}
 			});

@@ -101,11 +101,17 @@ let start = (initialBounds, worldConfigId) => {
 	let spawnPlayer = () => {
 		// Spawn Player
 		if (player == null) {
+			let spawnPoint = null;
+			if (vorld.meta.spawnPoint) {
+				spawnPoint = vec3.clone(vorld.meta.spawnPoint);
+			} else {
+				spawnPoint = vec3.fromValues(12, 32, 12);
+			}
 			let playerConfig = {
 				world: world,
 				vorld: vorld,
 				scene: scene,
-				position: vec3.fromValues(12, 32, 12),
+				position: spawnPoint,
 				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(VorldHelper.getTileIndexBufferValueForBlock("water")), material: alphaMaterial, position: vec3.create() }),
 				camera: camera,
 				config: playerMovementConfig,
