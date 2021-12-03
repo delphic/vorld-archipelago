@@ -137,7 +137,7 @@ module.exports = (function(){
 			removalDistance = parameters.removalDistance;
 		}
 
-		let placeableBlocks = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14 ]; // TODO: Get from block config
+		let placeableBlocks = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ]; // TODO: Get from block config
 		let blockIndex = 0; // TODO: UI to control & console option to toggle block placement (or equipable object)
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
 			let hitPoint = Maths.vec3Pool.request();
@@ -390,7 +390,7 @@ module.exports = (function(){
 					vec3.scale(player.velocity, player.velocity, (airSpeed - dragDv) / airSpeed);
 				} else {
 					vec3.zero(player.velocity);
-				}	
+				}
 
 				let airAcceleration = player.config.airAcceleration;
 				let targetX = player.velocity[0] + airAcceleration * elapsed * inputVector[0];

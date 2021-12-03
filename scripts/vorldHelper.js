@@ -226,6 +226,40 @@ module.exports = (function(){
 		]
 	};
 
+	// Helpers - TODO: Move to Utils
+	let arrayCombine = (out, array) => {
+		for (let i = 0, l = array.length; i < l; i++) {
+			out.push(array[i]);
+		}
+	};
+
+	let meshCombine = (meshes) => {
+		let result = { vertices: [], normals: [], textureCoordinates: [], indices: [] };
+		for (let i = 0, l = meshes.length; i < l; i++) {
+			let mesh = meshes[i];
+			let indexOffset = result.vertices.length / 3;
+			arrayCombine(result.vertices, mesh.vertices);
+			arrayCombine(result.normals, mesh.normals);
+			arrayCombine(result.textureCoordinates, mesh.textureCoordinates);
+			for (let index = 0, n = mesh.indices.length; index < n; index++) {
+				result.indices.push(mesh.indices[index] + indexOffset);
+			}
+		}
+		return result;
+	};
+
+	// Orb Json!
+	let innerMin = 0.35, innerMax = 0.65, outerMin = 0.3, outerMax = 0.7;
+	let orbJson = meshCombine([
+		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, innerMin, innerMax, innerMin, innerMax), // Core
+		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, innerMax, outerMax, innerMin, innerMax), // Top
+		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, outerMin, innerMin, innerMin, innerMax), // Bottom
+		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, innerMin, innerMax, outerMin, innerMin), // Front
+		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, innerMin, innerMax, innerMax, outerMax), // Back
+		VorldPrimitives.createCuboidMeshJson(outerMin, innerMin, innerMin, innerMax, innerMin, innerMax), // Left
+		VorldPrimitives.createCuboidMeshJson(innerMax, outerMax, innerMin, innerMax, innerMin, innerMax)	// Right
+	]); // This has unnecessary internal faces - but JAM!
+
 	// TODO: Extract to config files rather than inline
 	let gaussianShapingConfig = {
 		name: "gaussian",
@@ -270,7 +304,8 @@ module.exports = (function(){
 		"planks_half": 11,
 		"planks_step": 12,
 		"torch": 13,
-		"test": 14
+		"test": 14,
+		"orb": 15
 	};
 
 	// placement styles:
@@ -297,7 +332,8 @@ module.exports = (function(){
 		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2, placement: "half" },
 		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" },
 		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8, placement: "up_normal", rotateTextureCoords: true }, // TODO: Emissive mask to amp up light level and reduce fog build up
-		{ name: "test", isOpaque: true, isSolid: true, placement: "front_facing", rotateTextureCoords: true }
+		{ name: "test", isOpaque: true, isSolid: true, placement: "front_facing", rotateTextureCoords: true },
+		{ name: "orb", isOpaque: false, isSolid: true, light: 4, mesh: orbJson }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];
@@ -320,7 +356,7 @@ module.exports = (function(){
 		// Move what textures on what sides to block definition and build the index lookup, the lookup could then just be
 		// an array of indices with the array index based on the cardinal enum values, would simplify the mesher code 
 		atlas: {
-			textureArraySize: 21,
+			textureArraySize: 22,
 			blockToTileIndex: [
 				null,
 				{ side: 3 }, // stone
@@ -336,7 +372,8 @@ module.exports = (function(){
 				{ side: 10 }, // half-planks
 				{ side: 10 }, // step-planks
 				{ side: 13, top: 14, bottom: 13 }, // torch
-				{ top: 15, bottom: 16, forward: 17, back: 18, right: 20, left: 19 } // test
+				{ top: 15, bottom: 16, forward: 17, back: 18, right: 20, left: 19 }, // test
+				{ side: 21 } // orb
 			]
 		}
 		// blockConfig also effects meshing but this is stored on vorld data
