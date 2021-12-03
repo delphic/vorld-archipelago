@@ -139,14 +139,14 @@ module.exports = (function(){
 
 		// TODO: Pass this in or make it based on equipment 
 		let placementConfig = {
-			isCreativeMode: false,
+			isCreativeMode: false, // TODO: Debug method to toggle this
 			destroyableBlocks: [],
 			pickupableBlocks: [ 13, 15 ] // torch and orb
 		};
 		let blockInventory = [ 13 ]; // DEBUG: Start with a torch
 		if (placementConfig.isCreativeMode) {
 			// TODO: just get full block this from block config
-			blockInventory = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15 ];
+			blockInventory = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 ];
 		}
 		let blockIndex = 0; // TODO: UI to control & console option to toggle block placement (or equipable object)
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
@@ -665,18 +665,23 @@ module.exports = (function(){
 						vec3Pool.return(normal);
 					}
 
+					let x = Math.floor(hitPoint[0]), y =  Math.floor(hitPoint[1]), z = Math.floor(hitPoint[2]);
 					// console.log("Up calculated as " + Vorld.Cardinal.getDirectionDescription(up) + ", forward calculated as " + Vorld.Cardinal.getDirectionDescription(forward));
 					VorldHelper.addBlock(
 						vorld,
-						Math.floor(hitPoint[0]),
-						Math.floor(hitPoint[1]),
-						Math.floor(hitPoint[2]),
+						x,
+						y,
+						z,
 						blockToPlace,
 						up,
 						forward);
 
 					if (!placementConfig.isCreativeMode) { // TODO: Option to carry more than one
 						blockInventory.splice(blockIndex, 1); // Remove placed block
+					}
+
+					if (parameters.onBlockPlaced) {
+						parameters.onBlockPlaced(blockToPlace, x, y, z);
 					}
 				});
 			} else if (attemptRemoval) {
@@ -701,8 +706,14 @@ module.exports = (function(){
 							// always contain etc then we can just call inventory.remove(block) and not have the extra logic here
 							blockInventory.push(blockToRemove);
 						}
+						if (parameters.onBlockRemoved) {
+							parameters.onBlockRemoved(blockToRemove, x, y, z);
+						}
 					} else if (placementConfig.isCreativeMode || placementConfig.destroyableBlocks.includes(blockToRemove)) {
 						VorldHelper.removeBlock(vorld, x, y, z);
+						if (parameters.onBlockRemoved) {
+							parameters.onBlockRemoved(blockToRemove, x, y, z);
+						}
 					}
 				});
 			} else if (blockPreview) {

@@ -13,7 +13,7 @@ let Menu = require('./gui/menu');
 let scene, overlayScene, camera, cameraRatio = 16 / 9;
 let freeFlyCamera = null;
 let world = { boxes: [] }, vorld = null;
-let material, cutoutMaterial, alphaMaterial;
+let material, cutoutMaterial, alphaMaterial, unlitMaterial;
 let player;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 // waterColor : 0, 113, 144
@@ -66,6 +66,40 @@ let setCameraInitialPosition = (camera) => {
 	quat.set(camera.rotation, -0.232, 0.24, 0.06, 0.94)
 };
 
+// Win Tracking
+let orbsPlaced = 0;
+let orbsToWin = 4; // TODO: Pass to vorld helper as number to spawn
+
+let onBlockPlaced = (block, x, y, z) => {
+	if (block == VorldHelper.blockIds["orb"]) {
+		// Note - coupled to vorld helper's setting of meta data
+		for (let i = 0, l = vorld.meta.portalPoints.length; i < l; i++) {
+			let point = vorld.meta.portalPoints[i];
+			if (point[0] == x && point[1] == y && point[2] == z) {
+				orbsPlaced += 1;
+			}
+		}
+
+		if (orbsPlaced >= orbsToWin) {
+			// TODO: activate portal instead and then if you enter show this
+			Fury.Input.releasePointerLock();
+			pauseGame(createPortalActivationNotification);
+		}
+	}
+};
+
+let onBlockRemoved = (block, x, y, z) => {
+	if (block == VorldHelper.blockIds["orb"]) {
+		// Note - coupled to vorld helper's setting of meta data
+		for (let i = 0, l = vorld.meta.portalPoints.length; i < l; i++) {
+			let point = vorld.meta.portalPoints[i];
+			if (point[0] == x && point[1] == y && point[2] == z) {
+				orbsPlaced -= 1;
+			}
+		}
+	}
+};
+
 let start = (initialBounds, worldConfigId) => {
 	if (!initialised) {
 		// Create camera and scene
@@ -107,6 +141,8 @@ let start = (initialBounds, worldConfigId) => {
 			} else {
 				spawnPoint = vec3.fromValues(12, 32, 12);
 			}
+			orbsPlaced = 0;
+
 			let playerConfig = {
 				world: world,
 				vorld: vorld,
@@ -119,7 +155,9 @@ let start = (initialBounds, worldConfigId) => {
 				size: vec3.fromValues(0.75, 2, 0.75), // BUG: If you use size 0.8 - you can walk through blocks at axis = 7 when moving from axis = 8.
 				stepHeight: 0.51,
 				placementDistance: 5.5 + Math.sqrt(3),
-				removalDistance: 5.5
+				removalDistance: 5.5,
+				onBlockPlaced: onBlockPlaced,
+				onBlockRemoved: onBlockRemoved
 			};
 			// Massive Player!
 			// playerConfig.size = vec3.fromValues(4,8,4);
@@ -131,7 +169,7 @@ let start = (initialBounds, worldConfigId) => {
 		}
 
 		Fury.Input.requestPointerLock();
-		window.addEventListener('blur', pauseGame);
+		window.addEventListener('blur', handleWindowBlur);
 		document.addEventListener('pointerlockchange', handlePointLockChange);
 	};
 
@@ -150,6 +188,7 @@ let start = (initialBounds, worldConfigId) => {
 			material: material,
 			cutoutMaterial: cutoutMaterial,
 			alphaMaterial: alphaMaterial,
+			unlitMaterial: unlitMaterial,
 			bounds: initialBounds,
 			configId: worldConfigId
 		},
@@ -187,14 +226,18 @@ let pauseMenu = null, requestingLock = false, spinner = null;
 
 let handlePointLockChange = () => {
 	if (!Fury.Input.isPointerLocked()) {
-		pauseGame();
+		pauseGame(createPauseMenu);
 	}
 };
 
-let pauseGame = () => {
+let handleWindowBlur = () => {
+	pauseGame(createPauseMenu);
+};
+
+let pauseGame = (createUiDelegate) => {
 	if (player && pauseMenu == null) {
 		GameLoop.stop();
-		pauseMenu = createPauseMenu((resume) => {
+		pauseMenu = createUiDelegate((resume) => {
 			if (resume && !requestingLock) {
 				let onSuccess = () => { 
 					requestingLock = false;
@@ -224,7 +267,7 @@ let pauseGame = () => {
 				attemptLock();
 			}
 			if (!resume) {
-				window.removeEventListener('blur', pauseGame);
+				window.removeEventListener('blur', handleWindowBlur);
 				document.removeEventListener('pointerlockchange', handlePointLockChange);
 				pauseMenu = null;
 				GameLoop.start();
@@ -283,6 +326,15 @@ let createMainMenu = () => {
 		]);
 };
 
+let cleanUpWorld = () => {
+	player = null;
+	ccc = null;
+	clearWorld();
+	setCameraInitialPosition(camera);
+	Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2], 1.0); // TODO: Scenes should define their clear color
+	scene.render();
+};
+
 let createPauseMenu = (onClose) => {
 	let menu = Menu.create(
 		GUI.root,
@@ -295,13 +347,32 @@ let createPauseMenu = (onClose) => {
 			} },
 			{ text: "Main Menu", callback: () => {
 				playButtonClickSfx();
-				player = null;
-				ccc = null;
-				clearWorld();
+				cleanUpWorld();
 				menu.remove();
-				setCameraInitialPosition(camera);
-				Fury.Renderer.clearColor(skyColor[0], skyColor[1], skyColor[2], 1.0); // TODO: Scenes should define their clear color
-				scene.render();
+				createMainMenu();
+				onClose(false);
+			} }
+		]);
+	return menu;
+};
+
+let createPortalActivationNotification = (onClose) => {
+	// TODO: A dialog / popup would be better
+	// So it's an Ok / Cancel
+	// With a message - e.g. You can leave this world and return to your normal life
+	let menu = Menu.create(
+		GUI.root,
+		"Congratulations, you reactivated the portal!", 
+		[
+			{ text: "Keep Exploring", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				onClose(true);
+			} }, 
+			{ text: "Main Menu", callback: () => {
+				playButtonClickSfx();
+				cleanUpWorld();
+				menu.remove();
 				createMainMenu();
 				onClose(false);
 			} }
@@ -420,6 +491,11 @@ window.addEventListener('load', () => {
 			shader: shader,
 			texture: textureArray,
 			properties: { alpha: true, blendSeparate: true, "fogColor": vec3.clone(skyColor), "fogDensity": 0.005, "ambientMagnitude": 0.5, "directionalMagnitude": 0.5 }
+		});
+		unlitMaterial = Fury.Material.create({
+			shader: Fury.Shader.create(VoxelShader.createUnlit()),
+			texture: textureArray,
+			properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.0025 }
 		});
 
 		loadingCallback();

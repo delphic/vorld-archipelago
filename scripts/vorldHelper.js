@@ -8,7 +8,7 @@ let VorldPrimitives = require('../vorld/core/primitives');
 module.exports = (function(){
 	let exports = {};
 
-	let scene = null, material = null, cutoutMaterial = null, alphaMaterial = null;
+	let scene = null, material = null, cutoutMaterial = null, alphaMaterial = null, unlitMaterial = null;
 	let sceneChunkObjects = {};
 	let generationWorkerPool = WorkerPool.create({ src: 'scripts/generator-worker.js', maxWorkers: 8 });
 	let lightingWorkerPool = WorkerPool.create({ src: 'scripts/lighting-worker.js', maxWorkers: 8 });
@@ -289,7 +289,7 @@ module.exports = (function(){
 		{ min: [ 0.0, 0.5, 0.5 ], max: [ 1.0, 1.0, 1.0 ] }
 	];
 
-	let blockIds = {
+	let blockIds = exports.blockIds = {
 		"air": 0,
 		"stone": 1,
 		"soil": 2,
@@ -305,7 +305,8 @@ module.exports = (function(){
 		"planks_step": 12,
 		"torch": 13,
 		"test": 14,
-		"orb": 15
+		"orb": 15,
+		"orb_pedistal": 16
 	};
 
 	// placement styles:
@@ -333,7 +334,8 @@ module.exports = (function(){
 		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" },
 		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8, placement: "up_normal", rotateTextureCoords: true }, // TODO: Emissive mask to amp up light level and reduce fog build up
 		{ name: "test", isOpaque: true, isSolid: true, placement: "front_facing", rotateTextureCoords: true },
-		{ name: "orb", isOpaque: false, isSolid: true, light: 4, mesh: orbJson }
+		{ name: "orb", isOpaque: false, isSolid: true,  useUnlit: true, light: 4, mesh: orbJson },
+		{ name: "orb_pedistal", isOpaque: true, isSolid: true }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];
@@ -373,7 +375,8 @@ module.exports = (function(){
 				{ side: 10 }, // step-planks
 				{ side: 13, top: 14, bottom: 13 }, // torch
 				{ top: 15, bottom: 16, forward: 17, back: 18, right: 20, left: 19 }, // test
-				{ side: 21 } // orb
+				{ side: 21 }, // orb
+				{ side: 5, top: 21 } // orb pedistal
 			]
 		}
 		// blockConfig also effects meshing but this is stored on vorld data
@@ -619,8 +622,10 @@ module.exports = (function(){
 					
 					while (spawnPoint == null) {
 						for (let i = 0, l = maxima.length; i < l; i++) {
-							let score = - vec3.dist(origin, maxima[i]);
-							if (maxima[i][1] + maxOffset >= maxima[0][1] && (score > bestScore || spawnPoint == null)) {
+							let score = - vec3.dist(origin, maxima[i]) - 4 * (maxima[0][1] - maxima[i][1]);
+							if (maxima[i][1] + maxOffset >= maxima[0][1] 
+								&& (score > bestScore || spawnPoint == null)
+								&& !pickedPoints.includes(maxima[i])) {
 								bestScore = score;
 								spawnPoint = maxima[i];
 							}
@@ -630,7 +635,23 @@ module.exports = (function(){
 						}
 					}
 
-					vorld.meta = { spawnPoint: [ spawnPoint[0], spawnPoint[1] + 5, spawnPoint[2] ] };
+					vorld.meta = { spawnPoint: [ spawnPoint[0], spawnPoint[1] + 5, spawnPoint[2] ], portalPoints: [] };
+
+					// Place Exit Portal at spawnpoint
+					Vorld.addBlock(vorld, spawnPoint[0], spawnPoint[1], spawnPoint[2], blockIds["stone"]);
+					for (let i = -2; i <= 2; i++) {
+						for (let k = -2; k <= 2; k++) {
+							if (i == 0 && k == 0) continue;
+							Vorld.addBlock(vorld, spawnPoint[0]-i, spawnPoint[1], spawnPoint[2]+k, blockIds["stone_blocks"]);
+							let block = 0;
+							if (Math.abs(i) == 2 && Math.abs(k) == 2) {
+								block = blockIds["orb_pedistal"];
+								vorld.meta.portalPoints.push([ spawnPoint[0]-i, spawnPoint[1]+2, spawnPoint[2]+k]);
+							}
+							Vorld.addBlock(vorld, spawnPoint[0]-i, spawnPoint[1]+1, spawnPoint[2]+k, block);
+							Vorld.addBlock(vorld, spawnPoint[0]-i, spawnPoint[1]+2, spawnPoint[2]+k, 0);
+						}
+					}
 
 					lightingPass(vorld, bounds, callback, progressDelegate);
 				}
@@ -694,7 +715,7 @@ module.exports = (function(){
 					let mesh = Fury.Mesh.create(data.mesh);
 					let position = vec3.clone(data.chunkIndices);
 					vec3.scale(position, position, vorld.chunkSize);
-					let chunkMaterial = data.alpha ? alphaMaterial : data.cutout ? cutoutMaterial : material;
+					let chunkMaterial = data.alpha ? alphaMaterial : data.cutout ? cutoutMaterial : data.unlit ? unlitMaterial : material;
 					let key = data.chunkIndices[0] + "_" + data.chunkIndices[1] + "_" + data.chunkIndices[2];
 					if (!sceneChunkObjects[key]) {
 						sceneChunkObjects[key] = [];
@@ -831,7 +852,7 @@ module.exports = (function(){
 					let mesh = Fury.Mesh.create(data.mesh);
 					let position = vec3.clone(data.chunkIndices);
 					vec3.scale(position, position, vorld.chunkSize);
-					let chunkMaterial = data.alpha ? alphaMaterial : data.cutout ? cutoutMaterial : material;
+					let chunkMaterial = data.alpha ? alphaMaterial : data.cutout ? cutoutMaterial : data.unlit ? unlitMaterial : material;
 					sceneChunkObjects[key].push(scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true }));
 				}
 			});
@@ -869,6 +890,7 @@ module.exports = (function(){
 		scene = parameters.scene;
 		material = parameters.material;
 		cutoutMaterial = parameters.cutoutMaterial;
+		unlitMaterial = parameters.unlitMaterial;
 		alphaMaterial = parameters.alphaMaterial;
 
 		// Apply lighting settings - arguably should be on scene and materials should have bindLighting method taking scene
@@ -884,6 +906,7 @@ module.exports = (function(){
 		material.setProperties(lightingConfig);
 		cutoutMaterial.setProperties(lightingConfig);
 		alphaMaterial.setProperties(lightingConfig);
+		unlitMaterial.setProperties({ fogColor: lightingConfig.fogColor, fogDensity: lightingConfig.fogDensity / 2 });
 		Fury.Renderer.clearColor(lightingConfig.fogColor[0], lightingConfig.fogColor[1], lightingConfig.fogColor[2], 1.0);
 
 		// Set background colour to fog color so CSS effects like blur look good
