@@ -916,5 +916,11 @@ module.exports = (function(){
 		return generate(parameters.bounds, parameters.configId, callback, progressDelegate);
 	};
 
+	if (window) {
+		window.setVorldSeed = (seed) => {
+			generationConfigs["guassian_shaped_noise"].generationRules.seed = seed;
+		};
+	}
+
 	return exports;
 })();

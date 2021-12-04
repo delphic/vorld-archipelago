@@ -136,11 +136,13 @@ let start = (initialBounds, worldConfigId) => {
 		// Spawn Player
 		if (player == null) {
 			let spawnPoint = null;
-			if (vorld.meta.spawnPoint) {
-				spawnPoint = vec3.clone(vorld.meta.spawnPoint);
-			} else {
-				spawnPoint = vec3.fromValues(12, 32, 12);
+			if (!vorld.meta.spawnPoint) {
+				if (!vorld.meta) {
+					vorld.meta = {};
+				}
+				vorld.meta.spawnPoint = [12, 32, 12];
 			}
+			spawnPoint = vec3.clone(vorld.meta.spawnPoint);
 			orbsPlaced = 0;
 
 			let playerConfig = {
@@ -340,8 +342,14 @@ let createPauseMenu = (onClose) => {
 		GUI.root,
 		"Paused",
 		[
-			{ text: "Resume", callback: () => {
+			{ text: "Resume Game", callback: () => {
 				playButtonClickSfx();
+				menu.remove();
+				onClose(true);
+			} },
+			{ text: "Teleport to Start", callback: () => {
+				playButtonClickSfx();
+				player.teleport(vorld.meta.spawnPoint);
 				menu.remove();
 				onClose(true);
 			} },
