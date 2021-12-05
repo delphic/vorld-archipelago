@@ -570,13 +570,10 @@ module.exports = (function(){
 				} else {
 					// Orb Placement step
 					let maximaFinder = require('../vorld/analysis/maximaFinder');
-					let maxima = maximaFinder.findChunkMaxima(vorld);
-					// TODO: Could probably improve this with passes - taking maxima of nearby points
-					// Still arguably should just do the proper analysis for find localMaxima rather than
-					// chunk maxima instead
+					let maxima = maximaFinder.findLocalMaxima(vorld, 10);
 
 					if (maxima.length < 4) {
-						throw new Error("We need at least as many chunks as orbs to place");
+						throw new Error("We need at least as many maxima as orbs to place");
 					}
 
 					let pickedPoints = [ maxima[0] ];
@@ -608,10 +605,6 @@ module.exports = (function(){
 						}
 
 						pickedPoints.push(bestPoint);
-					}
-
-					for (let i = 0, l = pickedPoints.length; i < l; i++) {
-						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], 15);
 					}
 
 					// Pick spawn point
@@ -651,6 +644,13 @@ module.exports = (function(){
 							Vorld.addBlock(vorld, spawnPoint[0]-i, spawnPoint[1]+1, spawnPoint[2]+k, block);
 							Vorld.addBlock(vorld, spawnPoint[0]-i, spawnPoint[1]+2, spawnPoint[2]+k, 0);
 						}
+					}
+
+					// Spawn the orbs *after* the portal
+					// TODO: Ensure these don't overlap
+					for (let i = 0, l = pickedPoints.length; i < l; i++) {
+						console.log("Spawned orb at " + JSON.stringify(pickedPoints[i]));
+						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], 15);
 					}
 
 					lightingPass(vorld, bounds, callback, progressDelegate);
