@@ -745,6 +745,7 @@ module.exports = (function(){
 		player.teleport = (pos) => {
 			vec3.copy(player.position, pos);
 			vec3.scaleAndAdd(camera.position, player.position, Maths.vec3Y, cameraOffset); 
+			vec3.zero(player.velocity);
 		};
 
 		return player;
