@@ -136,11 +136,11 @@ let start = (initialBounds, worldConfigId) => {
 		// Spawn Player
 		if (player == null) {
 			let spawnPoint = null;
-			if (!vorld.meta.spawnPoint) {
-				if (!vorld.meta) {
-					vorld.meta = {};
+			if (!vorld.meta) {
+				vorld.meta = {};
+				if (!vorld.meta.spawnPoint) {
+					vorld.meta.spawnPoint = [12, 32, 12];
 				}
-				vorld.meta.spawnPoint = [12, 32, 12];
 			}
 			spawnPoint = vec3.clone(vorld.meta.spawnPoint);
 			orbsPlaced = 0;
