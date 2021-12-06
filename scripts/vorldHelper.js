@@ -579,7 +579,6 @@ module.exports = (function(){
 					}
 
 					// Pick spawn point
-					// TODO: Pick spawn point first, then pick orb maxima that don't clash
 					let origin = [0,0,0];
 					let spawnPoint = null;
 					let bestScore = 0;
@@ -621,7 +620,7 @@ module.exports = (function(){
 					let referenceHeight = maxima[0][1];
 					maxOffset = 5;
 					// TODO: First pick one close to spawn point
-					
+
 					// Find 4 points most spread out within 10 units of max - place orbs on them
 					// This will cause the placement to cluster around a large peak though - might want a minimum separately
 					while (pickedPoints.length < 4) {
@@ -633,9 +632,16 @@ module.exports = (function(){
 									&& maxima[i] != spawnPoint
 									&& !pickedPoints.includes(maxima[i])) {
 									let score = 0;
-									for (let j = 0, n = pickedPoints.length; j < n; j++) {
-										let sqrDist = vec3.sqrDist(pickedPoints[j], maxima[i]); 
-										score += sqrDist;
+									if (pickedPoints.length == 0) {
+										// First point should be close to the spawn point to encounrage the player
+										score -= vec3.sqrDist(maxima[i], spawnPoint);
+									} else {
+										// The rest should be far from all previously picked points
+										// Using dist rather than sqr distance, as sqrdistance tends to place them in clusters at opposite corners
+										for (let j = 0, n = pickedPoints.length; j < n; j++) {
+											score += vec3.dist(pickedPoints[j], maxima[i]);
+										}
+	
 									}
 									score -= maxima[i][1] - referenceHeight; // the further you are below the lowest point the lower the score
 									if (bestScore == undefined || score > bestScore) {
@@ -653,10 +659,11 @@ module.exports = (function(){
 					}
 
 					// Spawn the orbs *after* the portal
-					// TODO: Ensure these don't overlap explicitly (it's unlikely currently but not impossible)
+					// TODO: Ensure the portal and the orb spawns don't overlap explicitly (it's *extremely* unlikely currently but not impossible)
 					for (let i = 0, l = pickedPoints.length; i < l; i++) {
 						console.log("Spawned orb at " + JSON.stringify(pickedPoints[i]));
-						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], 15);
+						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], blockIds["orb_pedistal"]);
+						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 2, pickedPoints[i][2], blockIds["orb"]);
 					}
 
 					lightingPass(vorld, bounds, callback, progressDelegate);

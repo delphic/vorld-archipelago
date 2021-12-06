@@ -18,8 +18,8 @@ let player;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 // waterColor : 0, 113, 144
 
-// TODO: We're going to start needing a gameplay scene concept soon
 let ccc;
+let enableDayNightCycle = false; // Debug toggle for day night cycle (easier to test with endless day)
 
 let smallInitialBounds = {
 	iMin: -6, iMax: 6,
@@ -215,7 +215,7 @@ let start = (initialBounds, worldConfigId) => {
 	/* materials, startTime, timePeriod, updatePeriod, sunlightLevels, fogColors */
 	let CCC = require('./circadianCycleController');
 	ccc = CCC.create({
-		materials: [ material, cutoutMaterial, alphaMaterial],
+		materials: [ material, cutoutMaterial, alphaMaterial], // TODO: Pass unlit shader and a multipler factor array (0.5)
 		startTime: 0.5,
 		timePeriod: 120,
 		sunlightLevels: CCC.lightCycle,
@@ -280,7 +280,7 @@ let pauseGame = (createUiDelegate) => {
 
 let loop = (elapsed) => {
 	if (player) {
-		if (ccc) {
+		if (ccc && enableDayNightCycle) {
 			ccc.update(elapsed);
 		}
 
