@@ -570,55 +570,26 @@ module.exports = (function(){
 				} else {
 					// Orb Placement step
 					let maximaFinder = require('../vorld/analysis/maximaFinder');
-					let maxima = maximaFinder.findLocalMaxima(vorld, 10);
+					let maxima = maximaFinder.findTraversableLocalMaxima(vorld, blockIds["water"], 10);
 
-					if (maxima.length < 4) {
-						throw new Error("We need at least as many maxima as orbs to place");
-					}
-
-					let pickedPoints = [ maxima[0] ];
-					let maxOffset = 5;
-					// Find 4 points most spread out within 10 units of max - place orbs on them
-					// This will cause the placement to cluster around a large peak though - might want a minimum separately
-					while (pickedPoints.length < 4) {
-						let bestPoint = null;
-						while (bestPoint == null) {
-							let bestScore = undefined;
-							for (let i = 0, l = maxima.length; i < l; i++) {
-								if (maxima[i][1] + maxOffset >= pickedPoints[0][1] && !pickedPoints.includes(maxima[i])) {
-									let score = 0;
-									
-									for (let j = 0, n = pickedPoints.length; j < n; j++) {
-										let distance = vec3.dist(pickedPoints[j], maxima[i]); 
-										score += distance;
-									}
-									score -= maxima[i][1] - pickedPoints[0][1]; // the further you are below the lowest point the lower the score
-									if (bestScore == undefined || score > bestScore) {
-										bestScore = score;
-										bestPoint = maxima[i];
-									}
-								}
-							}
-							if (bestPoint == null) {
-								maxOffset += 10;
-							}
-						}
-
-						pickedPoints.push(bestPoint);
+					if (maxima.length < 5) {
+						// As we add more and more constraints this feels more and more possible to break
+						// TODO: Handle this case - just spawn the orbs on the maxima we do have duping if necessary
+						throw new Error("We need at least as many maxima as orbs to place + 1 for player start");
 					}
 
 					// Pick spawn point
+					// TODO: Pick spawn point first, then pick orb maxima that don't clash
 					let origin = [0,0,0];
 					let spawnPoint = null;
 					let bestScore = 0;
-					maxOffset = 5;
+					let maxOffset = 5;
 					
 					while (spawnPoint == null) {
 						for (let i = 0, l = maxima.length; i < l; i++) {
 							let score = - vec3.dist(origin, maxima[i]) - 4 * (maxima[0][1] - maxima[i][1]);
-							if (maxima[i][1] + maxOffset >= maxima[0][1] 
-								&& (score > bestScore || spawnPoint == null)
-								&& !pickedPoints.includes(maxima[i])) {
+							if (maxima[i][1] + maxOffset >= maxima[0][1]
+								&& (score > bestScore || spawnPoint == null)) {
 								bestScore = score;
 								spawnPoint = maxima[i];
 							}
@@ -646,8 +617,43 @@ module.exports = (function(){
 						}
 					}
 
+					let pickedPoints = [ ];
+					let referenceHeight = maxima[0][1];
+					maxOffset = 5;
+					// TODO: First pick one close to spawn point
+					
+					// Find 4 points most spread out within 10 units of max - place orbs on them
+					// This will cause the placement to cluster around a large peak though - might want a minimum separately
+					while (pickedPoints.length < 4) {
+						let bestPoint = null;
+						while (bestPoint == null) {
+							let bestScore = undefined;
+							for (let i = 0, l = maxima.length; i < l; i++) {
+								if (maxima[i][1] + maxOffset >= referenceHeight
+									&& maxima[i] != spawnPoint
+									&& !pickedPoints.includes(maxima[i])) {
+									let score = 0;
+									for (let j = 0, n = pickedPoints.length; j < n; j++) {
+										let sqrDist = vec3.sqrDist(pickedPoints[j], maxima[i]); 
+										score += sqrDist;
+									}
+									score -= maxima[i][1] - referenceHeight; // the further you are below the lowest point the lower the score
+									if (bestScore == undefined || score > bestScore) {
+										bestScore = score;
+										bestPoint = maxima[i];
+									}
+								}
+							}
+							if (bestPoint == null) {
+								maxOffset += 10;
+							}
+						}
+
+						pickedPoints.push(bestPoint);
+					}
+
 					// Spawn the orbs *after* the portal
-					// TODO: Ensure these don't overlap
+					// TODO: Ensure these don't overlap explicitly (it's unlikely currently but not impossible)
 					for (let i = 0, l = pickedPoints.length; i < l; i++) {
 						console.log("Spawned orb at " + JSON.stringify(pickedPoints[i]));
 						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], 15);
