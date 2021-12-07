@@ -568,9 +568,16 @@ module.exports = (function(){
 						lightingPass(vorld, bounds, callback, progressDelegate);
 					});
 				} else {
-					// Orb Placement step
+					// World decoration
+					// Determine spawn point on closest traversable local maxima to origin
+					// Add orbs to collect at other points of interest (currently just local maxima)
+					// Add trees to flat areas (currently done via low variance chunks, but this is not as good as I'd hoped
+					// Would probably be improved if the traversability map stored out flat connected areas)
 					let maximaFinder = require('../vorld/analysis/maximaFinder');
 					let maxima = maximaFinder.findTraversableLocalMaxima(vorld, blockIds["water"], 10);
+
+					let heightMapAnalyser = require('../vorld/analysis/heightmapAnalyser');
+					heightMapAnalyser.calculateMeanAndVariance(vorld.heightMap, vorld.heightMap);
 
 					if (maxima.length < 5) {
 						// As we add more and more constraints this feels more and more possible to break
@@ -661,9 +668,37 @@ module.exports = (function(){
 					// Spawn the orbs *after* the portal
 					// TODO: Ensure the portal and the orb spawns don't overlap explicitly (it's *extremely* unlikely currently but not impossible)
 					for (let i = 0, l = pickedPoints.length; i < l; i++) {
-						console.log("Spawned orb at " + JSON.stringify(pickedPoints[i]));
+						// console.log("Spawned orb at " + JSON.stringify(pickedPoints[i]));
 						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], blockIds["orb_pedistal"]);
 						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 2, pickedPoints[i][2], blockIds["orb"]);
+					}
+
+					// Tree Test - spawn trees on chunks with low variance and away from the shore
+					// This kinda works but also kinda not, very flat areas next to cliffs are ignored
+					// some of the placed trees are still very close to the shore
+					let VorldFlora = require('../vorld/generation/flora');
+					let random = Math.random; 
+					// TODO: Replace with seeded random - but a better one than the one we use for generation
+					// require('../vorld/noise/random').fromString(generationConfig.generationRules.seed);
+					
+					let keys = Object.keys(vorld.heightMap);
+					for (let i = 0, l = keys.length; i < l; i++) {
+						let heightMap = vorld.heightMap[keys[i]];
+						if (heightMap.mean > 5 && heightMap.variance < 15) {
+							let points = [];
+							for (let j = 0; j < 10; j++) {
+								// NOTE: -1 on random value beacuse of overlap across chunks
+								let x = heightMap.chunkI * vorld.chunkSize + Math.floor(random() * vorld.chunkSize - 1),
+									z = heightMap.chunkK * vorld.chunkSize + Math.floor(random() * vorld.chunkSize - 1);
+								let y = Vorld.getHighestBlockY(vorld, x, z) + 1;
+								if (y > 1) { // No trees on the water please
+									points.push([x, y, z]);
+								}
+							}
+							for (let j = 0, n = points.length; j < n; j++) {
+								VorldFlora.addTree(vorld, points[j][0], points[j][1], points[j][2], blockIds["wood"], blockIds["leaves"]);
+							}
+						}
 					}
 
 					lightingPass(vorld, bounds, callback, progressDelegate);
