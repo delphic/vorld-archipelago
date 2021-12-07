@@ -19,7 +19,7 @@ let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 // waterColor : 0, 113, 144
 
 let ccc;
-let enableDayNightCycle = false; // Debug toggle for day night cycle (easier to test with endless day)
+let enableDayNightCycle = true; // Debug toggle for day night cycle (easier to test with endless day)
 
 let smallInitialBounds = {
 	iMin: -6, iMax: 6,
@@ -66,12 +66,13 @@ let setCameraInitialPosition = (camera) => {
 	quat.set(camera.rotation, -0.232, 0.24, 0.06, 0.94)
 };
 
-// Win Tracking
+// Portal activation Tracking
 let orbsPlaced = 0;
 let orbsToWin = 4; // TODO: Pass to vorld helper as number to spawn
 
 let onBlockPlaced = (block, x, y, z) => {
 	if (block == VorldHelper.blockIds["orb"]) {
+		let previousOrbsPlaced = orbsPlaced;
 		// Note - coupled to vorld helper's setting of meta data
 		for (let i = 0, l = vorld.meta.portalPoints.length; i < l; i++) {
 			let point = vorld.meta.portalPoints[i];
@@ -80,7 +81,7 @@ let onBlockPlaced = (block, x, y, z) => {
 			}
 		}
 
-		if (orbsPlaced >= orbsToWin) {
+		if (previousOrbsPlaced != orbsPlaced && orbsPlaced >= orbsToWin) {
 			// TODO: activate portal instead and then if you enter show this
 			Fury.Input.releasePointerLock();
 			pauseGame(createPortalActivationNotification);
@@ -218,7 +219,7 @@ let start = (initialBounds, worldConfigId) => {
 	ccc = CCC.create({
 		materials: [ material, cutoutMaterial, alphaMaterial], // TODO: Pass unlit shader and a multipler factor array (0.5)
 		startTime: 0.5,
-		timePeriod: 120,
+		timePeriod: 240,
 		sunlightLevels: CCC.lightCycle,
 		fogColors: CCC.fogColorCycle,
 		fogDensities: CCC.fogDensityCycle
