@@ -185,6 +185,7 @@ let start = (initialBounds, worldConfigId) => {
 	};
 
 	generating = true;
+	VorldHelper.generateRandomSeed(); // New seed each time!
 	vorld = VorldHelper.init({
 			scene: scene,
 			material: material,

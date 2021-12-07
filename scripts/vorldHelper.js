@@ -1,6 +1,7 @@
 let WorkerPool = require('./workerPool');
 let Fury = require('../fury/src/fury');
 let Maths = require('../fury/src/maths');
+let Bounds = Fury.Bounds;
 let vec3 = Maths.vec3;
 let Vorld = require('../vorld/core/vorld');
 let VorldPrimitives = require('../vorld/core/primitives');
@@ -623,20 +624,23 @@ module.exports = (function(){
 						}
 					}
 
+					let spawnPointArea = Bounds.create({
+						min: Maths.vec3.fromValues(spawnPoint[0] - 2, spawnPoint[1], spawnPoint[2] - 2),
+						max: Maths.vec3.fromValues(spawnPoint[0] + 2, spawnPoint[1] + 3, spawnPoint[2] + 2)
+					});
+
 					let pickedPoints = [ ];
 					let referenceHeight = maxima[0][1];
 					maxOffset = 5;
-					// TODO: First pick one close to spawn point
 
 					// Find 4 points most spread out within 10 units of max - place orbs on them
-					// This will cause the placement to cluster around a large peak though - might want a minimum separately
 					while (pickedPoints.length < 4) {
 						let bestPoint = null;
 						while (bestPoint == null) {
 							let bestScore = undefined;
 							for (let i = 0, l = maxima.length; i < l; i++) {
 								if (maxima[i][1] + maxOffset >= referenceHeight
-									&& maxima[i] != spawnPoint
+									&& !Bounds.contains(maxima[i], spawnPointArea)
 									&& !pickedPoints.includes(maxima[i])) {
 									let score = 0;
 									if (pickedPoints.length == 0) {
@@ -666,20 +670,28 @@ module.exports = (function(){
 					}
 
 					// Spawn the orbs *after* the portal
-					// TODO: Ensure the portal and the orb spawns don't overlap explicitly (it's *extremely* unlikely currently but not impossible)
 					for (let i = 0, l = pickedPoints.length; i < l; i++) {
 						// console.log("Spawned orb at " + JSON.stringify(pickedPoints[i]));
 						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], blockIds["orb_pedistal"]);
 						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 2, pickedPoints[i][2], blockIds["orb"]);
 					}
 
+					let clashesWithPoints = (point, points) => {
+						for (let i = 0, l = points.length; i < l; i++) {
+							if (point[0] == points[i][0] && point[2] == points[i][2]) {
+								return true;
+							}
+						}
+						return false;
+					};
+
 					// Tree Test - spawn trees on chunks with low variance and away from the shore
 					// This kinda works but also kinda not, very flat areas next to cliffs are ignored
 					// some of the placed trees are still very close to the shore
-					let VorldFlora = require('../vorld/generation/flora');
-					let random = Math.random; 
-					// TODO: Replace with seeded random - but a better one than the one we use for generation
-					// require('../vorld/noise/random').fromString(generationConfig.generationRules.seed);
+					const VorldFlora = require('../vorld/generation/flora');
+					const random = require('../vorld/noise/random').fromString(generationConfig.generationRules.seed);
+					// ^^ NOTE: the Vorld seeded random is only as random as the seed, use the generate random seed method to ensure 
+					// a reasonable degree of randomness (even then I'm not sure it's actually uniformly distributed)
 					
 					let keys = Object.keys(vorld.heightMap);
 					for (let i = 0, l = keys.length; i < l; i++) {
@@ -692,7 +704,11 @@ module.exports = (function(){
 									z = heightMap.chunkK * vorld.chunkSize + Math.floor(random() * vorld.chunkSize - 1);
 								let y = Vorld.getHighestBlockY(vorld, x, z) + 1;
 								if (y > 1) { // No trees on the water please
-									points.push([x, y, z]);
+									let point = [x, y, z];
+									if (!Bounds.contains(point, spawnPointArea) // No trees in spawn
+										&& !clashesWithPoints(point, pickedPoints)) { // No trees over orbs
+										points.push(point);
+									}
 								}
 							}
 							for (let j = 0, n = points.length; j < n; j++) {
@@ -964,10 +980,22 @@ module.exports = (function(){
 		return generate(parameters.bounds, parameters.configId, callback, progressDelegate);
 	};
 
+	exports.generateRandomSeed = () => {
+		let seed = "";
+		for (let i = 0; i < 256; i++) {
+			seed += String.fromCharCode(Math.floor(Math.random() * 100));
+		}
+		console.log("Generated Seed " + seed);
+		generationConfigs["guassian_shaped_noise"].generationRules.seed = seed;
+	};
+	
+	exports.setVorldSeed = (seed) => {
+		generationConfigs["guassian_shaped_noise"].generationRules.seed = seed;
+	};
+
 	if (window) {
-		window.setVorldSeed = (seed) => {
-			generationConfigs["guassian_shaped_noise"].generationRules.seed = seed;
-		};
+		window.setVorldSeed = exports.setVorldSeed;
+		window.generateRandomSeed = exports.generateRandomSeed;
 	}
 
 	return exports;
