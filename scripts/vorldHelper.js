@@ -4,6 +4,7 @@ let Maths = require('../fury/src/maths');
 let Bounds = Fury.Bounds;
 let vec3 = Maths.vec3;
 let Vorld = require('../vorld/core/vorld');
+let VorldUtils = require('../vorld/core/utils');
 let VorldPrimitives = require('../vorld/core/primitives');
 
 module.exports = (function(){
@@ -569,6 +570,38 @@ module.exports = (function(){
 						lightingPass(vorld, bounds, callback, progressDelegate);
 					});
 				} else {
+					// Add surrounding Walls
+					let expandedBounds = {
+						iMin: bounds.iMin - 1,
+						iMax: bounds.iMax + 1,
+						jMin: bounds.jMin,
+						jMax: bounds.jMax,
+						kMin: bounds.kMin - 1,
+						kMax: bounds.kMax + 1
+					};
+					let buildWall = (x, y, z) => {
+						// TODO: Better walls
+						Vorld.addBlock(vorld, x, y, z, blockIds["stone"]);
+					};
+					let xMin = expandedBounds.iMin * vorld.chunkSize + vorld.chunkSize - 1,
+						xMax = xMin,
+						yMin = expandedBounds.jMin * vorld.chunkSize,
+						yMax = expandedBounds.jMax * vorld.chunkSize + vorld.chunkSize - 1, // Maybe doesn't need to be full height lol
+						zMin = bounds.kMin * vorld.chunkSize,
+						zMax = bounds.kMax * vorld.chunkSize + vorld.chunkSize - 1;
+					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
+					
+					xMin = xMax = expandedBounds.iMax * vorld.chunkSize;
+					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
+
+					xMin = bounds.iMin * vorld.chunkSize;
+					xMax = bounds.iMax * vorld.chunkSize + vorld.chunkSize - 1;
+					zMin = zMax = expandedBounds.kMin * vorld.chunkSize + vorld.chunkSize - 1;
+					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
+
+					zMin = zMax = expandedBounds.kMax * vorld.chunkSize;
+					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
+
 					// World decoration
 					// Determine spawn point on closest traversable local maxima to origin
 					// Add orbs to collect at other points of interest (currently just local maxima)
@@ -699,9 +732,9 @@ module.exports = (function(){
 						if (heightMap.mean > 5 && heightMap.variance < 15) {
 							let points = [];
 							for (let j = 0; j < 10; j++) {
-								// NOTE: -1 on random value beacuse of overlap across chunks
-								let x = heightMap.chunkI * vorld.chunkSize + Math.floor(random() * vorld.chunkSize - 1),
-									z = heightMap.chunkK * vorld.chunkSize + Math.floor(random() * vorld.chunkSize - 1);
+								// NOTE: + 1, then -2 on random value to prevent trees of overlap across chunks
+								let x = heightMap.chunkI * vorld.chunkSize + 1 + Math.floor(random() * vorld.chunkSize - 2),
+									z = heightMap.chunkK * vorld.chunkSize + 1 + Math.floor(random() * vorld.chunkSize - 2);
 								let y = Vorld.getHighestBlockY(vorld, x, z) + 1;
 								if (y > 1) { // No trees on the water please
 									let point = [x, y, z];
@@ -717,7 +750,7 @@ module.exports = (function(){
 						}
 					}
 
-					lightingPass(vorld, bounds, callback, progressDelegate);
+					lightingPass(vorld, expandedBounds, callback, progressDelegate);
 				}
 			});
 
@@ -983,7 +1016,9 @@ module.exports = (function(){
 	exports.generateRandomSeed = () => {
 		let seed = "";
 		for (let i = 0; i < 256; i++) {
-			seed += String.fromCharCode(Math.floor(Math.random() * 100));
+			// 0 - 100 will probably give the best distribution but it's not really a copyable string
+			// so between 33 and 126 should give a saveable seed
+			seed += String.fromCharCode(Math.floor(33 + Math.random() * (127-33)));
 		}
 		console.log("Generated Seed " + seed);
 		generationConfigs["guassian_shaped_noise"].generationRules.seed = seed;
