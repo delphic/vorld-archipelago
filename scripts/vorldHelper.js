@@ -262,6 +262,13 @@ module.exports = (function(){
 		VorldPrimitives.createCuboidMeshJson(innerMax, outerMax, innerMin, innerMax, innerMin, innerMax)	// Right
 	]); // This has unnecessary internal faces - but JAM!
 
+	let longGrassJson = meshCombine([
+		VorldPrimitives.createQuadMeshJson(0, 0.5, 1.0),
+		VorldPrimitives.createQuadMeshJson(0, 0.5, -1.0),
+		VorldPrimitives.createQuadMeshJson(2, 0.5, 1.0),
+		VorldPrimitives.createQuadMeshJson(2, 0.5, -1.0)
+	]);
+
 	// TODO: Extract to config files rather than inline
 	let gaussianShapingConfig = {
 		name: "gaussian",
@@ -308,7 +315,8 @@ module.exports = (function(){
 		"torch": 13,
 		"test": 14,
 		"orb": 15,
-		"orb_pedistal": 16
+		"orb_pedistal": 16,
+		"long_grass": 17
 	};
 
 	exports.getAllBlockIdNames = () => {
@@ -352,30 +360,18 @@ module.exports = (function(){
 		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8, placement: "up_normal", rotateTextureCoords: true }, // TODO: Emissive mask to amp up light level and reduce fog build up
 		{ name: "test", isOpaque: true, isSolid: true, placement: "front_facing", rotateTextureCoords: true },
 		{ name: "orb", isOpaque: false, isSolid: true,  useUnlit: true, light: 4, mesh: orbJson },
-		{ name: "orb_pedistal", isOpaque: true, isSolid: true }
+		{ name: "orb_pedistal", isOpaque: true, isSolid: true },
+		{ name: "long_grass", isOpaque: false, isSolid: false, useCutout: true, mesh: longGrassJson, attenuation: 2 }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];
 
-	/* atlas indices: 
-	* 0: Grass Top
-	* 1: Grass Side
-	* 2: Soil / Grass Bottom
-	* 3: Stone
-	* 4: Stone Blocks (well currently brick pattern technically)
-	* 5: Bedrock
-	* 6: Wood top / bottom
-	* 7: Wood side
-	* 8: Wood Planks
-	* 9: Leaves
-	* 10: Water
-	*/
 	let meshingConfig = {
 		// TODO: Update Atlas to array of tile ids (e.g. stone, soil, grass_top, grass_side etc)
 		// Move what textures on what sides to block definition and build the index lookup, the lookup could then just be
 		// an array of indices with the array index based on the cardinal enum values, would simplify the mesher code 
 		atlas: {
-			textureArraySize: 22,
+			textureArraySize: 23,
 			blockToTileIndex: [
 				null,
 				{ side: 3 }, // stone
@@ -393,7 +389,8 @@ module.exports = (function(){
 				{ side: 13, top: 14, bottom: 13 }, // torch
 				{ top: 15, bottom: 16, forward: 17, back: 18, right: 20, left: 19 }, // test
 				{ side: 21 }, // orb
-				{ side: 5, top: 21 } // orb pedistal
+				{ side: 5, top: 21 }, // orb pedistal
+				{ side: 22 } // long grass
 			]
 		}
 		// blockConfig also effects meshing but this is stored on vorld data
@@ -639,6 +636,7 @@ module.exports = (function(){
 							Vorld.addBlock(vorld, spawnPoint[0]-i, spawnPoint[1]+2, spawnPoint[2]+k, 0);
 						}
 					}
+					// TODO: Convert grass to soil underneath
 
 					let spawnPointArea = Bounds.create({
 						min: Maths.vec3.fromValues(spawnPoint[0] - 2, spawnPoint[1], spawnPoint[2] - 2),
@@ -709,12 +707,17 @@ module.exports = (function(){
 					const random = require('../vorld/noise/random').fromString(generationConfig.generationRules.seed);
 					// ^^ NOTE: the Vorld seeded random is only as random as the seed, use the generate random seed method to ensure 
 					// a reasonable degree of randomness (even then I'm not sure it's actually uniformly distributed)
-					
+
 					let keys = Object.keys(vorld.heightMap);
+
+					// Add Grass everywhere - this might take a little while
+					let chanceOfGrass = 0.33;
 					for (let i = 0, l = keys.length; i < l; i++) {
 						let heightMap = vorld.heightMap[keys[i]];
+						let points = null;
 						if (heightMap.mean > 5 && heightMap.variance < 15) {
-							let points = [];
+							// Pick tree points
+							points = [];
 							for (let j = 0; j < 10; j++) {
 								// NOTE: + 1, then -2 on random value to prevent trees of overlap across chunks
 								let x = heightMap.chunkI * vorld.chunkSize + 1 + Math.floor(random() * vorld.chunkSize - 2),
@@ -728,6 +731,24 @@ module.exports = (function(){
 									}
 								}
 							}
+						}
+
+						if (heightMap.mean > 0) { // There's some land yo
+							for (let i = 0, l = vorld.chunkSize; i < l; i++) {
+								for (let k = 0; k < l; k++) {
+									let x = heightMap.chunkI * vorld.chunkSize + i,
+										z = heightMap.chunkK * vorld.chunkSize + k;
+									let y = Vorld.getHighestBlockY(vorld, x, z) + 1;
+									if (y > 1 && random() < chanceOfGrass // Above water level
+										&& Vorld.getBlock(vorld, x, y, z) == 0 // Only in empty space
+										&& Vorld.getBlock(vorld, x, y - 1, z) == blockIds["grass"]) { // Only on grass
+										Vorld.addBlock(vorld, x, y, z, blockIds["long_grass"]);
+									}
+								}
+							}
+						}
+
+						if (points) {
 							for (let j = 0, n = points.length; j < n; j++) {
 								VorldFlora.addTree(vorld, points[j][0], points[j][1], points[j][2], blockIds["wood"], blockIds["leaves"]);
 							}
