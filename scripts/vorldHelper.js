@@ -311,6 +311,21 @@ module.exports = (function(){
 		"orb_pedistal": 16
 	};
 
+	exports.getAllBlockIdNames = () => {
+		return Object.keys(blockIds);
+	};
+
+	exports.getAllBlockIdValues = () => {
+		let result = [];
+		let keys = Object.keys(blockIds);
+		for (let i = 0, l = keys.length; i < l; i++) {
+			if (blockIds[keys[i]] > 0) {
+				result.push(blockIds[keys[i]]);
+			}
+		}
+		return result;
+	};
+
 	// placement styles:
 	// "front_facing" - up is up and front of the block is pointed towards camera
 	// "up_normal" - up of block towards normal of face placed (todo - test against MC wood placement)
@@ -570,38 +585,6 @@ module.exports = (function(){
 						lightingPass(vorld, bounds, callback, progressDelegate);
 					});
 				} else {
-					// Add surrounding Walls
-					let expandedBounds = {
-						iMin: bounds.iMin - 1,
-						iMax: bounds.iMax + 1,
-						jMin: bounds.jMin,
-						jMax: bounds.jMax,
-						kMin: bounds.kMin - 1,
-						kMax: bounds.kMax + 1
-					};
-					let buildWall = (x, y, z) => {
-						// TODO: Better walls
-						Vorld.addBlock(vorld, x, y, z, blockIds["stone"]);
-					};
-					let xMin = expandedBounds.iMin * vorld.chunkSize + vorld.chunkSize - 1,
-						xMax = xMin,
-						yMin = expandedBounds.jMin * vorld.chunkSize,
-						yMax = expandedBounds.jMax * vorld.chunkSize + vorld.chunkSize - 1, // Maybe doesn't need to be full height lol
-						zMin = bounds.kMin * vorld.chunkSize,
-						zMax = bounds.kMax * vorld.chunkSize + vorld.chunkSize - 1;
-					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
-					
-					xMin = xMax = expandedBounds.iMax * vorld.chunkSize;
-					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
-
-					xMin = bounds.iMin * vorld.chunkSize;
-					xMax = bounds.iMax * vorld.chunkSize + vorld.chunkSize - 1;
-					zMin = zMax = expandedBounds.kMin * vorld.chunkSize + vorld.chunkSize - 1;
-					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
-
-					zMin = zMax = expandedBounds.kMax * vorld.chunkSize;
-					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
-
 					// World decoration
 					// Determine spawn point on closest traversable local maxima to origin
 					// Add orbs to collect at other points of interest (currently just local maxima)
@@ -709,9 +692,10 @@ module.exports = (function(){
 						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 2, pickedPoints[i][2], blockIds["orb"]);
 					}
 
-					let clashesWithPoints = (point, points) => {
+					let clashesWithPoints = (point, radius, points) => {
 						for (let i = 0, l = points.length; i < l; i++) {
-							if (point[0] == points[i][0] && point[2] == points[i][2]) {
+							if (point[0] >= points[i][0] - radius && point[0] <= points[i][0] + radius 
+								&& point[2] >= points[i][2] - radius && point[2] <= points[i][2] + radius) {
 								return true;
 							}
 						}
@@ -739,7 +723,7 @@ module.exports = (function(){
 								if (y > 1) { // No trees on the water please
 									let point = [x, y, z];
 									if (!Bounds.contains(point, spawnPointArea) // No trees in spawn
-										&& !clashesWithPoints(point, pickedPoints)) { // No trees over orbs
+										&& !clashesWithPoints(point, 1, pickedPoints)) { // No trees over orbs
 										points.push(point);
 									}
 								}
@@ -749,6 +733,38 @@ module.exports = (function(){
 							}
 						}
 					}
+
+					// Add surrounding Walls
+					let expandedBounds = {
+						iMin: bounds.iMin - 1,
+						iMax: bounds.iMax + 1,
+						jMin: bounds.jMin,
+						jMax: bounds.jMax,
+						kMin: bounds.kMin - 1,
+						kMax: bounds.kMax + 1
+					};
+					let buildWall = (x, y, z) => {
+						// TODO: Better walls
+						Vorld.addBlock(vorld, x, y, z, blockIds["stone"]);
+					};
+					let xMin = expandedBounds.iMin * vorld.chunkSize + vorld.chunkSize - 1,
+						xMax = xMin,
+						yMin = expandedBounds.jMin * vorld.chunkSize,
+						yMax = expandedBounds.jMax * vorld.chunkSize + vorld.chunkSize - 5,
+						zMin = bounds.kMin * vorld.chunkSize,
+						zMax = bounds.kMax * vorld.chunkSize + vorld.chunkSize - 1;
+					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
+					
+					xMin = xMax = expandedBounds.iMax * vorld.chunkSize;
+					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
+
+					xMin = bounds.iMin * vorld.chunkSize;
+					xMax = bounds.iMax * vorld.chunkSize + vorld.chunkSize - 1;
+					zMin = zMax = expandedBounds.kMin * vorld.chunkSize + vorld.chunkSize - 1;
+					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
+
+					zMin = zMax = expandedBounds.kMax * vorld.chunkSize;
+					VorldUtils.forVolume(xMin, xMax, yMin, yMax, zMin, zMax, buildWall);
 
 					lightingPass(vorld, expandedBounds, callback, progressDelegate);
 				}
@@ -1000,6 +1016,8 @@ module.exports = (function(){
 				lightingConfig = lightingConfigs["day"];
 				break;
 		}
+		// BUG: This overwrites current fogColor array reference, linking all material fogColors together, which on one hand is
+		// good when we want them to be all the same, on the other hand it wasn't intentional
 		material.setProperties(lightingConfig);
 		cutoutMaterial.setProperties(lightingConfig);
 		alphaMaterial.setProperties(lightingConfig);

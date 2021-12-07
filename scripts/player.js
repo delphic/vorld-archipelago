@@ -139,14 +139,13 @@ module.exports = (function(){
 
 		// TODO: Pass this in or make it based on equipment 
 		let placementConfig = {
-			isCreativeMode: false, // TODO: Debug method to toggle this
-			destroyableBlocks: [],
-			pickupableBlocks: [ 13, 15 ] // torch and orb
+			isCreativeMode: false,
+			destroyableBlocks: [ VorldHelper.blockIds["leaves"] ],
+			pickupableBlocks: [ VorldHelper.blockIds["torch"], VorldHelper.blockIds["orb"] ]
 		};
 		let blockInventory = [];
 		if (placementConfig.isCreativeMode) {
-			// TODO: just get full block this from block config
-			blockInventory = [ 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16 ];
+			blockInventory = VorldHelper.getAllBlockIdValues();
 		}
 		let blockIndex = 0; // TODO: UI to control & console option to toggle block placement (or equipable object)
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
