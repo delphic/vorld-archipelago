@@ -92,9 +92,12 @@ let onBlockPlaced = (block, x, y, z) => {
 		}
 
 		if (previousOrbsPlaced != orbsPlaced && orbsPlaced >= orbsToWin) {
-			// TODO: activate portal instead and then if you enter show this
-			Fury.Input.releasePointerLock();
-			pauseGame(createPortalActivationNotification);
+			// TODO: activate portal instead and if you enter show this
+			// rather than after timer
+			window.setTimeout(() => {
+				Fury.Input.releasePointerLock();
+				pauseGame(createPortalActivationNotification);
+			}, 1000);
 		}
 	}
 };
