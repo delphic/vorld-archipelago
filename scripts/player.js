@@ -268,7 +268,7 @@ module.exports = (function(){
 		let isSwimming = false, isInWater = false;
 
 		let stepPeriods = {
-			"swim": 1,
+			"swim": 0.8,
 			"sneak": 0.75,
 			"walk": 0.45,
 			"run": 0.33
@@ -287,7 +287,11 @@ module.exports = (function(){
 			grounded = false;
 			canCoyote = false;
 			// Apply Jump Velocity!
-			player.velocity[1] = jumpDeltaV;
+			if (!isWalking && attemptSprint) {
+				player.velocity[1] = jumpDeltaV;
+			} else {
+				player.velocity[1] = 0.9 * jumpDeltaV; // Slightly smaller jump when not sprinting
+			}
 		};
 
 
