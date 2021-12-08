@@ -1,9 +1,8 @@
 const { vec3 } = require('../fury/src/maths');
 const { Maths, Physics } = require('../fury/src/fury');
-const Vorld = require('../vorld/core/vorld');
 const VPhysics = require('../vorld/core/physics');
 
-let CharacterController = module.exports = (() => {
+module.exports = (() => {
 	let exports = {};
 	
 	// Used to store collisions, with minimum times and indices
@@ -286,6 +285,7 @@ let CharacterController = module.exports = (() => {
 			let collisionsBuffer = playerCollisionInfo.collisionsBuffer;
 			let minTime = playerCollisionInfo.minTime;
 			let minIndex = playerCollisionInfo.minIndex;
+			let didStep = false;
 		
 			let maxStepHeight = playerBox.min[1] + controller.stepHeight; 
 			let resolvedX = minIndex[0] == -1, resolvedZ = minIndex[2] == -1;
@@ -332,12 +332,17 @@ let CharacterController = module.exports = (() => {
 									// No dice really in a corner
 									contacts[sma] = Math.sign(targetPosition[sma] - playerPosition[sma]);
 									targetPosition[sma] = getTouchPointTarget(collisionsBuffer[minIndex[sma]], playerBox, sma, targetPosition[sma] - playerPosition[sma]);
+								} else {
+									didStep = true;
 								}
 							}
+						} else {
+							didStep = true;
 						}
 					}
+				} else {
+					didStep = true;
 				}
-		
 			} else if (!resolvedX || !resolvedZ) {
 				let fca = resolvedZ ? 0 : 2; // First Collision Axis
 				let sca = resolvedZ ? 2 : 0; // Second Collision Axis (though there's no collision initially)
@@ -353,6 +358,8 @@ let CharacterController = module.exports = (() => {
 						contacts[sca] = Math.sign(targetPosition[sca] - playerPosition[sca]);
 						targetPosition[sca] = getTouchPointTarget(collisionsBuffer[minIndex[sca]], playerBox, sca, targetPosition[sca] - playerPosition[sca]);
 					}
+				} else {
+					didStep = true;
 				}
 			} else {
 				contacts[0] = contacts[2] = 0;
@@ -363,7 +370,9 @@ let CharacterController = module.exports = (() => {
 			
 			// Cache Velocity
 			velocity[0] = (playerPosition[0] - lastPosition[0]) / elapsed;
-			velocity[2] = (playerPosition[2] - lastPosition[2]) / elapsed;	
+			velocity[2] = (playerPosition[2] - lastPosition[2]) / elapsed;
+
+			return didStep;
 		};
 
 		controller.moveY = (contacts, velocity, elapsed) => {
