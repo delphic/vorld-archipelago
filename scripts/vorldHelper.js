@@ -339,6 +339,19 @@ module.exports = (function(){
 		// and it'll prevent creating a new string each time
 	};
 
+	exports.buildSplashSfxUri = (entry, num, isBig) => {
+		if (!num) {
+			num = 1;
+		} 
+		if (entry) {
+			if (isBig) {
+				return "audio/sfx/splash/BigSplash" + num + ".ogg"; 
+			} 
+			return "audio/sfx/splash/Splash" + num + ".ogg";
+		} 
+		return "audio/sfx/splash/ExitSplash" + num + ".ogg";
+	};
+
 	exports.getAllBlockIdNames = () => {
 		return Object.keys(blockIds);
 	};

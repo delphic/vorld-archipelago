@@ -265,9 +265,10 @@ module.exports = (function(){
 
 		// Movement Variables
 		let grounded = false, lastGroundedTime = 0, canCoyote = true, lastJumpAttemptTime = 0;
-		let inWater = false;
+		let isSwimming = false, isInWater = false;
 
 		let stepPeriods = {
+			"swim": 1,
 			"sneak": 0.75,
 			"walk": 0.45,
 			"run": 0.33
@@ -303,13 +304,16 @@ module.exports = (function(){
 			// TODO: consider using local axes rather than ground axes when swimming
 			calculateMaxContactSpeed(localInputVector, localGroundZ, localGroundX);
 
-			if (inWater && !grounded) {
+			if (isSwimming && !grounded) {
 				calculateGlobalXZInputVector(inputVector, localInputVector, localZ, localX);
-				maxMovementSpeed = player.config.maxWadeSpeed;
+				maxMovementSpeed = player.config.maxSwimSpeed;
 			} else {
 				calculateGlobalXZInputVector(inputVector, localInputVector, localGroundZ, localGroundX);
-				if (isWalking || inWater) {
+				if (isWalking) {
 					maxMovementSpeed = player.config.maxWalkSpeed;
+				} else if (isInWater) {
+					// Arguably should be allowed to sprint whilst wading
+					maxMovementSpeed = player.config.maxWadeSpeed;
 				} else {
 					if (attemptSprint) {
 						maxMovementSpeed = player.config.maxSprintSpeed;
@@ -390,7 +394,7 @@ module.exports = (function(){
 						vec3.zero(player.velocity);
 					}
 				}
-			} else if (!inWater) {
+			} else if (!isSwimming) {
 				// Apply Drag
 				// F(drag) = (1/2)pvvC(drag)A
 				// p = density of fluid, v = velocity relative to fluid, C(drag) = drag co-efficient
@@ -471,7 +475,8 @@ module.exports = (function(){
 			}
 
 			// Move Character by Velocity
-			characterController.stepHeight = grounded || inWater ? stepHeight : 0; // No stepping whilst not grounded
+			characterController.stepHeight = isInWater && !isSwimming ? 1 : grounded || isSwimming ? stepHeight : 0; // No stepping whilst in the air 
+			// TODO: ^^ config based get out of water height - also probably a better way to check than !isSwimming
 			let didStep = characterController.moveXZ(contacts, player.velocity, elapsed, inputVector);
 
 			// Determine contact block
@@ -481,8 +486,12 @@ module.exports = (function(){
 				let closestVoxelCoord = Maths.vec3Pool.request();
 				let foundClosestGroundVoxel = tryGetClosestGroundVoxelCoords(closestVoxelCoord, vorld, player.box);
 				if (foundClosestGroundVoxel) {
-					let groundBlock = Vorld.getBlock(vorld, closestVoxelCoord[0], closestVoxelCoord[1], closestVoxelCoord[2]);
-					lastGroundedVoxelMaterial = Vorld.getBlockTypeDefinition(vorld, groundBlock).sfxMat;
+					if (isInWater) {
+						lastGroundedVoxelMaterial = "water";
+					} else {
+						let groundBlock = Vorld.getBlock(vorld, closestVoxelCoord[0], closestVoxelCoord[1], closestVoxelCoord[2]);
+						lastGroundedVoxelMaterial = Vorld.getBlockTypeDefinition(vorld, groundBlock).sfxMat;	
+					}
 				}
 
 				// Don't allow walking off edges
@@ -518,7 +527,7 @@ module.exports = (function(){
 				// TODO: Need to determine if wading (inWater is actually isUnderwater)
 				// (currently no tracker, should be different speed)
 				let action = "walk";
-				if (isWalking || inWater) {
+				if (isWalking || isInWater) {
 					action = "sneak";
 				} else if (attemptSprint) { // Can you sprint underwater?
 					action = "run";
@@ -528,10 +537,32 @@ module.exports = (function(){
 				let period = stepPeriods[action];
 				timeSinceLastStep += elapsed;
 				if ((didStep && timeSinceLastStep > 0.25) // Technically should play sound every step but it sounds silly when you're running up steps
-					|| (hasPlayedFirstStep && timeSinceLastStep >  period)
+					|| (hasPlayedFirstStep && timeSinceLastStep > period)
 					|| (!hasPlayedFirstStep && timeSinceLastStep > 0.5 * period)) {
 					Audio.play({ 
 						uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, 1 + Math.floor(4*Math.random())),
+						mixer: Audio.mixers["sfx/footsteps"]
+					});
+					if (isInWater) {
+						// Play the swooshes when walking through water too
+						let uri = VorldHelper.buildSfxMaterialUri("water", "swim", 1 + Math.floor(4*Math.random()));
+						Audio.play({ 
+							uri: uri,
+							mixer: Audio.mixers["sfx/footsteps"]
+						});
+						console.log("Playing " + uri + " at " + Date.now());
+					}
+					timeSinceLastStep = 0;
+					hasPlayedFirstStep = true;
+				}
+			} else if (isInWater && vec3.sqrLen(localInputVector) > 0.1) { 
+				// Note not "isSwimming" so as to not reset the swim period if you're dipping in and out of the surface of water whilst swimming 
+				let action = "swim";
+				let period = stepPeriods[action]; // 'step period'
+				timeSinceLastStep += elapsed;
+				if (!hasPlayedFirstStep || timeSinceLastStep > period) {
+					Audio.play({ 
+						uri: VorldHelper.buildSfxMaterialUri("water", action, 1 + Math.floor(4*Math.random())),
 						mixer: Audio.mixers["sfx/footsteps"]
 					});
 					timeSinceLastStep = 0;
@@ -543,7 +574,7 @@ module.exports = (function(){
 			}
 
 			// Now Gravity / Jumping
-			if (!inWater) {
+			if (!isSwimming) {
 				player.velocity[1] -= gravity * elapsed;
 			} else {
 				// TODO: should have gravity vs buoyancy 
@@ -563,11 +594,20 @@ module.exports = (function(){
 			}
 
 			// Y Move - contacts[1] will be -1 if touches ground
-			characterController.moveY(contacts, player.velocity, elapsed)
+			characterController.moveY(contacts, player.velocity, elapsed);
+
+			let wasInWater = isInWater;
+			isInWater = VorldHelper.blockIds["water"] === Vorld.getBlock(
+				vorld, 
+				Math.floor(player.position[0]),
+				Math.floor(player.box.min[1] + 0.1),
+				Math.floor(player.position[2]));
+
 			if (contacts[1] == -1) {
 				lastGroundedTime = Date.now();
+
 				if (!grounded) {
-					// Landed!
+					// Landed! (May jump immediately though)
 					// Re-determine grounded voxel (as it'll be out of date)
 					let closestVoxelCoord = Maths.vec3Pool.request();
 					if (tryGetClosestGroundVoxelCoords(closestVoxelCoord, vorld, player.box)) {
@@ -598,11 +638,45 @@ module.exports = (function(){
 				}
 			}
 
-			// Use water movement inside any block not air
-			// NOTE: Only works for centered player position and player height > 1 - else would 'swim' on top of step and half blocks
-			// or you could jump into them from below and swim along them, which would be fun, but not really intentional.
-			// TODO: More robust check against block types so we're not dependent on player size for this to work.
-			inWater = !!Vorld.getBlock(vorld, Math.floor(player.position[0]), Math.floor(player.position[1]), Math.floor(player.position[2]));
+			// Determine is in water / is swimming
+			if (!wasInWater && isInWater) {
+				// Entered Water
+				if (vec3.length(player.velocity) > 18) {
+					// BIG splash!
+					Audio.play({
+						uri: VorldHelper.buildSplashSfxUri(true, 1 + Math.floor(Math.random()*2), true),
+						mixer: Audio.mixers["sfx/footsteps"]
+					}, 0, false, 5);
+				} else {
+					Audio.play({
+						uri: VorldHelper.buildSplashSfxUri(true, 1 + Math.floor(Math.random()*3)),
+						mixer: Audio.mixers["sfx/footsteps"]
+					});	
+				}
+			} else if (wasInWater && !isInWater) {
+				// Exited water
+				Audio.play({
+					uri: VorldHelper.buildSplashSfxUri(false, 1 + Math.floor(Math.random()*3)),
+					mixer: Audio.mixers["sfx/footsteps"]
+				});
+			}
+
+			// let wasSwimming = isSwimming;
+			// Arguably this could just be isInWater and !grounded?
+			isSwimming = VorldHelper.blockIds["water"] == Vorld.getBlock(
+				vorld,
+				Math.floor(player.position[0]),
+				Math.floor(player.position[1]),
+				Math.floor(player.position[2]));
+
+			// Smol Splash noises?
+			/*
+			if (wasSwimming && !isSwimming) {
+				console.log("Stopped Swimming!");
+			} else if (!wasSwimming && isSwimming) {
+				console.log("Started swimming"); // Not strictly true actually this is when you start swimming 
+			}
+			*/
 			
 			// Smoothly move the camera - no jerks from sudden movement please!
 			// Technically displacement isn't the issue, it's acceleration
@@ -619,7 +693,7 @@ module.exports = (function(){
 			if (waterQuad) {
 				// Set active if any part of the near clip plane would be in water
 				let x = Math.floor(camera.position[0]), y = Math.floor(camera.position[1] - 1.001 * camera.near), z = Math.floor(camera.position[2]);
-				waterQuad.active = !!Vorld.getBlock(vorld, x, y, z) && !Vorld.isBlockSolid(vorld, x, y, z); 
+				waterQuad.active = Vorld.getBlock(vorld, x, y, z) == VorldHelper.blockIds["water"]; 
 				// TODO: Should check if actually water, and show different properties depending on block type but for now any non-solid block is 'water'
 				if (waterQuad.active) {
 					let upperY = Math.floor(camera.position[1] + 1.001 * camera.near); 

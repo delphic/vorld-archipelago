@@ -55,14 +55,15 @@ let playerPrefs = {
 let playerMovementConfig = {
 	acceleration: 80,
 	maxWalkSpeed: 2,
-	maxWadeSpeed: 2,
+	maxWadeSpeed: 3,
+	maxSwimSpeed: 4,
 	maxRunSpeed: 5.5,
 	maxSprintSpeed: 8,
 	stopSpeed: 1.5,
 	airAcceleration: 10,
 	airMaxMovementSpeed: 4,
 	waterAcceleration: 10,
-	waterMaxMovementSpeed: 3
+	waterMaxMovementSpeed: 4
 };
 
 let initialised = false, generating = false;
@@ -491,7 +492,16 @@ window.addEventListener('load', () => {
 			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "run", stepNum));
 			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "sneak", stepNum));
 			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "walk", stepNum));
+			if (matNames[i] == "water") {
+				uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "swim", stepNum));
+			}
 		}
+	}
+	// Splash Sounds
+	for (let i = 1; i <= 3; i++) {
+		if (i < 3) uris.push(VorldHelper.buildSplashSfxUri(true, i, true));
+		uris.push(VorldHelper.buildSplashSfxUri(true, i));
+		uris.push(VorldHelper.buildSplashSfxUri(false, i));
 	}
 
 	Audio.createMixer("ui", 1, Audio.mixers.master);
