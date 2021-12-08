@@ -268,8 +268,8 @@ module.exports = (function(){
 		let inWater = false;
 
 		let stepPeriods = {
-			"sneak": 1,
-			"walk": 0.5,
+			"sneak": 0.75,
+			"walk": 0.45,
 			"run": 0.33
 		};
 		let timeSinceLastStep = 0; 
