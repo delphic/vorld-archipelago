@@ -2,6 +2,7 @@
 const Fury = require('../fury/src/fury');
 const { Input, Physics, Maths } = require('../fury/src/fury');
 const { vec3, quat, vec3Pool } = require('../fury/src/maths');
+const Audio = require('./audio');
 const Primitives = require('./primitives');
 const CharacterController = require ('./characterController.js');
 const Vorld = require('../vorld/core/vorld');
@@ -140,7 +141,7 @@ module.exports = (function(){
 		// TODO: Pass this in or make it based on equipment 
 		let placementConfig = {
 			isCreativeMode: false,
-			destroyableBlocks: [ VorldHelper.blockIds["leaves"] ],
+			destroyableBlocks: [ VorldHelper.blockIds["leaves"], VorldHelper.blockIds["long_grass"] ],
 			pickupableBlocks: [ VorldHelper.blockIds["torch"], VorldHelper.blockIds["orb"] ]
 		};
 		let blockInventory = [];
@@ -186,7 +187,7 @@ module.exports = (function(){
 		let attemptSprint = false;
 		let attemptPlacement = false, attemptRemoval = false;
 		let verticalLookAngle = 0;
-		let maxContactSpeedFactor = 1.5; // Just limiting it 1:1 feels bad
+		let maxContactSpeedFactor = 1; // Increase for more slidey / less sticky walls (e.g. 1.5)
 		let maxContactSpeed = [maxMovementSpeed, 0, maxMovementSpeed];
 		let lastForwardPress = 0;
 		let sprintDoubleTapMaxDuration = 0.25;
@@ -266,12 +267,28 @@ module.exports = (function(){
 		let grounded = false, lastGroundedTime = 0, canCoyote = true, lastJumpAttemptTime = 0;
 		let inWater = false;
 
+		let stepPeriods = {
+			"sneak": 1,
+			"walk": 0.5,
+			"run": 0.33
+		};
+		let timeSinceLastStep = 0; 
+		let hasPlayedFirstStep = false;
+		let lastMovementSfxAction = "walk";
+		let lastGroundedVoxelMaterial = "ground";
+
 		let jump = () => {
+			Audio.play({ 
+				uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, 1 + Math.floor(4*Math.random())),
+				mixer: Audio.mixers["sfx"]
+			});
+
 			grounded = false;
 			canCoyote = false;
 			// Apply Jump Velocity!
 			player.velocity[1] = jumpDeltaV;
 		};
+
 
 		// Potential Bug:
 		// Without reducing step when not grounded if you jump whilst facing into a corner with 2 height blocks in front, adjacent blocks height one,
@@ -279,7 +296,7 @@ module.exports = (function(){
 		// This be the controller working as intended, but it would require a confluence of values which merits investigation
 
 		// TODO: Replace use of Date.now() with Fury.Time or similar
-		// Nigh on impossible to drop into a space of one voxel - as the passes are separated - and if you did you'd just step out
+		// Nigh on impossible to drop into a space of one voxel when player box is 1x1 - as the passes are separated - and if you did you'd just step out
 		player.update = (elapsed) => {
 			detectInput(elapsed);
 
@@ -455,15 +472,25 @@ module.exports = (function(){
 
 			// Move Character by Velocity
 			characterController.stepHeight = grounded || inWater ? stepHeight : 0; // No stepping whilst not grounded
-			characterController.moveXZ(contacts, player.velocity, elapsed, inputVector);
+			let didStep = characterController.moveXZ(contacts, player.velocity, elapsed, inputVector);
 
-			// Don't allow walking off edges
-			if (grounded && isWalking 
-				&& VorldPhysics.raycast(hitPoint, vorld, player.position, castDirection, player.box.extents[1] + 0.5) == 0) {
+			// Determine contact block
+			// Also stop walking off edges
+			if (grounded) 
+			{
+				let closestVoxelCoord = Maths.vec3Pool.request();
+				let foundClosestGroundVoxel = tryGetClosestGroundVoxelCoords(closestVoxelCoord, vorld, player.box);
+				if (foundClosestGroundVoxel) {
+					let groundBlock = Vorld.getBlock(vorld, closestVoxelCoord[0], closestVoxelCoord[1], closestVoxelCoord[2]);
+					lastGroundedVoxelMaterial = Vorld.getBlockTypeDefinition(vorld, groundBlock).sfxMat;
+				}
+
+				// Don't allow walking off edges
 				// Note this doesn't have the MC "peer over the edge" benefit / terror
 				// which we'd want if we put block placement in
-				let closestVoxelCoord = Maths.vec3Pool.request();
-				if (tryGetClosestGroundVoxelCoords(closestVoxelCoord, vorld, player.box)) {
+				if (isWalking
+					&& foundClosestGroundVoxel
+					&& VorldPhysics.raycast(hitPoint, vorld, player.position, castDirection, player.box.extents[1] + 0.5) == 0) {
 					// If you're outside the bounds of the closest voxel on each axis
 					// snap back to inside and adjust - NOTE: player.velocity is no longer 
 					// an accurate measure of distance travelled in the frame
@@ -482,8 +509,37 @@ module.exports = (function(){
 						player.velocity[2] = 0;
 					}
 				}
-				// else I guess you just fall off anyway
+				// else - if not foundClosestVoxel - I guess you just fall off anyway
 				Maths.vec3Pool.return(closestVoxelCoord);
+			}
+
+			// Footsteps
+			if (grounded && vec3.sqrLen(player.velocity) > 0.1) {
+				// TODO: Need to determine if wading (inWater is actually isUnderwater)
+				// (currently no tracker, should be different speed)
+				let action = "walk";
+				if (isWalking || inWater) {
+					action = "sneak";
+				} else if (attemptSprint) { // Can you sprint underwater?
+					action = "run";
+				}
+				lastMovementSfxAction = action;
+
+				let period = stepPeriods[action];
+				timeSinceLastStep += elapsed;
+				if ((didStep && timeSinceLastStep > 0.25) // Technically should play sound every step but it sounds silly when you're running up steps
+					|| (hasPlayedFirstStep && timeSinceLastStep >  period)
+					|| (!hasPlayedFirstStep && timeSinceLastStep > 0.5 * period)) {
+					Audio.play({ 
+						uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, 1 + Math.floor(4*Math.random())),
+						mixer: Audio.mixers["sfx"]
+					});
+					timeSinceLastStep = 0;
+					hasPlayedFirstStep = true;
+				}
+			} else {
+				hasPlayedFirstStep = false;
+				timeSinceLastStep = 0;
 			}
 
 			// Now Gravity / Jumping
@@ -510,9 +566,28 @@ module.exports = (function(){
 			characterController.moveY(contacts, player.velocity, elapsed)
 			if (contacts[1] == -1) {
 				lastGroundedTime = Date.now();
+				if (!grounded) {
+					// Landed!
+					// Re-determine grounded voxel (as it'll be out of date)
+					let closestVoxelCoord = Maths.vec3Pool.request();
+					if (tryGetClosestGroundVoxelCoords(closestVoxelCoord, vorld, player.box)) {
+						let groundBlock = Vorld.getBlock(vorld, closestVoxelCoord[0], closestVoxelCoord[1], closestVoxelCoord[2]);
+						lastGroundedVoxelMaterial = Vorld.getBlockTypeDefinition(vorld, groundBlock).sfxMat;
+					}
+					Maths.vec3Pool.return(closestVoxelCoord);
+				}
+
 				if (!grounded && lastGroundedTime - lastJumpAttemptTime < 1000 * coyoteTime) {
 					jump();
 				} else {
+					if (!grounded) {
+						// Landed! (and didn't jump - which will play it's own SFX)
+						Audio.play({ 
+							uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, 1 + Math.floor(4*Math.random())),
+							mixer: Audio.mixers["sfx"]
+						});
+						hasPlayedFirstStep = true;
+					}
 					grounded = true;
 					canCoyote = true;
 				}
