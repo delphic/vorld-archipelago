@@ -280,7 +280,7 @@ module.exports = (function(){
 		let jump = () => {
 			Audio.play({ 
 				uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, 1 + Math.floor(4*Math.random())),
-				mixer: Audio.mixers["sfx"]
+				mixer: Audio.mixers["sfx/footsteps"]
 			});
 
 			grounded = false;
@@ -532,7 +532,7 @@ module.exports = (function(){
 					|| (!hasPlayedFirstStep && timeSinceLastStep > 0.5 * period)) {
 					Audio.play({ 
 						uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, 1 + Math.floor(4*Math.random())),
-						mixer: Audio.mixers["sfx"]
+						mixer: Audio.mixers["sfx/footsteps"]
 					});
 					timeSinceLastStep = 0;
 					hasPlayedFirstStep = true;
@@ -584,7 +584,7 @@ module.exports = (function(){
 						// Landed! (and didn't jump - which will play it's own SFX)
 						Audio.play({ 
 							uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, 1 + Math.floor(4*Math.random())),
-							mixer: Audio.mixers["sfx"]
+							mixer: Audio.mixers["sfx/footsteps"]
 						});
 						hasPlayedFirstStep = true;
 					}

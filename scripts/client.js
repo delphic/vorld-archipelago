@@ -491,9 +491,10 @@ window.addEventListener('load', () => {
 		}
 	}
 
-	Audio.createMixer("bgm", 0.25, Audio.mixers.master);
-	Audio.createMixer("sfx", 0.5, Audio.mixers.master);
 	Audio.createMixer("ui", 1, Audio.mixers.master);
+	Audio.createMixer("sfx", 0.5, Audio.mixers.master);
+	Audio.createMixer("sfx/footsteps", 0.25, Audio.mixers["sfx"]);
+	Audio.createMixer("bgm", 0.25, Audio.mixers.master);
 	Audio.fetchAudio(uris, null, loadingCallback);
 	totalAssetsToLoad = assetLoadingCount = assetLoadingCount + uris.length;
 
