@@ -319,6 +319,23 @@ module.exports = (function(){
 		"long_grass": 17
 	};
 
+	exports.sfxMaterialNames = [ "grass", "ground", "leaf", "stone", "water", "wood" ];
+
+	// By convention there are audio files in audio/sf/materials/
+	// in the format <name>-<run/sneak/walk>-step<1-4>.wav 
+	exports.buildSfxMaterialUri = (name, action, num) => {
+		if (!num) {
+			num = 1;
+		}
+		if (action == "add") {
+			action = "run";
+		}
+		if (action == "remove") {
+			action = "walk";
+		}
+		return "audio/sfx/materials/" + name + "-" + action + "-step" + num + ".wav";
+	};
+
 	exports.getAllBlockIdNames = () => {
 		return Object.keys(blockIds);
 	};
@@ -345,23 +362,23 @@ module.exports = (function(){
 		// Note: if custom mesh provided and no collision, game uses mesh bounds as default collision AABB
 		// TODO: option for different meshes / collisions based on adjaency (i.e. corner step meshes)
 		{ name: "air", isOpaque: false, isSolid: false },
-		{ name: "stone", isOpaque: true, isSolid: true },
-		{ name: "soil", isOpaque: true, isSolid: true },
-		{ name: "grass", isOpaque: true, isSolid: true },
-		{ name: "wood", isOpaque: true, isSolid: true, placement: "up_normal", rotateTextureCoords: true },
-		{ name: "leaves", isOpaque: false, isSolid: true, useCutout: true, meshInternals: true, attenuation: 3 },
-		{ name: "water", isOpaque: false, isSolid: false, useAlpha: true, attenuation: 3 },
-		{ name: "stone_blocks", isOpaque: true, isSolid: true },
-		{ name: "stone_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2, placement: "half" },
-		{ name: "stone_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" }, 
-		{ name: "planks", isOpaque: true, isSolid: true },
-		{ name: "planks_half", isOpaque: false, isSolid: true, mesh: halfCubeJson, attenuation: 2, placement: "half" },
-		{ name: "planks_step", isOpaque: false, isSolid: true, mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" },
-		{ name: "torch", isOpaque: false, isSolid: true, mesh: torchJson, light: 8, placement: "up_normal", rotateTextureCoords: true }, // TODO: Emissive mask to amp up light level and reduce fog build up
-		{ name: "test", isOpaque: true, isSolid: true, placement: "front_facing", rotateTextureCoords: true },
-		{ name: "orb", isOpaque: false, isSolid: true,  useUnlit: true, light: 4, mesh: orbJson },
-		{ name: "orb_pedistal", isOpaque: true, isSolid: true },
-		{ name: "long_grass", isOpaque: false, isSolid: false, useCutout: true, mesh: longGrassJson, attenuation: 2 }
+		{ name: "stone", isOpaque: true, isSolid: true, sfxMat: "stone" },
+		{ name: "soil", isOpaque: true, isSolid: true, sfxMat: "ground" },
+		{ name: "grass", isOpaque: true, isSolid: true, sfxMat: "grass" },
+		{ name: "wood", isOpaque: true, isSolid: true, sfxMat: "wood", placement: "up_normal", rotateTextureCoords: true },
+		{ name: "leaves", isOpaque: false, isSolid: true, sfxMat: "leaf", useCutout: true, meshInternals: true, attenuation: 3 },
+		{ name: "water", isOpaque: false, isSolid: false, sfxMat: "water", useAlpha: true, attenuation: 3 },
+		{ name: "stone_blocks", isOpaque: true, isSolid: true, sfxMat: "stone" },
+		{ name: "stone_half", isOpaque: false, isSolid: true, sfxMat: "stone", mesh: halfCubeJson, attenuation: 2, placement: "half" },
+		{ name: "stone_step", isOpaque: false, isSolid: true, sfxMat: "stone", mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" }, 
+		{ name: "planks", isOpaque: true, isSolid: true, sfxMat: "wood" },
+		{ name: "planks_half", isOpaque: false, isSolid: true, sfxMat: "wood", mesh: halfCubeJson, attenuation: 2, placement: "half" },
+		{ name: "planks_step", isOpaque: false, isSolid: true, sfxMat: "wood", mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" },
+		{ name: "torch", isOpaque: false, isSolid: true, sfxMat: "stone", mesh: torchJson, light: 8, placement: "up_normal", rotateTextureCoords: true }, // TODO: Emissive mask to amp up light level and reduce fog build up
+		{ name: "test", isOpaque: true, isSolid: true, sfxMat: "stone", placement: "front_facing", rotateTextureCoords: true },
+		{ name: "orb", isOpaque: false, isSolid: true, sfxMat: "stone", useUnlit: true, light: 4, mesh: orbJson },
+		{ name: "orb_pedistal", isOpaque: true, isSolid: true, sfxMat: "stone" },
+		{ name: "long_grass", isOpaque: false, isSolid: false, sfxMat: "grass", useCutout: true, mesh: longGrassJson, attenuation: 2 }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];
@@ -993,6 +1010,12 @@ module.exports = (function(){
 	};
 
 	exports.removeBlock = (vorld, x, y, z) => {
+		// Check for long grass and remove if necessary
+		if (Vorld.getBlock(vorld, x, y, z) == blockIds["grass"] 
+			&& Vorld.getBlock(vorld, x, y + 1, z) == blockIds["long_grass"]) {
+				Vorld.addBlock(vorld, x, y + 1, z, 0);
+		}
+
 		// Check horizontally adjacent blocks for water
 		let adjacentWaterBlock = false;
 		for (let i = -1; i <= 1; i++) {

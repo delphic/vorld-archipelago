@@ -18,6 +18,11 @@ let player;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 // waterColor : 0, 113, 144
 
+// Move to random utils
+let randomInt = (min, max) => {
+	return min + Math.floor((Math.random() * (max - min + 1)));
+};
+
 let ccc;
 let enableDayNightCycle = true; // Debug toggle for day night cycle (easier to test with endless day)
 
@@ -71,6 +76,11 @@ let orbsPlaced = 0;
 let orbsToWin = 4; // TODO: Pass to vorld helper as number to spawn
 
 let onBlockPlaced = (block, x, y, z) => {
+	let blockDef = Vorld.getBlockTypeDefinition(vorld, block);
+	
+	Audio.play({ uri: VorldHelper.buildSfxMaterialUri(blockDef.sfxMat, "add", randomInt(1, 4)), mixer: Audio.mixers["sfx"] });
+	// TODO: If placed underwater / removing another block should also play removal sound?
+
 	if (block == VorldHelper.blockIds["orb"]) {
 		let previousOrbsPlaced = orbsPlaced;
 		// Note - coupled to vorld helper's setting of meta data
@@ -90,6 +100,10 @@ let onBlockPlaced = (block, x, y, z) => {
 };
 
 let onBlockRemoved = (block, x, y, z) => {
+	let blockDef = Vorld.getBlockTypeDefinition(vorld, block);
+	Audio.play({ uri: VorldHelper.buildSfxMaterialUri(blockDef.sfxMat, "remove", randomInt(1, 4)), mixer: Audio.mixers["sfx"] });
+	// TODO: if water filling the space play splash?
+
 	if (block == VorldHelper.blockIds["orb"]) {
 		// Note - coupled to vorld helper's setting of meta data
 		for (let i = 0, l = vorld.meta.portalPoints.length; i < l; i++) {
@@ -304,7 +318,7 @@ let loop = (elapsed) => {
 };
 
 let playButtonClickSfx = () => {
-	Audio.play({ uri: "audio/sfx/ui/click1.ogg", mixer: Audio.mixers["sfx"] });
+	Audio.play({ uri: "audio/sfx/ui/click1.ogg", mixer: Audio.mixers["ui"] });
 };
 
 let createMainMenu = () => {
@@ -463,9 +477,23 @@ window.addEventListener('load', () => {
 		titleScreen.showReadyButton("Play", createMainMenu);
 	};
 
-	let uris = [ "audio/bgm/Retro Mystic.ogg", "audio/sfx/ui/click1.ogg", "audio/sfx/ui/click2.ogg", "audio/sfx/ui/click3.ogg", "audio/sfx/ui/click4.ogg", "audio/sfx/ui/click5.ogg", "audio/sfx/ui/mouseclick1.ogg", "audio/sfx/ui/mouserelease1.ogg" ];
+	let uris = [];
+
+	// UI sounds
+	uris.push("audio/sfx/ui/click1.ogg");
+	// Material Sounds
+	let matNames = VorldHelper.sfxMaterialNames;
+	for (let i = 0, l = matNames.length; i < l; i++) {
+		for (let stepNum = 1; stepNum <= 4; stepNum++) {
+			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "run", stepNum));
+			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "sneak", stepNum));
+			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "walk", stepNum));
+		}
+	}
+
 	Audio.createMixer("bgm", 0.25, Audio.mixers.master);
-	Audio.createMixer("sfx", 1, Audio.mixers.master);
+	Audio.createMixer("sfx", 0.5, Audio.mixers.master);
+	Audio.createMixer("ui", 1, Audio.mixers.master);
 	Audio.fetchAudio(uris, null, loadingCallback);
 	totalAssetsToLoad = assetLoadingCount = assetLoadingCount + uris.length;
 
