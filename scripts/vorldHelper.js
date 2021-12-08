@@ -333,7 +333,10 @@ module.exports = (function(){
 		if (action == "remove") {
 			action = "walk";
 		}
-		return "audio/sfx/materials/" + name + "-" + action + "-step" + num + ".wav";
+		return "audio/sfx/materials/" + name + "-" + action + "-step" + num + ".ogg";
+		// ^^ Arguably should be a prebuild set of strings with lookup 
+		// this'll allow for exclusion of certain sfx and different rules for reuse across materials
+		// and it'll prevent creating a new string each time
 	};
 
 	exports.getAllBlockIdNames = () => {
