@@ -1134,11 +1134,16 @@ module.exports = (function(){
 		return generate(parameters.bounds, parameters.configId, callback, progressDelegate);
 	};
 
+	let ignoreNextGenerateRequest = false;
 	exports.generateRandomSeed = () => {
+		if (ignoreNextGenerateRequest) {
+			return;
+		}
+
 		let seed = "";
 		for (let i = 0; i < 256; i++) {
 			// 0 - 100 will probably give the best distribution but it's not really a copyable string
-			// so between 33 and 126 should give a saveable seed
+			// so between 33 and 126 should give an easy to save seed
 			seed += String.fromCharCode(Math.floor(33 + Math.random() * (127-33)));
 		}
 		console.log("Generated Seed " + seed);
@@ -1147,6 +1152,8 @@ module.exports = (function(){
 	
 	exports.setVorldSeed = (seed) => {
 		generationConfigs["guassian_shaped_noise"].generationRules.seed = seed;
+		console.log("Set seed for next generation to " + seed);
+		ignoreNextGenerateRequest = true;
 	};
 
 	if (window) {
