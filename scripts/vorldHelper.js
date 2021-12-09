@@ -802,8 +802,8 @@ module.exports = (function(){
 							points = [];
 							for (let j = 0; j < 10; j++) {
 								// NOTE: + 1, then -2 on random value to prevent trees of overlap across chunks
-								let x = heightMap.chunkI * vorld.chunkSize + 1 + Math.floor(random() * vorld.chunkSize - 2),
-									z = heightMap.chunkK * vorld.chunkSize + 1 + Math.floor(random() * vorld.chunkSize - 2);
+								let x = heightMap.chunkI * vorld.chunkSize + 1 + Math.floor(random() * (vorld.chunkSize - 2)),
+									z = heightMap.chunkK * vorld.chunkSize + 1 + Math.floor(random() * (vorld.chunkSize - 2));
 								let y = Vorld.getHighestBlockY(vorld, x, z) + 1;
 								if (y > 1) { // No trees on the water please
 									let point = [x, y, z];
