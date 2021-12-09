@@ -514,9 +514,9 @@ module.exports = (function(){
 	generationConfigs["castle"] = generationConfigs["flat"]; // Reuse flat for castle test
 
 	let lightingConfigs = {
-		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.03, directionalMagnitude: 0.9 },
-		"foggy": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.05, ambientMagnitude: 0.05, directionalMagnitude: 0.5 }, 
-		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.02, ambientMagnitude: 0.03, directionalMagnitude: 0 }
+		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.05, directionalMagnitude: 0.9 },
+		"foggy": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.05, ambientMagnitude: 0.1, directionalMagnitude: 0.5 }, 
+		"night": { fogColor: vec3.fromValues(0, 0, 0.05), fogDensity: 0.02, ambientMagnitude: 0.05, directionalMagnitude: 0 }
 	};
 
 	let performWorkOnBounds = (workerPool, bounds, sectionSize, configDelegate, messageCallback, completeCallback) => {
@@ -1116,15 +1116,7 @@ module.exports = (function(){
 		alphaMaterial = parameters.alphaMaterial;
 
 		// Apply lighting settings - arguably should be on scene and materials should have bindLighting method taking scene
-		let lightingConfig = null;
-		switch(parameters.configId) {
-			case "castle": 
-				lightingConfig = lightingConfigs["night"];
-				break;
-			default:
-				lightingConfig = lightingConfigs["day"];
-				break;
-		}
+		let lightingConfig = lightingConfigs["day"];
 		// BUG: This overwrites current fogColor array reference, linking all material fogColors together, which on one hand is
 		// good when we want them to be all the same, on the other hand it wasn't intentional
 		material.setProperties(lightingConfig);
