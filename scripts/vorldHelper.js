@@ -269,9 +269,12 @@ module.exports = (function(){
 		VorldPrimitives.createQuadMeshJson(2, 0.5, -1.0)
 	]);
 
-	let planeJson = meshCombine([
-		VorldPrimitives.createQuadMeshJson(2, 0.5, 1.0),
-		VorldPrimitives.createQuadMeshJson(2, 0.5, -1.0)
+	// Just don't look at it from the side ;)
+	let portalSurfaceJson = meshCombine([
+		VorldPrimitives.createQuadMeshJson(2, 0.25, 1.0),
+		VorldPrimitives.createQuadMeshJson(2, 0.75, 1.0),
+		VorldPrimitives.createQuadMeshJson(2, 0.25, -1.0),
+		VorldPrimitives.createQuadMeshJson(2, 0.75, -1.0)
 	]);
 
 	// TODO: Extract to config files rather than inline
@@ -325,11 +328,16 @@ module.exports = (function(){
 		"portal_surface": 18
 	};
 
-	exports.sfxMaterialNames = [ "grass", "ground", "leaf", "stone", "water", "wood" ];
+	exports.sfxMaterialNames = [ "grass", "ground", "leaf", "stone", "water", "wood", "magic" ];
 
 	// By convention there are audio files in audio/sf/materials/
 	// in the format <name>-<run/sneak/walk>-step<1-4>.wav 
 	exports.buildSfxMaterialUri = (name, action, num) => {
+		if (name == "magic") {
+			// HACK: Don't have enough magic SFX for different actions nor enough permutations
+			num = Maths.clamp(num, 1, 2);
+			return "audio/sfx/materials/magic" + num + ".ogg";
+		}
 		if (!num) {
 			num = 1;
 		}
@@ -398,10 +406,10 @@ module.exports = (function(){
 		{ name: "planks_step", isOpaque: false, isSolid: true, sfxMat: "wood", mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" },
 		{ name: "torch", isOpaque: false, isSolid: true, sfxMat: "stone", mesh: torchJson, light: 8, placement: "up_normal", rotateTextureCoords: true }, // TODO: Emissive mask to amp up light level and reduce fog build up
 		{ name: "test", isOpaque: true, isSolid: true, sfxMat: "stone", placement: "front_facing", rotateTextureCoords: true },
-		{ name: "orb", isOpaque: false, isSolid: true, sfxMat: "stone", useUnlit: true, light: 4, mesh: orbJson }, // TODO: New material type
+		{ name: "orb", isOpaque: false, isSolid: true, sfxMat: "magic", useUnlit: true, light: 4, mesh: orbJson },
 		{ name: "orb_pedistal", isOpaque: true, isSolid: true, sfxMat: "stone" },
 		{ name: "long_grass", isOpaque: false, isSolid: false, sfxMat: "grass", useCutout: true, mesh: longGrassJson, attenuation: 2 },
-		{ name: "portal_surface", isOpaque: false, isSolid: false, sfxMat: "stone", useUnlit: true, light: 4, mesh: planeJson }
+		{ name: "portal_surface", isOpaque: false, isSolid: false, sfxMat: "magic", useUnlit: true, light: 4, mesh: portalSurfaceJson }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];

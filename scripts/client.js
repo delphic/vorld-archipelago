@@ -8,6 +8,7 @@ let Player = require('./player');
 let GUI = require('./gui');
 let Audio = require('./audio');
 let Primitives = require('./primitives');
+let TriggerZone = require('./triggerZone');
 let Menu = require('./gui/menu');
 
 let scene, overlayScene, camera, cameraRatio = 16 / 9;
@@ -72,31 +73,6 @@ let setCameraInitialPosition = (camera) => {
 	quat.set(camera.rotation, -0.232, 0.24, 0.06, 0.94)
 };
 
-let TriggerZone = (function() {
-	let exports = {};
-	exports.create = (bounds, onEnter, onExit) => {
-		let triggerZone = {};
-		triggerZone.active = true;
-		triggerZone.isPlayerInZone = false;
-		triggerZone.bounds = bounds;
-		triggerZone.update = (player) => {
-			if (triggerZone.active) {
-				let containsPlayer = Fury.Bounds.contains(player.position, triggerZone.bounds);
-				if (!triggerZone.isPlayerInZone && containsPlayer) {
-					triggerZone.isPlayerInZone = true;
-					if (onEnter) onEnter();
-				}
-				if (triggerZone.isPlayerInZone && !containsPlayer) {
-					triggerZone.isPlayerInZone = false;
-					if (onExit) onExit();
-				}
-			}
-		};
-		return triggerZone;
-	};
-	return exports;
-})();
-
 let triggerZones = [];
 
 // Portal activation Tracking
@@ -145,7 +121,7 @@ let onBlockPlaced = (block, x, y, z) => {
 				}
 				triggerZones.push(TriggerZone.create(Fury.Bounds.create({ min: min, max: max }), () => {
 					Fury.Input.releasePointerLock();
-					pauseGame(createPortalActivationNotification);
+					pauseGame(createPortalEnteredNotification);
 				}));
 			}
 		}
@@ -438,7 +414,7 @@ let createPauseMenu = (onClose) => {
 	return menu;
 };
 
-let createPortalActivationNotification = (onClose) => {
+let createPortalEnteredNotification = (onClose) => {
 	// Dialogue popup might be better than just a menu
 	let menu = Menu.create(
 		GUI.root,
@@ -540,15 +516,23 @@ window.addEventListener('load', () => {
 	// Material Sounds
 	let matNames = VorldHelper.sfxMaterialNames;
 	for (let i = 0, l = matNames.length; i < l; i++) {
-		for (let stepNum = 1; stepNum <= 4; stepNum++) {
-			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "run", stepNum));
-			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "sneak", stepNum));
-			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "walk", stepNum));
-			if (matNames[i] == "water") {
-				uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "swim", stepNum));
+		if (matNames[i] == "magic") {
+			// HACK: Only 2 magic sounds
+			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], null, 1));
+			uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], null, 2));
+		} else {
+			for (let stepNum = 1; stepNum <= 4; stepNum++) {
+				uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "run", stepNum));
+				uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "sneak", stepNum));
+				uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "walk", stepNum));
+				if (matNames[i] == "water") {
+					uris.push(VorldHelper.buildSfxMaterialUri(matNames[i], "swim", stepNum));
+				}
 			}
 		}
+
 	}
+
 	// Splash Sounds
 	for (let i = 1; i <= 3; i++) {
 		if (i < 3) uris.push(VorldHelper.buildSplashSfxUri(true, i, true));
