@@ -269,6 +269,11 @@ module.exports = (function(){
 		VorldPrimitives.createQuadMeshJson(2, 0.5, -1.0)
 	]);
 
+	let planeJson = meshCombine([
+		VorldPrimitives.createQuadMeshJson(2, 0.5, 1.0),
+		VorldPrimitives.createQuadMeshJson(2, 0.5, -1.0)
+	]);
+
 	// TODO: Extract to config files rather than inline
 	let gaussianShapingConfig = {
 		name: "gaussian",
@@ -316,7 +321,8 @@ module.exports = (function(){
 		"test": 14,
 		"orb": 15,
 		"orb_pedistal": 16,
-		"long_grass": 17
+		"long_grass": 17,
+		"portal_surface": 18
 	};
 
 	exports.sfxMaterialNames = [ "grass", "ground", "leaf", "stone", "water", "wood" ];
@@ -392,9 +398,10 @@ module.exports = (function(){
 		{ name: "planks_step", isOpaque: false, isSolid: true, sfxMat: "wood", mesh: stepJson, collision: stepCollision, attenuation: 3, placement: "steps" },
 		{ name: "torch", isOpaque: false, isSolid: true, sfxMat: "stone", mesh: torchJson, light: 8, placement: "up_normal", rotateTextureCoords: true }, // TODO: Emissive mask to amp up light level and reduce fog build up
 		{ name: "test", isOpaque: true, isSolid: true, sfxMat: "stone", placement: "front_facing", rotateTextureCoords: true },
-		{ name: "orb", isOpaque: false, isSolid: true, sfxMat: "stone", useUnlit: true, light: 4, mesh: orbJson },
+		{ name: "orb", isOpaque: false, isSolid: true, sfxMat: "stone", useUnlit: true, light: 4, mesh: orbJson }, // TODO: New material type
 		{ name: "orb_pedistal", isOpaque: true, isSolid: true, sfxMat: "stone" },
-		{ name: "long_grass", isOpaque: false, isSolid: false, sfxMat: "grass", useCutout: true, mesh: longGrassJson, attenuation: 2 }
+		{ name: "long_grass", isOpaque: false, isSolid: false, sfxMat: "grass", useCutout: true, mesh: longGrassJson, attenuation: 2 },
+		{ name: "portal_surface", isOpaque: false, isSolid: false, sfxMat: "stone", useUnlit: true, light: 4, mesh: planeJson }
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];
@@ -423,7 +430,8 @@ module.exports = (function(){
 				{ top: 15, bottom: 16, forward: 17, back: 18, right: 20, left: 19 }, // test
 				{ side: 21 }, // orb
 				{ side: 5, top: 21 }, // orb pedistal
-				{ side: 22 } // long grass
+				{ side: 22 }, // long grass
+				{ side: 21 } // portal surface
 			]
 		}
 		// blockConfig also effects meshing but this is stored on vorld data
@@ -652,21 +660,30 @@ module.exports = (function(){
 						}
 					}
 
-					vorld.meta = { spawnPoint: [ spawnPoint[0], spawnPoint[1] + 5, spawnPoint[2] ], portalPoints: [] };
+					vorld.meta = { spawnPoint: [ spawnPoint[0] + 0.5, spawnPoint[1] + 2, spawnPoint[2] + 0.5 ], portalPoints: [], portalSurfacePoints: [] };
 
 					// Place Exit Portal at spawnpoint
 					Vorld.addBlock(vorld, spawnPoint[0], spawnPoint[1], spawnPoint[2], blockIds["stone"]);
+					Vorld.addBlock(vorld, spawnPoint[0], spawnPoint[1] + 3, spawnPoint[2], blockIds["stone_blocks"]);
+					vorld.meta.portalSurfacePoints.push([ spawnPoint[0], spawnPoint[1] + 1, spawnPoint[2] ]);
+					vorld.meta.portalSurfacePoints.push([ spawnPoint[0], spawnPoint[1] + 2, spawnPoint[2] ]);
+
 					for (let i = -2; i <= 2; i++) {
 						for (let k = -2; k <= 2; k++) {
 							if (i == 0 && k == 0) continue;
-							Vorld.addBlock(vorld, spawnPoint[0]-i, spawnPoint[1], spawnPoint[2]+k, blockIds["stone_blocks"]);
+							Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1], spawnPoint[2]+k, blockIds["stone_blocks"]);
 							let block = 0;
 							if (Math.abs(i) == 2 && Math.abs(k) == 2) {
 								block = blockIds["orb_pedistal"];
 								vorld.meta.portalPoints.push([ spawnPoint[0]-i, spawnPoint[1]+2, spawnPoint[2]+k]);
 							}
-							Vorld.addBlock(vorld, spawnPoint[0]-i, spawnPoint[1]+1, spawnPoint[2]+k, block);
-							Vorld.addBlock(vorld, spawnPoint[0]-i, spawnPoint[1]+2, spawnPoint[2]+k, 0);
+							Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1]+1, spawnPoint[2]+k, block);
+							Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1]+2, spawnPoint[2]+k, 0);
+							if (Math.abs(i) == 1 && k == 0) {
+								Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1]+1, spawnPoint[2]+k, blockIds["orb_pedistal"]);
+								Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1]+2, spawnPoint[2]+k, blockIds["orb_pedistal"]);
+								Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1]+3, spawnPoint[2]+k, blockIds["stone_half"]);
+							}
 						}
 					}
 					// TODO: Convert grass to soil underneath

@@ -72,9 +72,37 @@ let setCameraInitialPosition = (camera) => {
 	quat.set(camera.rotation, -0.232, 0.24, 0.06, 0.94)
 };
 
+let TriggerZone = (function() {
+	let exports = {};
+	exports.create = (bounds, onEnter, onExit) => {
+		let triggerZone = {};
+		triggerZone.active = true;
+		triggerZone.isPlayerInZone = false;
+		triggerZone.bounds = bounds;
+		triggerZone.update = (player) => {
+			if (triggerZone.active) {
+				let containsPlayer = Fury.Bounds.contains(player.position, triggerZone.bounds);
+				if (!triggerZone.isPlayerInZone && containsPlayer) {
+					triggerZone.isPlayerInZone = true;
+					if (onEnter) onEnter();
+				}
+				if (triggerZone.isPlayerInZone && !containsPlayer) {
+					triggerZone.isPlayerInZone = false;
+					if (onExit) onExit();
+				}
+			}
+		};
+		return triggerZone;
+	};
+	return exports;
+})();
+
+let triggerZones = [];
+
 // Portal activation Tracking
 let orbsPlaced = 0;
 let orbsToWin = 4; // TODO: Pass to vorld helper as number to spawn
+let portalTrigger = null;
 
 let onBlockPlaced = (block, x, y, z) => {
 	let blockDef = Vorld.getBlockTypeDefinition(vorld, block);
@@ -93,13 +121,35 @@ let onBlockPlaced = (block, x, y, z) => {
 		}
 
 		if (previousOrbsPlaced != orbsPlaced && orbsPlaced >= orbsToWin) {
-			// TODO: activate portal instead and if you enter show this
-			// rather than after timer
-			window.setTimeout(() => {
-				Fury.Input.releasePointerLock();
-				pauseGame(createPortalActivationNotification);
-			}, 1000);
+			let points = vorld.meta.portalSurfacePoints; 
+			if (portalTrigger == null && points && points.length) {
+				let min = vec3.create(), max = vec3.create();
+				
+				let blockId = VorldHelper.blockIds["portal_surface"];
+				for (let i = 0, l = points.length; i < l; i++) {
+					if (i == 0) {
+						vec3.copy(min, points[i]);
+						vec3.add(max, points[i], [1,1,1]);
+					} else {
+						for (let j = 0; j < 3; j++) {
+							min[j] = Math.min(min[j], points[i][j]);
+							max[j] = Math.max(max[j], points[i][j] + 1);
+						}
+					}
+					if (i + 1 == l) {
+						// HACK: Only use vorld helper to add last block as it'll trigger the remeshing and we just want to do that once
+						VorldHelper.addBlock(vorld, points[i][0], points[i][1], points[i][2], blockId);
+					} else {
+						Vorld.addBlock(vorld, points[i][0], points[i][1], points[i][2], blockId);
+					}
+				}
+				triggerZones.push(TriggerZone.create(Fury.Bounds.create({ min: min, max: max }), () => {
+					Fury.Input.releasePointerLock();
+					pauseGame(createPortalActivationNotification);
+				}));
+			}
 		}
+		// Arguably could deactivate the portal if you remove an orb
 	}
 };
 
@@ -308,6 +358,10 @@ let loop = (elapsed) => {
 		Audio.setListenerPosition(player.position);
 		// TODO: listener orientation
 
+		for (let i = 0, l = triggerZones.length; i < l; i++) {
+			triggerZones[i].update(player);
+		}
+
 		// Note after having the same tab open for a long time with multiple refreshes:
 		// a short time after refresh and generation long system tasks would block the main thread  
 		// for over a second however closing that tab and openning a new one made it disappear
@@ -385,19 +439,17 @@ let createPauseMenu = (onClose) => {
 };
 
 let createPortalActivationNotification = (onClose) => {
-	// TODO: A dialog / popup would be better
-	// So it's an Ok / Cancel
-	// With a message - e.g. You can leave this world and return to your normal life
+	// Dialogue popup might be better than just a menu
 	let menu = Menu.create(
 		GUI.root,
-		"Congratulations, you reactivated the portal!", 
+		"Enter Portal?", 
 		[
 			{ text: "Keep Exploring", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
 				onClose(true);
 			} }, 
-			{ text: "Main Menu", callback: () => {
+			{ text: "I'm Ready to Leave", callback: () => {
 				playButtonClickSfx();
 				cleanUpWorld();
 				menu.remove();
