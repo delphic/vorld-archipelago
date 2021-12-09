@@ -32,6 +32,11 @@ let smallInitialBounds = {
 	jMin: -1, jMax: 3,
 	kMin: -6, kMax: 6
 };
+let mediumInitialBounds = {
+	iMin: -10, iMax: 10,
+	jMin: -1, jMax: 3,
+	kMin: -10, kMax: 10
+};
 let largeInitialBounds = {
 	iMin: -20, iMax: 20,
 	jMin: -1, jMax: 3,
@@ -360,12 +365,17 @@ let createMainMenu = () => {
 		GUI.root,
 		"Select Mode", 
 		[
-			{ text: "Small Test Terrain", callback: () => {
+			{ text: "Small Vorld", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
 				start(smallInitialBounds, "guassian_shaped_noise");
 			} }, 
-			{ text: "Large Test Terrain", callback: () => {
+			{ text: "Medium Vorld", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				start(mediumInitialBounds, "guassian_shaped_noise");
+			} },
+			{ text: "Large Vorld", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
 				start(largeInitialBounds, "guassian_shaped_noise");

@@ -637,7 +637,9 @@ module.exports = (function(){
 					// Add trees to flat areas (currently done via low variance chunks, but this is not as good as I'd hoped
 					// Would probably be improved if the traversability map stored out flat connected areas)
 					let maximaFinder = require('../vorld/analysis/maximaFinder');
-					let maxima = maximaFinder.findTraversableLocalMaxima(vorld, blockIds["water"], 10);
+					let maxPeaks = 10;
+					if (bounds.iMax > 15) { maxPeaks = 30; } // Larger worlds are supposed to be more difficult so increase max peaks to collect so orbs can be placed further away
+					let maxima = maximaFinder.findTraversableLocalMaxima(vorld, blockIds["water"], maxPeaks);
 
 					let heightMapAnalyser = require('../vorld/analysis/heightmapAnalyser');
 					heightMapAnalyser.calculateMeanAndVariance(vorld.heightMap, vorld.heightMap);
