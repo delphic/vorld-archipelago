@@ -64,26 +64,26 @@ module.exports = (function(){
 	// Fog changes preceed dawn light and lag dusk
 	// Alternatively we could just calculate light level via incidence, rather than using this manual gradient style
 	exports.lightCycle = [ 
-		{ time: 0.20, value: 0 }, 
+		{ time: 0.15, value: 0 }, 
 		{ time: 0.25, value: 0.4 },
 		{ time: 0.325, value: 0.8 },
 		{ time: 0.5, value: 0.9 },
 		{ time: 0.625, value: 0.8 },
 		{ time: 0.75, value: 0.4 },
-		{ time: 0.8, value: 0 } ];
+		{ time: 0.85, value: 0 } ];
 	exports.fogColorCycle = [ 
-		{ time: 0.19, value: nightFog },
+		{ time: 0.149, value: nightFog },
 		{ time: 0.24, value: transitionFog },
 		{ time: 0.5, value: dayFog },
 		{ time: 0.79, value: transitionFog },
-		{ time: 0.81 , value: nightFog }
+		{ time: 0.851 , value: nightFog }
 	];
 	exports.fogDensityCycle = [
-		{ time: 0.19, value: nightFogDensity },
+		{ time: 0.159, value: nightFogDensity },
 		{ time: 0.24, value: twilightFogDensity },
 		{ time: 0.5, value: noonFogDensity },
 		{ time: 0.79, value: twilightFogDensity },
-		{ time: 0.81, value: nightFogDensity }
+		{ time: 0.851, value: nightFogDensity }
 	];
 	// This is something would be nice to have inspectors for to play with and then serialize...
 
