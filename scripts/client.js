@@ -24,6 +24,8 @@ let randomInt = (min, max) => {
 	return min + Math.floor((Math.random() * (max - min + 1)));
 };
 
+let debug = false; // Show test worlds
+
 let ccc;
 let enableDayNightCycle = true; // Debug toggle for day night cycle (easier to test with endless day)
 
@@ -361,31 +363,50 @@ let playButtonClickSfx = () => {
 };
 
 let createMainMenu = () => {
-	let menu = Menu.create(
-		GUI.root,
-		"Select Mode", 
-		[
-			{ text: "Small Vorld", callback: () => {
-				playButtonClickSfx();
-				menu.remove();
-				start(smallInitialBounds, "guassian_shaped_noise");
-			} }, 
-			{ text: "Medium Vorld", callback: () => {
-				playButtonClickSfx();
-				menu.remove();
-				start(mediumInitialBounds, "guassian_shaped_noise");
-			} },
-			{ text: "Large Vorld", callback: () => {
-				playButtonClickSfx();
-				menu.remove();
-				start(largeInitialBounds, "guassian_shaped_noise");
-			} }, 
-			{ text: "Castle Test", callback: () => {
-				playButtonClickSfx();
-				menu.remove();
-				start(smallInitialBounds, "castle");
-			} }
-		]);
+	if (debug) {
+		let menu = Menu.create(
+			GUI.root,
+			"Select Mode", 
+			[
+				{ text: "Debug", callback: () => {
+					playButtonClickSfx();
+					menu.remove();
+					start(smallInitialBounds, "guassian_shaped_noise");
+				} }, 
+				{ text: "Easy", callback: () => {
+					playButtonClickSfx();
+					menu.remove();
+					start(mediumInitialBounds, "guassian_shaped_noise");
+				} },
+				{ text: "Hard", callback: () => {
+					playButtonClickSfx();
+					menu.remove();
+					start(largeInitialBounds, "guassian_shaped_noise");
+				} }, 
+				{ text: "Castle", callback: () => {
+					playButtonClickSfx();
+					menu.remove();
+					start(smallInitialBounds, "castle");
+				} }
+			]);
+	} else {
+		let menu = Menu.create(
+			GUI.root,
+			"Select Mode", 
+			[
+				{ text: "Easy", callback: () => {
+					playButtonClickSfx();
+					menu.remove();
+					start(mediumInitialBounds, "guassian_shaped_noise");
+				} },
+				{ text: "Hard", callback: () => {
+					playButtonClickSfx();
+					menu.remove();
+					start(largeInitialBounds, "guassian_shaped_noise");
+				} }
+			]);
+	}
+	
 };
 
 let cleanUpWorld = () => {
