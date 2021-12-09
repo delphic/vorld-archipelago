@@ -662,35 +662,59 @@ module.exports = (function(){
 
 					vorld.meta = { spawnPoint: [ spawnPoint[0] + 0.5, spawnPoint[1] + 2, spawnPoint[2] + 0.5 ], portalPoints: [], portalSurfacePoints: [] };
 
-					// Place Exit Portal at spawnpoint
-					Vorld.addBlock(vorld, spawnPoint[0], spawnPoint[1], spawnPoint[2], blockIds["stone"]);
-					Vorld.addBlock(vorld, spawnPoint[0], spawnPoint[1] + 3, spawnPoint[2], blockIds["stone_blocks"]);
-					vorld.meta.portalSurfacePoints.push([ spawnPoint[0], spawnPoint[1] + 1, spawnPoint[2] ]);
-					vorld.meta.portalSurfacePoints.push([ spawnPoint[0], spawnPoint[1] + 2, spawnPoint[2] ]);
-
+					// Place Exit Portal Area around spawnpoint
+					// Floor
 					for (let i = -2; i <= 2; i++) {
-						for (let k = -2; k <= 2; k++) {
-							if (i == 0 && k == 0) continue;
-							Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1], spawnPoint[2]+k, blockIds["stone_blocks"]);
-							let block = 0;
-							if (Math.abs(i) == 2 && Math.abs(k) == 2) {
-								block = blockIds["orb_pedistal"];
-								vorld.meta.portalPoints.push([ spawnPoint[0]-i, spawnPoint[1]+2, spawnPoint[2]+k]);
+						for (let k = -3; k <= 2; k++) {
+							if (i == 0 && k != -3) {
+								// Line guiding to portal
+								Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1], spawnPoint[2] + k, blockIds["stone"]);
+							} else {
+								// Rest of floor
+								Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1], spawnPoint[2] + k, blockIds["stone_blocks"]);
 							}
-							Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1]+1, spawnPoint[2]+k, block);
-							Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1]+2, spawnPoint[2]+k, 0);
-							if (Math.abs(i) == 1 && k == 0) {
-								Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1]+1, spawnPoint[2]+k, blockIds["orb_pedistal"]);
-								Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1]+2, spawnPoint[2]+k, blockIds["orb_pedistal"]);
-								Vorld.addBlock(vorld, spawnPoint[0]+i, spawnPoint[1]+3, spawnPoint[2]+k, blockIds["stone_half"]);
+							// Convert beneath to soil if it wasn't already
+							Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] - 1, spawnPoint[2] + k, blockIds["soil"]);
+						}
+					}
+					// Back wall
+					for (let i = -1; i <= 1; i++) {
+						for (let j = 0; j <= 3; j++) {
+							Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 3, blockIds["stone_blocks"]);
+						}
+					}
+					// Arch
+					for (let i = -1; i <= 1; i++) {
+						for (let j = 1; j <= 3; j++) {
+							if (i != 0) {
+								if (j != 3) {
+									Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2, blockIds["orb_pedistal"]);
+								} else {
+									Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2, blockIds["stone_half"]);
+								}
+							} else {
+								if (j < 3) {
+									vorld.meta.portalSurfacePoints.push([ spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2]);
+								} else {
+									Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2, blockIds["stone_blocks"]);
+								}
 							}
 						}
 					}
-					// TODO: Convert grass to soil underneath
+
+					// Pedistals
+					for (let i = -2; i <= 2; i++) {
+						for (let k = 0; k <= 2; k++) {
+							if ((Math.abs(i) == 2 && k == 2) || (Math.abs(i) == 1 && k == 0)) {
+								Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + 1, spawnPoint[2] + k, blockIds["orb_pedistal"]);
+								vorld.meta.portalPoints.push([ spawnPoint[0]-i, spawnPoint[1]+2, spawnPoint[2]+k]);
+							}
+						}
+					}
 
 					let spawnPointArea = Bounds.create({
-						min: Maths.vec3.fromValues(spawnPoint[0] - 2, spawnPoint[1], spawnPoint[2] - 2),
-						max: Maths.vec3.fromValues(spawnPoint[0] + 2, spawnPoint[1] + 3, spawnPoint[2] + 2)
+						min: Maths.vec3.fromValues(spawnPoint[0] - 3, spawnPoint[1], spawnPoint[2] - 5),
+						max: Maths.vec3.fromValues(spawnPoint[0] + 3, spawnPoint[1] + 5, spawnPoint[2] + 3)
 					});
 
 					let pickedPoints = [ ];
