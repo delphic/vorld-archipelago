@@ -3,6 +3,7 @@ let Fury = require('../fury/src/fury');
 let Maths = require('../fury/src/maths');
 let Bounds = Fury.Bounds;
 let vec3 = Maths.vec3;
+let Primitives = require('./primitives');
 let Vorld = require('../vorld/core/vorld');
 let VorldUtils = require('../vorld/core/utils');
 let VorldPrimitives = require('../vorld/core/primitives');
@@ -259,8 +260,27 @@ module.exports = (function(){
 		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, innerMin, innerMax, outerMin, innerMin), // Front
 		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, innerMin, innerMax, innerMax, outerMax), // Back
 		VorldPrimitives.createCuboidMeshJson(outerMin, innerMin, innerMin, innerMax, innerMin, innerMax), // Left
-		VorldPrimitives.createCuboidMeshJson(innerMax, outerMax, innerMin, innerMax, innerMin, innerMax)	// Right
+		VorldPrimitives.createCuboidMeshJson(innerMax, outerMax, innerMin, innerMax, innerMin, innerMax) // Right
 	]); // This has unnecessary internal faces - but JAM!
+
+	// HACK: Held orb
+	// Would be better to be able to do this for arbitary blocks so you could hold more than just orbs
+	let heldOrbJson = meshCombine([
+		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, innerMin, innerMax, innerMin, innerMax), // Core
+		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, innerMax, outerMax, innerMin, innerMax), // Top
+		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, outerMin, innerMin, innerMin, innerMax), // Bottom
+		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, innerMin, innerMax, outerMin, innerMin), // Front
+		VorldPrimitives.createCuboidMeshJson(innerMin, innerMax, innerMin, innerMax, innerMax, outerMax), // Back
+		VorldPrimitives.createCuboidMeshJson(outerMin, innerMin, innerMin, innerMax, innerMin, innerMax), // Left
+		VorldPrimitives.createCuboidMeshJson(innerMax, outerMax, innerMin, innerMax, innerMin, innerMax) // Right
+	]);
+	exports.getHeldOrbMeshData = () => {
+		if (!heldOrbJson.customAttributes) {
+			let orbTileIndex = (meshingConfig.atlas.textureArraySize - 1) - meshingConfig.atlas.blockToTileIndex[blockIds["orb"]].side 
+			Primitives.appendTileIndices(heldOrbJson, orbTileIndex);
+		}
+		return heldOrbJson;
+	}
 
 	let longGrassJson = meshCombine([
 		VorldPrimitives.createQuadMeshJson(0, 0.5, 1.0),
@@ -944,7 +964,7 @@ module.exports = (function(){
 			callback);
 	};
 
-	exports.addBlock = (vorld, x, y, z, block, up, forward) => {
+	exports.addBlock = (vorld, x, y, z, block, up, forward, callback) => {
 		let chunkIndices = Maths.vec3Pool.request();
 		chunkIndices[0] = Math.floor(x / vorld.chunkSize);
 		chunkIndices[1] = Math.floor(y / vorld.chunkSize);
@@ -1073,10 +1093,11 @@ module.exports = (function(){
 					let chunkMaterial = data.alpha ? alphaMaterial : data.cutout ? cutoutMaterial : data.unlit ? unlitMaterial : material;
 					sceneChunkObjects[key].push(scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true }));
 				}
+				if (callback) { callback(); }
 			});
 	};
 
-	exports.removeBlock = (vorld, x, y, z) => {
+	exports.removeBlock = (vorld, x, y, z, callback) => {
 		// Check for long grass and remove if necessary
 		if (Vorld.getBlock(vorld, x, y, z) == blockIds["grass"] 
 			&& Vorld.getBlock(vorld, x, y + 1, z) == blockIds["long_grass"]) {
@@ -1104,9 +1125,9 @@ module.exports = (function(){
 		// Or just do a graph search and fill all appropriate blocks from here
 
 		if (!adjacentWaterBlock) {
-			exports.addBlock(vorld, x, y, z, 0);
+			exports.addBlock(vorld, x, y, z, 0, undefined, undefined, callback);
 		} else {
-			exports.addBlock(vorld, x, y, z, blockIds.water);
+			exports.addBlock(vorld, x, y, z, blockIds.water, undefined, undefined, callback);
 		}
 	};
 
@@ -1134,6 +1155,7 @@ module.exports = (function(){
 		return generate(parameters.bounds, parameters.configId, callback, progressDelegate);
 	};
 
+	// HACK: Relies on how the calling code is setup (calls generateRandomSeed once before world generation)
 	let ignoreNextGenerateRequest = false;
 	exports.generateRandomSeed = () => {
 		if (ignoreNextGenerateRequest) {

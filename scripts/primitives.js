@@ -42,5 +42,29 @@ module.exports = (function(){
 		return mesh;
 	};
 
+	exports.appendTileIndices = (json, tileIndex) => {
+		let vertexCount = Math.floor(json.vertices.length / 3);
+		json.tileIndices = [];
+		for (let i = 0; i < vertexCount; i++) {
+			json.tileIndices[i] = tileIndex;
+		}
+		if (!json.customAttributes) {
+			json.customAttributes = [];
+		}
+		json.customAttributes.push({ name: "tileBuffer", source: "tileIndices", size: 1 });
+	};
+
+	exports.appendLightBake = (json, lightLevel, sunlightLevel) => {
+		let vertexCount = Math.floor(json.vertices.length / 3);
+		json.lightBake = [];
+		for (let i = 0; i < vertexCount; i++) {
+			json.lightBake[i] = lightLevel + (sunlightLevel/16);
+		}
+		if (!json.customAttributes) {
+			json.customAttributes = [];
+		}
+		json.customAttributes.push({ name: "lightBuffer", source: "lightBake", size: 1 });
+	};
+
 	return exports;
 })();

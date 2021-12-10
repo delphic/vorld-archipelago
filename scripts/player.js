@@ -144,6 +144,9 @@ module.exports = (function(){
 			pickupableBlocks: [ VorldHelper.blockIds["torch"], VorldHelper.blockIds["orb"] ]
 		};
 		let blockInventory = [];
+		let heldOrb = parameters.orb; // HACK: Should be able to hold any item!
+		let heldOrbTargetPosition = null; // Used to lerp orb from held point to target point
+		if (heldOrb) { heldOrb.active = false; }
 		if (placementConfig.isCreativeMode) {
 			blockInventory = VorldHelper.getAllBlockIdValues();
 		}
@@ -493,7 +496,7 @@ module.exports = (function(){
 						lastGroundedVoxelMaterial = "water";
 					} else {
 						let groundBlock = Vorld.getBlock(vorld, closestVoxelCoord[0], closestVoxelCoord[1], closestVoxelCoord[2]);
-						lastGroundedVoxelMaterial = Vorld.getBlockTypeDefinition(vorld, groundBlock).sfxMat;	
+						lastGroundedVoxelMaterial = Vorld.getBlockTypeDefinition(vorld, groundBlock).sfxMat;
 					}
 				}
 
@@ -817,6 +820,28 @@ module.exports = (function(){
 					}
 
 					let x = Math.floor(hitPoint[0]), y =  Math.floor(hitPoint[1]), z = Math.floor(hitPoint[2]);
+					
+					let callback = null;
+
+					if (!placementConfig.isCreativeMode) { // TODO: Option to carry more than one
+						blockInventory.splice(blockIndex, 1); // Remove placed block
+						// HACK: Disable the held orb
+						if (blockToPlace == VorldHelper.blockIds["orb"] && heldOrb) {
+							heldOrbTargetPosition = vec3Pool.request();
+							heldOrbTargetPosition[0] = x;
+							heldOrbTargetPosition[1] = y;
+							heldOrbTargetPosition[2] = z;
+							callback = () => {
+								// NOTE: if the remesh takes less time than the lerp then it'll just disappear mid-flight
+								if (heldOrbTargetPosition) {
+									vec3Pool.return(heldOrbTargetPosition);
+									heldOrbTargetPosition = null;
+									heldOrb.active = false;
+								}
+							};
+						}
+					}
+
 					// console.log("Up calculated as " + Vorld.Cardinal.getDirectionDescription(up) + ", forward calculated as " + Vorld.Cardinal.getDirectionDescription(forward));
 					VorldHelper.addBlock(
 						vorld,
@@ -825,11 +850,8 @@ module.exports = (function(){
 						z,
 						blockToPlace,
 						up,
-						forward);
-
-					if (!placementConfig.isCreativeMode) { // TODO: Option to carry more than one
-						blockInventory.splice(blockIndex, 1); // Remove placed block
-					}
+						forward,
+						callback);
 
 					if (parameters.onBlockPlaced) {
 						parameters.onBlockPlaced(blockToPlace, x, y, z);
@@ -850,13 +872,28 @@ module.exports = (function(){
 						&& (placementConfig.isCreativeMode || !blockInventory.includes(blockToRemove))) {
 						// NOTE: can only pick up one of each block type at a time right now - no stacks
 						// arguably should only be able to carry one block type in current design
-						VorldHelper.removeBlock(vorld, x, y, z);
+						let callback = null;
 						if (!placementConfig.isCreativeMode || !blockInventory.includes(blockToRemove)) {
 							// HACK - In creative mode items are never removed from your inventory 
 							// TODO: Tidy this up by making inventory a module with an create option to not consume
 							// always contain etc then we can just call inventory.remove(block) and not have the extra logic here
 							blockInventory.push(blockToRemove);
+
+							// HACK - hold the orb! (should really hold a preview of all blocks)
+							if (blockToRemove == VorldHelper.blockIds["orb"] && heldOrb) {
+								callback = () => {
+									if (heldOrbTargetPosition) { // Currently lerping
+										vec3Pool.return(heldOrbTargetPosition);
+										heldOrbTargetPosition = null;
+									}
+									heldOrb.active = true;
+									heldOrb.transform.position[0] = x;
+									heldOrb.transform.position[1] = y;
+									heldOrb.transform.position[2] = z;	
+								};
+							}
 						}
+						VorldHelper.removeBlock(vorld, x, y, z, callback);
 						if (parameters.onBlockRemoved) {
 							parameters.onBlockRemoved(blockToRemove, x, y, z);
 						}
@@ -890,6 +927,25 @@ module.exports = (function(){
 				}, () => {
 					blockPreview.active = false;
 				});
+			}
+
+			// Held item
+			if (heldOrb && heldOrb.active) {
+				if (heldOrbTargetPosition != null) {
+					vec3.lerp(heldOrb.transform.position, heldOrbTargetPosition, heldOrb.transform.position, 0.5);
+				} else {
+					let targetPoint = vec3Pool.request();
+					vec3.scaleAndAdd(targetPoint, camera.position, localGroundZ, -0.75); // The fact you're facing in the negative z direction continues to annoy
+					// Orb model is in voxel space so translate by -0.5
+					vec3.scaleAndAdd(targetPoint, targetPoint, Maths.vec3One, -0.5);
+					// Now bring it down and to the right slightly for a more natural 'hold' position
+					vec3.scaleAndAdd(targetPoint, targetPoint, Maths.vec3Y, -0.5);
+					vec3.scaleAndAdd(targetPoint, targetPoint, localGroundX, 0.4); 
+					// Now lerp towards the point to give it some relative motion
+					vec3.lerp(heldOrb.transform.position, heldOrb.transform.position, targetPoint, 0.5);
+					
+					vec3Pool.return(targetPoint);
+				}
 			}
 		};
 

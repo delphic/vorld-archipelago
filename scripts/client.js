@@ -206,6 +206,7 @@ let start = (initialBounds, worldConfigId) => {
 				scene: scene,
 				position: spawnPoint,
 				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(VorldHelper.getTileIndexBufferValueForBlock("water")), material: alphaMaterial, position: vec3.create() }),
+				orb: overlayScene.add({ mesh: Fury.Mesh.create(VorldHelper.getHeldOrbMeshData()), material: unlitMaterial, position: vec3.create() }), // HACK - should be able to hold more than just an orb
 				camera: camera,
 				config: playerMovementConfig,
 				prefs: playerPrefs,
@@ -359,6 +360,7 @@ let loop = (elapsed) => {
 	camera.clear = true;
 	scene.render();
 	camera.clear = false;
+	camera.clearDepth = true;
 	overlayScene.render();
 };
 
