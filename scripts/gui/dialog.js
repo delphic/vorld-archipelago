@@ -21,7 +21,7 @@ module.exports = (function(){
 		}
 		let contentContainer = GUI.appendElement(dialog.element, "div", { "class": "content" });
 		for (let i = 0, l = paragraphs.length; i < l; i++) {
-			GUI.appendElement(contentContainer, "p").innerText = paragraphs[i];
+			GUI.appendElement(contentContainer, "p").innerHTML = paragraphs[i];
 		}
 
 		let buttons = document.createElement("div");

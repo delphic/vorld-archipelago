@@ -391,57 +391,83 @@ let createControlsPrompt = (onClose) => {
 	});
 };
 
-let createMainMenu = () => {
+let createAboutPrompt = (onClose) => {
+	let text = [ "Created by <a href=\"https://twitter.com/_delph\">@_delph</a> for 7DFPS 2021.",
+		"The game procedurally generates a new world each time you play, it may take a little while, if on an older computer, you should probably choose Easy as it generates a smaller world.",
+		"Source available on <a href=\"https://github.com/delphic/vorld-archipelago\">github</a>." ];
+	let dialog = Dialog.create(GUI.root, "About", text, "Ok", () => {
+		playButtonClickSfx();
+		dialog.remove();
+		onClose();
+	});
+};
+
+let createModeSelectMenu = () => {
+	let menu = null;
+	let buttons = null;
+
 	if (debug) {
-		let menu = Menu.create(
-			GUI.root,
-			"Select Mode", 
-			[
-				{ text: "Debug", callback: () => {
-					playButtonClickSfx();
-					menu.remove();
-					start(smallInitialBounds, "guassian_shaped_noise");
-				} }, 
-				{ text: "Easy", callback: () => {
-					playButtonClickSfx();
-					menu.remove();
-					start(mediumInitialBounds, "guassian_shaped_noise");
-				} },
-				{ text: "Hard", callback: () => {
-					playButtonClickSfx();
-					menu.remove();
-					start(largeInitialBounds, "guassian_shaped_noise");
-				} }, 
-				{ text: "Castle", callback: () => {
-					playButtonClickSfx();
-					menu.remove();
-					start(smallInitialBounds, "castle");
-				} }
-			]);
+		buttons = [
+			{ text: "Debug", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				start(smallInitialBounds, "guassian_shaped_noise");
+			} }, 
+			{ text: "Easy", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				start(mediumInitialBounds, "guassian_shaped_noise");
+			} },
+			{ text: "Hard", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				start(largeInitialBounds, "guassian_shaped_noise");
+			} }, 
+			{ text: "Castle", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				start(smallInitialBounds, "castle");
+			} }
+		];
 	} else {
-		// TODO: Separate mode select from main menu
-		let menu = Menu.create(
-			GUI.root,
-			"Select Mode", 
-			[
-				{ text: "Easy", callback: () => {
-					playButtonClickSfx();
-					menu.remove();
-					start(mediumInitialBounds, "guassian_shaped_noise");
-				} },
-				{ text: "Hard", callback: () => {
-					playButtonClickSfx();
-					menu.remove();
-					start(largeInitialBounds, "guassian_shaped_noise");
-				} },
-				{ text: "Controls", callback: () => {
-					playButtonClickSfx();
-					menu.remove();
-					createControlsPrompt(createMainMenu);
-				} }
-			]);
+		buttons = [
+			{ text: "Easy", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				start(mediumInitialBounds, "guassian_shaped_noise");
+			} },
+			{ text: "Hard", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				start(largeInitialBounds, "guassian_shaped_noise");
+			} }
+		];
 	}
-	
+	menu = Menu.create(GUI.root, "Select Mode", buttons);
+
+};
+
+let createMainMenu = () => {
+	let menu = Menu.create(
+		GUI.root,
+		"Main Menu", 
+		[
+			{ text: "Play", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				createModeSelectMenu();
+			} }, 
+			{ text: "Controls", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				createControlsPrompt(createMainMenu);
+			} },
+			{ text: "About", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				createAboutPrompt(createMainMenu);
+			} }
+		]);
 };
 
 let cleanUpWorld = () => {

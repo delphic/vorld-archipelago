@@ -111,7 +111,7 @@ body {
 
 .furyGUI .dialog p {
 	font-size: 28px;
-	margin: 6px 10px;
+	margin: 6px 16px;
 }
 
 .playPrompt h1, .menu h1 {
@@ -124,7 +124,7 @@ body {
 	margin: 10px auto;
 	font-family: 'Courier New', Courier, monospace;
 	font-size: 28px;
-	background-color: hsl(336,100%,60%);;  /* rba 255,0,102 Complementary color 00ff99 */
+	background-color: hsl(336,100%,60%);  /* rba 255,0,102 Complementary color 00ff99 */
 	color: rgba(255,255,255,1);
 	border: none;
 	padding: 10px 20px;
@@ -134,6 +134,14 @@ body {
 }
 .playPrompt input:active, .menu input:active, .dialog input:active {
 	background-color: hsl(340, 3%, 21%);
+}
+
+a, a:visited {
+	font-weight: bold;
+	color: hsl(336,100%,60%);
+}
+a:hover {
+	color: hsl(336,100%,50%);
 }
 
 .progressBarBorder {
