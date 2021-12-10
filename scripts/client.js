@@ -1,15 +1,16 @@
-let Fury = require('../fury/src/fury');
+const Fury = require('../fury/src/fury');
 const { GameLoop } = require('../fury/src/fury');
 const { vec3, quat } = require('../fury/src/maths');
-let Vorld = require('../vorld/core/vorld');
-let VoxelShader = require('../vorld/core/shader');
-let VorldHelper = require('./vorldHelper');
-let Player = require('./player');
-let GUI = require('./gui');
-let Audio = require('./audio');
-let Primitives = require('./primitives');
-let TriggerZone = require('./triggerZone');
-let Menu = require('./gui/menu');
+const Vorld = require('../vorld/core/vorld');
+const VoxelShader = require('../vorld/core/shader');
+const VorldHelper = require('./vorldHelper');
+const Player = require('./player');
+const GUI = require('./gui');
+const Audio = require('./audio');
+const Primitives = require('./primitives');
+const TriggerZone = require('./triggerZone');
+const Menu = require('./gui/menu');
+const Dialog = require('./gui/dialog');
 
 let scene, overlayScene, camera, cameraRatio = 16 / 9;
 let freeFlyCamera = null;
@@ -24,10 +25,10 @@ let randomInt = (min, max) => {
 	return min + Math.floor((Math.random() * (max - min + 1)));
 };
 
-let debug = false; // Show test worlds
+let debug = false; // Determines options available in various GUI settings && creative mode
 
 let ccc;
-let enableDayNightCycle = true; // Debug toggle for day night cycle (easier to test with endless day)
+let enableDayNightCycle = !debug; // Debug toggle for day night cycle (easier to test with endless day)
 
 let smallInitialBounds = {
 	iMin: -6, iMax: 6,
@@ -126,10 +127,12 @@ let onBlockPlaced = (block, x, y, z) => {
 						Vorld.addBlock(vorld, points[i][0], points[i][1], points[i][2], blockId);
 					}
 				}
-				triggerZones.push(TriggerZone.create(Fury.Bounds.create({ min: min, max: max }), () => {
+				portalTrigger = TriggerZone.create(Fury.Bounds.create({ min: min, max: max }), () => {
+					vec3.zero(player.velocity);
 					Fury.Input.releasePointerLock();
 					pauseGame(createPortalEnteredNotification);
-				}));
+				});
+				triggerZones.push(portalTrigger);
 			}
 		}
 		// Arguably could deactivate the portal if you remove an orb
@@ -210,6 +213,7 @@ let start = (initialBounds, worldConfigId) => {
 				stepHeight: 0.51,
 				placementDistance: 5.5 + Math.sqrt(3),
 				removalDistance: 5.5,
+				enableCreativeMode: debug,
 				onBlockPlaced: onBlockPlaced,
 				onBlockRemoved: onBlockRemoved
 			};
@@ -362,6 +366,31 @@ let playButtonClickSfx = () => {
 	Audio.play({ uri: "audio/sfx/ui/click1.ogg", mixer: Audio.mixers["ui"] });
 };
 
+let createIntroPrompt = () => {
+	let text = [ "You've been transported to a mysterous island chain.",
+		"Retrieve the glowing orbs and place them on the pedestals to reactive the portal if you want to escape.",
+		"Requires a keyboard and mouse to play." ];
+	let dialog = Dialog.create(GUI.root, "Welcome to the Archipelago", text, "Continue", () => {
+		playButtonClickSfx();
+		dialog.remove();
+		createMainMenu();
+	});
+};
+
+let createControlsPrompt = (onClose) => {
+	let text = [ "Use the mouse to look around and WASD to move.", 
+		"You can double tap W to sprint and press shift to walk.",
+		"Use left click to interact with objects.",
+		"Use right click to place held objects.",
+		"Use Space to jump.",
+		"When swimming use E to rise and Q and fall, but if you're touching the bottom you must jump!" ];
+	let dialog = Dialog.create(GUI.root, "Controls", text, "Ok", () => {
+		playButtonClickSfx();
+		dialog.remove();
+		onClose();
+	});
+};
+
 let createMainMenu = () => {
 	if (debug) {
 		let menu = Menu.create(
@@ -390,6 +419,7 @@ let createMainMenu = () => {
 				} }
 			]);
 	} else {
+		// TODO: Separate mode select from main menu
 		let menu = Menu.create(
 			GUI.root,
 			"Select Mode", 
@@ -403,6 +433,11 @@ let createMainMenu = () => {
 					playButtonClickSfx();
 					menu.remove();
 					start(largeInitialBounds, "guassian_shaped_noise");
+				} },
+				{ text: "Controls", callback: () => {
+					playButtonClickSfx();
+					menu.remove();
+					createControlsPrompt(createMainMenu);
 				} }
 			]);
 	}
@@ -410,6 +445,8 @@ let createMainMenu = () => {
 };
 
 let cleanUpWorld = () => {
+	portalTrigger = null;
+	triggerZones.length = 0;
 	player = null;
 	ccc = null;
 	clearWorld();
@@ -419,29 +456,37 @@ let cleanUpWorld = () => {
 };
 
 let createPauseMenu = (onClose) => {
+	let buttons = [
+		{ text: "Resume Game", callback: () => {
+			playButtonClickSfx();
+			menu.remove();
+			onClose(true);
+		} },
+		{ text: "Controls", callback: () => {
+			playButtonClickSfx();
+			menu.remove();
+			createControlsPrompt(() => { createPauseMenu(onClose) });
+		} },
+		{ text: "Main Menu", callback: () => {
+			playButtonClickSfx();
+			cleanUpWorld();
+			menu.remove();
+			createMainMenu();
+			onClose(false);
+		} } ];
+	if (debug) {
+		buttons.push({ text: "Teleport to Start", callback: () => {
+			playButtonClickSfx();
+			player.teleport(vorld.meta.spawnPoint);
+			menu.remove();
+			onClose(true);
+		} });
+	}
+
 	let menu = Menu.create(
 		GUI.root,
 		"Paused",
-		[
-			{ text: "Resume Game", callback: () => {
-				playButtonClickSfx();
-				menu.remove();
-				onClose(true);
-			} },
-			{ text: "Teleport to Start", callback: () => {
-				playButtonClickSfx();
-				player.teleport(vorld.meta.spawnPoint);
-				menu.remove();
-				onClose(true);
-			} },
-			{ text: "Main Menu", callback: () => {
-				playButtonClickSfx();
-				cleanUpWorld();
-				menu.remove();
-				createMainMenu();
-				onClose(false);
-			} }
-		]);
+		buttons);
 	return menu;
 };
 
@@ -537,7 +582,8 @@ window.addEventListener('load', () => {
 		}
 	};
 	let onAssetLoadComplete = () => {
-		titleScreen.showReadyButton("Play", createMainMenu);
+		let callback = debug ? createMainMenu : createIntroPrompt;
+		titleScreen.showReadyButton("Play", callback);
 	};
 
 	let uris = [];

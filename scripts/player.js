@@ -138,9 +138,8 @@ module.exports = (function(){
 			removalDistance = parameters.removalDistance;
 		}
 
-		// TODO: Pass this in or make it based on equipment 
 		let placementConfig = {
-			isCreativeMode: false,
+			isCreativeMode: parameters.enableCreativeMode,
 			destroyableBlocks: [ VorldHelper.blockIds["leaves"], VorldHelper.blockIds["long_grass"] ],
 			pickupableBlocks: [ VorldHelper.blockIds["torch"], VorldHelper.blockIds["orb"] ]
 		};
