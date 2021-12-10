@@ -385,7 +385,8 @@ let createControlsPrompt = (onClose) => {
 		"Use left click to interact with objects.",
 		"Use right click to place held objects.",
 		"Use Space to jump.",
-		"When swimming use E to rise and Q and fall, but if you're touching the bottom you must jump!" ];
+		"When swimming use E to rise and Q and fall, but if you're touching the bottom you must jump!",
+		"Press F11 to toggle full-screen." ];
 	let dialog = Dialog.create(GUI.root, "Controls", text, "Ok", () => {
 		playButtonClickSfx();
 		dialog.remove();
@@ -463,7 +464,7 @@ let createModeSelectMenu = () => {
 let createMainMenu = () => {
 	let menu = Menu.create(
 		GUI.root,
-		"Main Menu", 
+		"Vorld Archipelago", 
 		[
 			{ text: "Play", callback: () => {
 				playButtonClickSfx();
