@@ -395,13 +395,24 @@ let createControlsPrompt = (onClose) => {
 
 let createAboutPrompt = (onClose) => {
 	let text = [ "Created by <a href=\"https://twitter.com/_delph\">@_delph</a> for 7DFPS 2021.",
-		"The game procedurally generates a new world each time you play, it may take a little while, if on an older computer, you should probably choose Easy as it generates a smaller world.",
+		"The game procedurally generates a different world each time you play!",
 		"Source available on <a href=\"https://github.com/delphic/vorld-archipelago\">github</a>." ];
 	let dialog = Dialog.create(GUI.root, "About", text, "Ok", () => {
 		playButtonClickSfx();
 		dialog.remove();
 		onClose();
 	});
+};
+
+let createThanksForPlayingPrompt = () => {
+	let text = [ "Thanks for playing!", 
+		"A different world is generated each time you play so why not play again?",
+		"Created by <a href=\"https://twitter.com/_delph\">@_delph</a> for 7DFPS 2021." ];
+		let dialog = Dialog.create(GUI.root, "Congratulations", text, "Main Menu", () => {
+			playButtonClickSfx();
+			dialog.remove();
+			createMainMenu();
+		});
 };
 
 let createModeSelectMenu = () => {
@@ -415,12 +426,12 @@ let createModeSelectMenu = () => {
 				menu.remove();
 				start(smallInitialBounds, "guassian_shaped_noise");
 			} }, 
-			{ text: "Easy", callback: () => {
+			{ text: "Easy (Smaller World)", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
 				start(mediumInitialBounds, "guassian_shaped_noise");
 			} },
-			{ text: "Hard", callback: () => {
+			{ text: "Hard (Larger World)", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
 				start(largeInitialBounds, "guassian_shaped_noise");
@@ -433,12 +444,12 @@ let createModeSelectMenu = () => {
 		];
 	} else {
 		buttons = [
-			{ text: "Easy", callback: () => {
+			{ text: "Easy (Smaller World)", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
 				start(mediumInitialBounds, "guassian_shaped_noise");
 			} },
-			{ text: "Hard", callback: () => {
+			{ text: "Hard (Larger World)", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
 				start(largeInitialBounds, "guassian_shaped_noise");
@@ -533,7 +544,7 @@ let createPortalEnteredNotification = (onClose) => {
 				playButtonClickSfx();
 				cleanUpWorld();
 				menu.remove();
-				createMainMenu();
+				createThanksForPlayingPrompt();
 				onClose(false);
 			} }
 		]);
