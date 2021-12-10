@@ -14,7 +14,7 @@ let GUI = require('../gui');
 	Inspector.create("Inspector", testObj, 20, 20, 200, "auto");
 */
 
-let Inspector = module.exports = (function() {
+module.exports = (function() {
 	let exports = {};
 
 	let createControl = (form, label, attributes) => {
@@ -98,7 +98,7 @@ let Inspector = module.exports = (function() {
 
 	let populateInspector = (form, obj) => {
 		if (form.targetStack.length > 0) {
-			createButtonControl(form, "↶", (e) => {
+			createButtonControl(form, "↶", () => {
 				let target = form.targetStack.pop();
 				clearElementChildren(form);
 				populateInspector(form, target); 
@@ -126,7 +126,7 @@ let Inspector = module.exports = (function() {
 				createStringControl(form, id, obj, keys[i]);
 			}
 			if (typeof value == "object") {
-				createButtonControl(form, keys[i], (e) => {
+				createButtonControl(form, keys[i], () => {
 					form.targetStack.push(obj);
 					clearElementChildren(form);
 					populateInspector(form, obj[keys[i]]);
@@ -137,8 +137,8 @@ let Inspector = module.exports = (function() {
 		}
 	};
 
-	exports.create = (title, obj, x, y, w, h) => {
-		let box = GUI.createBox(root, x, y, w, h, title);
+	exports.create = (parent, title, obj, x, y, w, h) => {
+		let box = GUI.createBox(parent, x, y, w, h, title);
 		box.classList.add("inspector");
 
 		let form = document.createElement("div");

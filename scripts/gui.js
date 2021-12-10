@@ -7,7 +7,7 @@
 // As changes are event driven, ease of use is preferred hence configuration objects
 
 // HTML is set up to assume scrolling pages, games have static screens and anchoring
-let GUI = module.exports = (function(){
+module.exports = (function(){
 	let exports = {};
 
 	// For now just a global root div you can create subcanvas beneath that.
@@ -50,12 +50,12 @@ let GUI = module.exports = (function(){
 		}
 	};
 
-	let createBox = exports.createBox = (parent, x, y, w, h, title, content) => {
+	exports.createBox = (parent, x, y, w, h, title, content) => {
 		let box = appendElement(parent, "div", { "class": "box" });
 		// TODO: Anchoring enum
 		setStyles(box, {
 			"position": "absolute",
-			"right": x,
+			"left": x,
 			"top": y,
 			"width": w,
 			"height": h

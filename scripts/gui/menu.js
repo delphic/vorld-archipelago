@@ -1,6 +1,6 @@
 let GUI = require('../gui');
 
-let Menu = module.exports = (function(){
+module.exports = (function(){
 	let exports = {};
 
 	exports.create = (parent, title, options) => {

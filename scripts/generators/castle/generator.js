@@ -1,7 +1,7 @@
 let Vorld = require('../../../vorld/core/vorld');
 let VorldUtils = require('../../../vorld/core/utils');
 
-let Generator = module.exports = (function(){
+module.exports = (function(){
 	let exports = {};
 
 	let forVolume = VorldUtils.forVolume;
