@@ -56,7 +56,7 @@ module.exports = (function(){
 	let nightFog = Maths.vec3.fromValues(0, 0, 0.02);
 	let transitionFog = Maths.vec3.fromValues(110/255, 141/255, 147/255);
 	let dayFog = Maths.vec3.fromValues(136/255, 206/255, 235/255);
-	let nightFogDensity = 0.02;
+	let nightFogDensity = 0.015;
 	let twilightFogDensity = 0.01;
 	let noonFogDensity = 0.005;
 
@@ -64,13 +64,13 @@ module.exports = (function(){
 	// Fog changes preceed dawn light and lag dusk
 	// Alternatively we could just calculate light level via incidence, rather than using this manual gradient style
 	exports.lightCycle = [ 
-		{ time: 0.15, value: 0 }, 
+		{ time: 0.15, value: 0.025 }, 
 		{ time: 0.25, value: 0.4 },
 		{ time: 0.325, value: 0.8 },
 		{ time: 0.5, value: 0.9 },
 		{ time: 0.625, value: 0.8 },
 		{ time: 0.75, value: 0.4 },
-		{ time: 0.85, value: 0 } ];
+		{ time: 0.85, value: 0.025 } ];
 	exports.fogColorCycle = [ 
 		{ time: 0.149, value: nightFog },
 		{ time: 0.24, value: transitionFog },
