@@ -369,7 +369,7 @@ let playButtonClickSfx = () => {
 };
 
 let createIntroPrompt = () => {
-	let text = [ "You've been transported to a mysterous island chain.",
+	let text = [ "You've been transported to a mysterious island chain.",
 		"Retrieve the glowing orbs and place them on the pedestals to reactive the portal if you want to escape.",
 		"Requires a keyboard and mouse to play." ];
 	let dialog = Dialog.create(GUI.root, "Welcome to the Archipelago", text, "Continue", () => {
