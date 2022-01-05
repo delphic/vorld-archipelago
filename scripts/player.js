@@ -556,7 +556,6 @@ module.exports = (function(){
 							uri: uri,
 							mixer: Audio.mixers["sfx/footsteps"]
 						});
-						console.log("Playing " + uri + " at " + Date.now());
 					}
 					timeSinceLastStep = 0;
 					hasPlayedFirstStep = true;

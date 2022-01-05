@@ -618,6 +618,7 @@ module.exports = (function(){
 	let generate = (bounds, id, callback, progressDelegate) => {
 		let vorld = Vorld.create({ blockConfig: blockConfig });
 		let generationConfig = generationConfigs[id];
+		// let startTime = Date.now();
 
 		performWorkOnBounds(
 			generationWorkerPool,
@@ -634,6 +635,8 @@ module.exports = (function(){
 				}
 			},
 			() => {
+				// let elapsed = Date.now() - startTime;
+				// console.log("Generation pass took " + elapsed + "ms");
 				if (id == "castle") {
 					// Castle Generator TEST
 					// TODO: generation should be multi-pass, first terrain, then buildings, then meshing
