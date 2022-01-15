@@ -1,6 +1,5 @@
 // Day / night cycle controller
-let Fury = require('../fury/src/fury');
-let Maths = require('../fury/src/maths');
+const { Maths, Renderer } = require('fury');
 
 module.exports = (function(){
 	let exports = {};
@@ -129,7 +128,7 @@ module.exports = (function(){
 				voxelMaterials[i].dirty = true; // Just in case this is the only material being rendered 
 			}
 
-			Fury.Renderer.clearColor(fogColor[0], fogColor[1], fogColor[2], 1.0);
+			Renderer.clearColor(fogColor[0], fogColor[1], fogColor[2], 1.0);
 
 			// Set background colour to fog color so CSS effects like blur look good
 			let cssColor = "rgb(" + Math.round(fogColor[0] * 255) + ", " + Math.round(fogColor[1] * 255) + ", " + Math.round(fogColor[2] * 255) + ")";

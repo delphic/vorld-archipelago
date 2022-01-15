@@ -5,7 +5,9 @@
 	"author": "delphic",
 	"license": "MIT",
 	"homepage": "https://delphic.me.uk/vorld-archipelago",
-	"dependencies": {},
+	"dependencies": {
+		"fury": "delphic/fury"
+	},
 	"private": true,
 	"devDependencies": {
 		"eslint": "^8.2.0"

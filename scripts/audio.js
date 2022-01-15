@@ -1,4 +1,4 @@
-let Maths = require('../fury/src/maths');
+const { Maths } = require('fury');
 
 let Audio = module.exports = (function(){
 	let exports = {};

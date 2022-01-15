@@ -1,5 +1,5 @@
-const { vec3 } = require('../fury/src/maths');
-const { Maths, Physics } = require('../fury/src/fury');
+const { Maths, Physics } = require('fury');
+const { vec3 } = Maths;
 const VPhysics = require('../vorld/core/physics');
 
 module.exports = (() => {

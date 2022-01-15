@@ -1,6 +1,6 @@
-const Fury = require('../fury/src/fury');
-const { GameLoop } = require('../fury/src/fury');
-const { vec3, quat } = require('../fury/src/maths');
+const Fury = require('fury');
+const { Maths, GameLoop } = Fury;
+const { vec3, quat } = Maths;
 const Vorld = require('../vorld/core/vorld');
 const VoxelShader = require('../vorld/core/shader');
 const VorldHelper = require('./vorldHelper');
@@ -162,9 +162,7 @@ let start = (initialBounds, worldConfigId) => {
 			near: 0.1,
 			far: 1000000.0,
 			fov: 1.0472,
-			ratio: cameraRatio,
-			position: vec3.create(),
-			rotation: quat.create()
+			ratio: cameraRatio
 		});
 		setCameraInitialPosition(camera);
 		scene = Fury.Scene.create({ camera: camera, enableFrustumCulling: true });

@@ -1,12 +1,11 @@
-let WorkerPool = require('./workerPool');
-let Fury = require('../fury/src/fury');
-let Maths = require('../fury/src/maths');
-let Bounds = Fury.Bounds;
-let vec3 = Maths.vec3;
-let Primitives = require('./primitives');
-let Vorld = require('../vorld/core/vorld');
-let VorldUtils = require('../vorld/core/utils');
-let VorldPrimitives = require('../vorld/core/primitives');
+const WorkerPool = require('./workerPool');
+const Fury = require('fury');
+const { Bounds, Maths } = Fury;
+const { vec3 } = Maths;
+const Primitives = require('./primitives');
+const Vorld = require('../vorld/core/vorld');
+const VorldUtils = require('../vorld/core/utils');
+const VorldPrimitives = require('../vorld/core/primitives');
 
 module.exports = (function(){
 	let exports = {};

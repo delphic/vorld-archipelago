@@ -1,4 +1,4 @@
-const Fury = require("../fury/src/fury");
+const Fury = require("fury");
 
 module.exports = (function(){
 	let exports = {};

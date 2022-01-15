@@ -1,7 +1,7 @@
 // Player Module
-const Fury = require('../fury/src/fury');
-const { Input, Physics, Maths } = require('../fury/src/fury');
-const { vec3, quat, vec3Pool } = require('../fury/src/maths');
+const Fury = require('fury');
+const { Input, Physics, Maths } = Fury;
+const { vec3, quat, vec3Pool } = Maths;
 const Audio = require('./audio');
 const Primitives = require('./primitives');
 const CharacterController = require ('./characterController.js');

@@ -1,5 +1,4 @@
-const Maths = require('../fury/src/maths');
-const Input = require('../fury/src/input');
+const { Input, Maths } = require('fury');
 const vec3 = Maths.vec3;
 const quat = Maths.quat;
 

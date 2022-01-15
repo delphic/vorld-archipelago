@@ -1,4 +1,4 @@
-const Bounds = require('../fury/src/bounds');
+const { Bounds } = require('fury');
 
 module.exports = (function() {
 	let exports = {};
