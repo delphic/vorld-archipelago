@@ -6,7 +6,7 @@ Vorld Archipelago is an attempt to bring together previous vorld experiments int
 
 However it does not contain the multiplayer functionality of [vorld-decay](https://github.com/delphic/vorld-decay).
 
-It is intended that either it or a branch of it will be submitted for 7DFPS2021.
+Submitted to [7DFPS 2021](https://itch.io/jam/7dfps-2021/rate/1314168) and [proc-jam 2021](https://itch.io/jam/procjam/rate/1314168).
 
 ## Building / Deploying
 
