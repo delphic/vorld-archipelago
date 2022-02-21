@@ -1,6 +1,6 @@
 // Player Module
 const Fury = require('fury');
-const { Input, Physics, Maths } = Fury;
+const { Input, Physics, Maths, Random } = Fury;
 const { vec3, quat, vec3Pool } = Maths;
 const Audio = require('./audio');
 const Primitives = require('./primitives');
@@ -282,7 +282,7 @@ module.exports = (function(){
 
 		let jump = () => {
 			Audio.play({ 
-				uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, 1 + Math.floor(4*Math.random())),
+				uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, Random.roll(1,4)),
 				mixer: Audio.mixers["sfx/footsteps"]
 			});
 
@@ -546,12 +546,12 @@ module.exports = (function(){
 					|| (hasPlayedFirstStep && timeSinceLastStep > period)
 					|| (!hasPlayedFirstStep && timeSinceLastStep > 0.5 * period)) {
 					Audio.play({ 
-						uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, 1 + Math.floor(4*Math.random())),
+						uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, Random.roll(1, 4)),
 						mixer: Audio.mixers["sfx/footsteps"]
 					});
 					if (isInWater) {
 						// Play the swooshes when walking through water too
-						let uri = VorldHelper.buildSfxMaterialUri("water", "swim", 1 + Math.floor(4*Math.random()));
+						let uri = VorldHelper.buildSfxMaterialUri("water", "swim", Random.roll(1,4));
 						Audio.play({ 
 							uri: uri,
 							mixer: Audio.mixers["sfx/footsteps"]
@@ -567,7 +567,7 @@ module.exports = (function(){
 				timeSinceLastStep += elapsed;
 				if (!hasPlayedFirstStep || timeSinceLastStep > period) {
 					Audio.play({ 
-						uri: VorldHelper.buildSfxMaterialUri("water", action, 1 + Math.floor(4*Math.random())),
+						uri: VorldHelper.buildSfxMaterialUri("water", action, Random.roll(1, 4)),
 						mixer: Audio.mixers["sfx/footsteps"]
 					});
 					timeSinceLastStep = 0;
@@ -628,7 +628,7 @@ module.exports = (function(){
 					if (!grounded) {
 						// Landed! (and didn't jump - which will play it's own SFX)
 						Audio.play({ 
-							uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, 1 + Math.floor(4*Math.random())),
+							uri: VorldHelper.buildSfxMaterialUri(lastGroundedVoxelMaterial, lastMovementSfxAction, Random.roll(1, 4)),
 							mixer: Audio.mixers["sfx/footsteps"]
 						});
 						hasPlayedFirstStep = true;
@@ -649,19 +649,19 @@ module.exports = (function(){
 				if (vec3.length(player.velocity) > 18) {
 					// BIG splash!
 					Audio.play({
-						uri: VorldHelper.buildSplashSfxUri(true, 1 + Math.floor(Math.random()*2), true),
+						uri: VorldHelper.buildSplashSfxUri(true, Random.roll(1, 2), true),
 						mixer: Audio.mixers["sfx/footsteps"]
 					}, 0, false, 5);
 				} else {
 					Audio.play({
-						uri: VorldHelper.buildSplashSfxUri(true, 1 + Math.floor(Math.random()*3)),
+						uri: VorldHelper.buildSplashSfxUri(true, Random.roll(1, 3)),
 						mixer: Audio.mixers["sfx/footsteps"]
 					});	
 				}
 			} else if (wasInWater && !isInWater) {
 				// Exited water
 				Audio.play({
-					uri: VorldHelper.buildSplashSfxUri(false, 1 + Math.floor(Math.random()*3)),
+					uri: VorldHelper.buildSplashSfxUri(false, Random.roll(1, 3)),
 					mixer: Audio.mixers["sfx/footsteps"]
 				});
 			}

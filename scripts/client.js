@@ -1,5 +1,5 @@
 const Fury = require('fury');
-const { Maths, GameLoop } = Fury;
+const { Maths, GameLoop, Random } = Fury;
 const { vec3, quat } = Maths;
 const Vorld = require('../vorld/core/vorld');
 const VoxelShader = require('../vorld/core/shader');
@@ -19,11 +19,6 @@ let material, cutoutMaterial, alphaMaterial, unlitMaterial;
 let player;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 // waterColor : 0, 113, 144
-
-// Move to random utils
-let randomInt = (min, max) => {
-	return min + Math.floor((Math.random() * (max - min + 1)));
-};
 
 let debug = false; // Determines options available in various GUI settings && creative mode
 
@@ -91,7 +86,7 @@ let portalTrigger = null;
 let onBlockPlaced = (block, x, y, z) => {
 	let blockDef = Vorld.getBlockTypeDefinition(vorld, block);
 	
-	Audio.play({ uri: VorldHelper.buildSfxMaterialUri(blockDef.sfxMat, "add", randomInt(1, 4)), mixer: Audio.mixers["sfx"] });
+	Audio.play({ uri: VorldHelper.buildSfxMaterialUri(blockDef.sfxMat, "add", Random.roll(1, 4)), mixer: Audio.mixers["sfx"] });
 	// TODO: If placed underwater / removing another block should also play removal sound?
 
 	if (block == VorldHelper.blockIds["orb"]) {
@@ -141,7 +136,7 @@ let onBlockPlaced = (block, x, y, z) => {
 
 let onBlockRemoved = (block, x, y, z) => {
 	let blockDef = Vorld.getBlockTypeDefinition(vorld, block);
-	Audio.play({ uri: VorldHelper.buildSfxMaterialUri(blockDef.sfxMat, "remove", randomInt(1, 4)), mixer: Audio.mixers["sfx"] });
+	Audio.play({ uri: VorldHelper.buildSfxMaterialUri(blockDef.sfxMat, "remove", Random.roll(1, 4)), mixer: Audio.mixers["sfx"] });
 	// TODO: if water filling the space play splash?
 
 	if (block == VorldHelper.blockIds["orb"]) {

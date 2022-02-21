@@ -1,6 +1,6 @@
 const WorkerPool = require('./workerPool');
 const Fury = require('fury');
-const { Bounds, Maths } = Fury;
+const { Bounds, Maths, Random } = Fury;
 const { vec3 } = Maths;
 const Primitives = require('./primitives');
 const Vorld = require('../vorld/core/vorld');
@@ -810,9 +810,7 @@ module.exports = (function(){
 					// This kinda works but also kinda not, very flat areas next to cliffs are ignored
 					// some of the placed trees are still very close to the shore
 					const VorldFlora = require('../vorld/generation/flora');
-					const random = require('../vorld/noise/random').fromString(generationConfig.generationRules.seed);
-					// ^^ NOTE: the Vorld seeded random is only as random as the seed, use the generate random seed method to ensure 
-					// a reasonable degree of randomness (even then I'm not sure it's actually uniformly distributed)
+					Random.setSeed(generationConfig.generationRules.seed);
 
 					let keys = Object.keys(vorld.heightMap);
 
@@ -825,9 +823,9 @@ module.exports = (function(){
 							// Pick tree points
 							points = [];
 							for (let j = 0; j < 10; j++) {
-								// NOTE: + 1, then -2 on random value to prevent trees of overlap across chunks
-								let x = heightMap.chunkI * vorld.chunkSize + 1 + Math.floor(random() * (vorld.chunkSize - 2)),
-									z = heightMap.chunkK * vorld.chunkSize + 1 + Math.floor(random() * (vorld.chunkSize - 2));
+								// NOTE: + 1, then -1 to prevent trees of overlap across chunks
+								let x = heightMap.chunkI * vorld.chunkSize + Random.integer(1, vorld.chunkSize-1),
+									z = heightMap.chunkK * vorld.chunkSize + Random.integer(1, vorld.chunkSize-1);
 								let y = Vorld.getHighestBlockY(vorld, x, z) + 1;
 								if (y > 1) { // No trees on the water please
 									let point = [x, y, z];
@@ -845,7 +843,7 @@ module.exports = (function(){
 									let x = heightMap.chunkI * vorld.chunkSize + i,
 										z = heightMap.chunkK * vorld.chunkSize + k;
 									let y = Vorld.getHighestBlockY(vorld, x, z) + 1;
-									if (y > 1 && random() < chanceOfGrass // Above water level
+									if (y > 1 && Random.value() < chanceOfGrass // Above water level
 										&& Vorld.getBlock(vorld, x, y, z) == 0 // Only in empty space
 										&& Vorld.getBlock(vorld, x, y - 1, z) == blockIds["grass"]) { // Only on grass
 										Vorld.addBlock(vorld, x, y, z, blockIds["long_grass"]);
@@ -1164,12 +1162,7 @@ module.exports = (function(){
 			return;
 		}
 
-		let seed = "";
-		for (let i = 0; i < 256; i++) {
-			// 0 - 100 will probably give the best distribution but it's not really a copyable string
-			// so between 33 and 126 should give an easy to save seed
-			seed += String.fromCharCode(Math.floor(33 + Math.random() * (127-33)));
-		}
+		let seed = Random.generateSeed(32);
 		console.log("Generated Seed " + seed);
 		generationConfigs["guassian_shaped_noise"].generationRules.seed = seed;
 	};
