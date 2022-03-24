@@ -232,11 +232,12 @@ module.exports = (() => {
 			return collisionCount;
 		};
 		
-		// Y Axis only version of checkForPlayerCollisions
-		// Logic can be simplified when assuming no XZ movement
-		let checkForPlayerCollisionsY = (out, boxes, elapsed) => {
+		// Axis only version of checkForPlayerCollisions
+		// Logic can be simplified when assuming no movement in other axes
+		let checkForPlayerCollisionsAxis = (out, boxes, axis, elapsed) => {
 			let collisionCount = 0;
 			let overlapCount = 0;
+			let otherAxis1 = (axis + 1) % 3 , otherAxis2 = (axis + 2) % 3;
 			
 			out.minIndex[0] = out.minIndex[1] = out.minIndex[2] = -1;
 			out.minTime[0] = out.minTime[1] = out.minTime[2] = elapsed + 1;
@@ -244,12 +245,12 @@ module.exports = (() => {
 			// Note enters axis does not do a box cast, merely checks current against new
 			// i.e. you can move through boxes at high enough speed - TODO: box cast 
 			for (let i = 0, l = boxes.length; i < l; i++) {
-				if (Physics.Box.intersectsAxis(boxes[i], playerBox, 0) && Physics.Box.intersectsAxis(boxes[i], playerBox, 2)) {
-					if (checksEntersAxis(out, boxes[i], playerBox, 1, overlapCount, targetPosition, playerPosition, elapsed)) {
+				if (Physics.Box.intersectsAxis(boxes[i], playerBox, otherAxis1) && Physics.Box.intersectsAxis(boxes[i], playerBox, otherAxis2)) {
+					if (checksEntersAxis(out, boxes[i], playerBox, axis, overlapCount, targetPosition, playerPosition, elapsed)) {
 						out.collisionsBuffer[overlapCount] = boxes[i];
 						collisionCount += 1;
 						overlapCount += 1;
-					} else if (Physics.Box.intersectsAxis(boxes[i], playerBox, 1)) {
+					} else if (Physics.Box.intersectsAxis(boxes[i], playerBox, axis)) {
 						out.collisionsBuffer[overlapCount] = boxes[i];
 						overlapCount += 1;
 					}
@@ -375,33 +376,45 @@ module.exports = (() => {
 			return didStep;
 		};
 
+		controller.moveX = (contacts, velocity, elapsed) => {
+			controller.moveAxis(contacts, velocity, 0, elapsed);
+		};
+
 		controller.moveY = (contacts, velocity, elapsed) => {
-			vec3.copy(lastPosition, playerPosition);	
-			vec3.scaleAndAdd(targetPosition, playerPosition, Maths.vec3Y, velocity[1] * elapsed);
+			controller.moveAxis(contacts, velocity, 1, elapsed);
+		};
+
+		controller.moveZ = (contacts, velocity, elapsed) => {
+			controller.moveAxis(contacts, velocity, 2, elapsed);
+		};
+
+		controller.moveAxis = (contacts, velocity, axis, elapsed) => {
+			vec3.copy(lastPosition, playerPosition);
+			targetPosition[axis] = playerPosition[axis] + velocity[axis] * elapsed;
 			
 			sweepForRevelantBoxes(relevantBoxes, vorld, world.boxes, playerBox, targetPosition, playerPosition, 0);
 
-			let collision = checkForPlayerCollisionsY(playerCollisionInfo, relevantBoxes, elapsed) > 0;
+			let collision = checkForPlayerCollisionsAxis(playerCollisionInfo, relevantBoxes, axis, elapsed) > 0;
 		
 			if (collision) {
-				let closestBox = playerCollisionInfo.collisionsBuffer[playerCollisionInfo.minIndex[1]];
-				if (velocity[1] <= 0) {
-					// Moving down, move playerPosition so player is extents above closestBox.max[1]
-					playerPosition[1] = closestBox.max[1] + playerBox.extents[1];
+				let closestBox = playerCollisionInfo.collisionsBuffer[playerCollisionInfo.minIndex[axis]];
+				if (velocity[axis] <= 0) {
+					// Moving 'down', move playerPosition so player is extents 'above' closestBox.max[axis]
+					playerPosition[axis] = closestBox.max[axis] + playerBox.extents[axis];
 					playerBox.recalculateMinMax();
-					velocity[1] = (playerPosition[1] - lastPosition[1]) / elapsed;
-					contacts[1] = -1;
+					velocity[axis] = (playerPosition[axis] - lastPosition[axis]) / elapsed;
+					contacts[axis] = -1;
 				} else {
-					// Moving up, move playerPosition so player is extents below  closestBox.min[1]
-					playerPosition[1] = closestBox.min[1] - playerBox.extents[1];
+					// Moving 'up', move playerPosition so player is extents 'below'  closestBox.min[axis]
+					playerPosition[axis] = closestBox.min[axis] - playerBox.extents[axis];
 					playerBox.recalculateMinMax();
-					velocity[1] = (playerPosition[1] - lastPosition[1]) / elapsed;
-					contacts[1] = 1;
+					velocity[axis] = (playerPosition[axis] - lastPosition[axis]) / elapsed;
+					contacts[axis] = 1;
 				}
 			} else {
-				playerPosition[1] = targetPosition[1];
+				playerPosition[axis] = targetPosition[axis];
 				playerBox.recalculateMinMax();
-				contacts[1] = 0;
+				contacts[axis] = 0
 			}
 		};
 
