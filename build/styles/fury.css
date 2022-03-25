@@ -1,4 +1,4 @@
-body {
+body, #fury {
 	background-color: rgba(136, 206, 235, 1);
 }
 
@@ -154,4 +154,12 @@ a:hover {
 	background-color: rgba(255,0,102,1);
 	width: 0%;
 	height: 100%;
+}
+
+.fullscreenButton {
+	position: absolute;
+	background-image: url("../images/fullscreen_icon.png");
+	border: none;
+	padding: 0;
+	cursor: pointer;
 }

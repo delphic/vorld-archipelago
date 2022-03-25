@@ -89,7 +89,7 @@ let onBlockPlaced = (block, x, y, z) => {
 	Audio.play({ uri: VorldHelper.buildSfxMaterialUri(blockDef.sfxMat, "add", Random.roll(1, 4)), mixer: Audio.mixers["sfx"] });
 	// TODO: If placed underwater / removing another block should also play removal sound?
 
-	if (block == VorldHelper.blockIds["orb"]) {
+	if (block == VorldHelper.blockIds["orb"] && vorld.meta.portalPoints) {
 		let previousOrbsPlaced = orbsPlaced;
 		// Note - coupled to vorld helper's setting of meta data
 		for (let i = 0, l = vorld.meta.portalPoints.length; i < l; i++) {
@@ -139,7 +139,7 @@ let onBlockRemoved = (block, x, y, z) => {
 	Audio.play({ uri: VorldHelper.buildSfxMaterialUri(blockDef.sfxMat, "remove", Random.roll(1, 4)), mixer: Audio.mixers["sfx"] });
 	// TODO: if water filling the space play splash?
 
-	if (block == VorldHelper.blockIds["orb"]) {
+	if (block == VorldHelper.blockIds["orb"] && vorld.meta.portalPoints) {
 		// Note - coupled to vorld helper's setting of meta data
 		for (let i = 0, l = vorld.meta.portalPoints.length; i < l; i++) {
 			let point = vorld.meta.portalPoints[i];
@@ -355,6 +355,7 @@ let loop = (elapsed) => {
 	camera.clear = false;
 	camera.clearDepth = true;
 	overlayScene.render();
+	camera.clear = true;	
 };
 
 let playButtonClickSfx = () => {
@@ -597,11 +598,53 @@ window.addEventListener('load', () => {
 		// things pop in and out as you do more extreme scaling etc (very wide seems to be the issue)
 		// setting force sphere culling doesn't help so it's an issue with the fustrum calculation itself
 	};
-	window.addEventListener('resize', updateCanvasSize);
+	window.addEventListener('resize', () => {
+		// Check for 'F11' fullscreen
+		if (screen.height == window.innerHeight) {
+			GUI.setStyles(fullscreenButton, { "display": "none" });
+		} else {
+			GUI.setStyles(fullscreenButton, { "display": "block" });
+		}
+		updateCanvasSize();
+	});
 	updateCanvasSize();
 
 	Fury.init({ canvasId: glCanvasId });
 	GUI.init(glCanvas);
+
+	// We don't want tab cycling through elements to change window focus causing game to pause / unpause
+	// However it is useful to allow it to pause the game, so if pointer is locked unlock it (which will trigger pause)
+	// NOTE: If we were to display an input form we might want to allow cycling via tab though
+	document.body.addEventListener('keydown', e => { 
+		if (e.code == 'Tab') {
+			if (Fury.Input.isPointerLocked()) {
+				Fury.Input.releasePointerLock();
+				e.preventDefault();
+			}
+			// BUG - still possible to mess up pause count by shift - tabbing in pause menu
+			// if you're paused and not in full screen, would be good if we could prevent this
+		}
+	});
+
+	let holder = document.getElementById("furyHolder");
+	let fullscreenButton = GUI.appendElement(GUI.root, "div", { class: "fullscreenButton" });
+	GUI.setStyles(fullscreenButton, { bottom: 32, right: 32, width: 32, height: 32  });
+
+	holder.addEventListener("fullscreenchange", () => {
+		if (!Fury.GameLoop.isRunning() && scene) {
+			updateCanvasSize(); // Ensure re-size, order of events can been reversed when entering fullscreen
+			scene.render();
+		}
+		if (document.fullscreenElement) {
+			GUI.setStyles(fullscreenButton, { "display": "none" });
+		} else {
+			GUI.setStyles(fullscreenButton, { "display": "block" });
+		}
+	});
+
+	fullscreenButton.addEventListener("click", () => {
+		holder.requestFullscreen();
+	});
 
 	let titleScreen = createProgressScreen("Vorld Archipelago", "playPrompt");
 
