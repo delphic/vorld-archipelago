@@ -1,6 +1,6 @@
 // Player Module
 const Fury = require('fury');
-const { Input, Physics, Maths, Random } = Fury;
+const { GameLoop, Input, Physics, Maths, Random } = Fury;
 const { vec3, quat, vec3Pool } = Maths;
 const Audio = require('./audio');
 const Primitives = require('./primitives');
@@ -194,7 +194,6 @@ module.exports = (function(){
 		let lastForwardPress = 0;
 		let sprintDoubleTapMaxDuration = 0.25;
 
-		// TODO: Replace use of Date.now() with Fury.Time.now
 		let detectInput = (elapsed) => {
 			// Calculate Local Axes
 			vec3.transformQuat(localX, Maths.vec3X, camera.rotation);
@@ -216,11 +215,10 @@ module.exports = (function(){
 			let inputZ = Input.getAxis(prefs.backKey, prefs.forwardKey, 0.05, Maths.Ease.inQuad);
 			
 			if (!attemptSprint && Input.keyDown(prefs.forwardKey, true)) {
-				let time = Date.now();
-				if ((time - lastForwardPress) < sprintDoubleTapMaxDuration * 1000) {
+				if ((GameLoop.time - lastForwardPress) < sprintDoubleTapMaxDuration) {
 					attemptSprint = true;
 				}
-				lastForwardPress = Date.now();
+				lastForwardPress = GameLoop.time;
 			} else if (attemptSprint && !Input.keyDown(prefs.forwardKey)) {
 				attemptSprint = false;
 			}
@@ -302,7 +300,7 @@ module.exports = (function(){
 		// You reliably get a bigger jump than normal as the player steps up the double height voxel. 
 		// This be the controller working as intended, but it would require a confluence of values which merits investigation
 
-		// TODO: Replace use of Date.now() with Fury.Time or similar
+		
 		// Nigh on impossible to drop into a space of one voxel when player box is 1x1 - as the passes are separated - and if you did you'd just step out
 		player.update = (elapsed) => {
 			detectInput(elapsed);
@@ -591,10 +589,10 @@ module.exports = (function(){
 			}
 
 			if (attemptJump) {
-				if (grounded || canCoyote && (Date.now() - lastGroundedTime < 1000 * coyoteTime)) {
+				if (grounded || canCoyote && (GameLoop.time - lastGroundedTime < coyoteTime)) {
 					jump();
 				} else {
-					lastJumpAttemptTime = Date.now();
+					lastJumpAttemptTime = GameLoop.time;
 				}
 			}
 
@@ -609,7 +607,7 @@ module.exports = (function(){
 				Math.floor(player.position[2]));
 
 			if (contacts[1] == -1) {
-				lastGroundedTime = Date.now();
+				lastGroundedTime = GameLoop.time;
 
 				if (!grounded) {
 					// Landed! (May jump immediately though)
@@ -622,7 +620,7 @@ module.exports = (function(){
 					Maths.vec3Pool.return(closestVoxelCoord);
 				}
 
-				if (!grounded && lastGroundedTime - lastJumpAttemptTime < 1000 * coyoteTime) {
+				if (!grounded && lastGroundedTime - lastJumpAttemptTime < coyoteTime) {
 					jump();
 				} else {
 					if (!grounded) {
