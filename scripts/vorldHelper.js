@@ -739,7 +739,7 @@ module.exports = (function(){
 						for (let k = 0; k <= 2; k++) {
 							if ((Math.abs(i) == 2 && k == 2) || (Math.abs(i) == 1 && k == 0)) {
 								Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + 1, spawnPoint[2] + k, blockIds["orb_pedistal"]);
-								vorld.meta.portalPoints.push([ spawnPoint[0]-i, spawnPoint[1]+2, spawnPoint[2]+k]);
+								vorld.meta.portalPoints.push([ spawnPoint[0]+i, spawnPoint[1]+2, spawnPoint[2]+k]);
 							}
 						}
 					}
