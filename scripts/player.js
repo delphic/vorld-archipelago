@@ -501,26 +501,54 @@ module.exports = (function(){
 				// Don't allow walking off edges
 				// Note this doesn't have the MC "peer over the edge" benefit / terror
 				// which we'd want if we put block placement in
-				if (isWalking
-					&& foundClosestGroundVoxel
-					&& VorldPhysics.raycast(hitPoint, vorld, player.position, castDirection, player.box.extents[1] + 0.5) == 0) {
-					// If you're outside the bounds of the closest voxel on each axis
-					// snap back to inside and adjust - NOTE: player.velocity is no longer 
-					// an accurate measure of distance travelled in the frame
-					if (player.position[0] < closestVoxelCoord[0]) {
-						player.position[0] = closestVoxelCoord[0];
-						player.velocity[0] = 0;
-					} else if (player.position[0] > closestVoxelCoord[0] + 1) {
-						player.position[0] = closestVoxelCoord[0] + 1;
-						player.velocity[0] = 0;
+				if (isWalking && foundClosestGroundVoxel) {
+					let overHangDist = 0.25;
+					let shouldSnapBack = true;
+					let origin = Fury.Maths.vec3Pool.request();
+					
+					if (shouldSnapBack) {
+						vec3.scaleAndAdd(origin, player.position, Maths.vec3X, overHangDist);
+						vec3.scaleAndAdd(origin, origin, Maths.vec3Z, overHangDist);
+						shouldSnapBack &= (VorldPhysics.raycast(hitPoint, vorld, origin, castDirection, player.box.extents[1] + 0.5) == 0);
 					}
-					if (player.position[2] < closestVoxelCoord[2]) {
-						player.position[2] = closestVoxelCoord[2];
-						player.velocity[2] = 0;
-					} else if (player.position[2] > closestVoxelCoord[2] + 1) {
-						player.position[2] = closestVoxelCoord[2] + 1;
-						player.velocity[2] = 0;
+					if (shouldSnapBack) {
+						vec3.scaleAndAdd(origin, player.position, Maths.vec3X, overHangDist);
+						vec3.scaleAndAdd(origin, origin, Maths.vec3Z, -overHangDist);
+						shouldSnapBack &= (VorldPhysics.raycast(hitPoint, vorld, origin, castDirection, player.box.extents[1] + 0.5) == 0);
 					}
+					if (shouldSnapBack) {
+						vec3.scaleAndAdd(origin, player.position, Maths.vec3Z, overHangDist);
+						vec3.scaleAndAdd(origin, origin, Maths.vec3X, -overHangDist);
+						shouldSnapBack &= (VorldPhysics.raycast(hitPoint, vorld, origin, castDirection, player.box.extents[1] + 0.5) == 0);
+					}
+					if (shouldSnapBack) {
+						vec3.scaleAndAdd(origin, player.position, Maths.vec3X, -overHangDist);
+						vec3.scaleAndAdd(origin, origin, Maths.vec3Z, -overHangDist);
+						shouldSnapBack &= (VorldPhysics.raycast(hitPoint, vorld, origin, castDirection, player.box.extents[1] + 0.5) == 0);	
+					}
+
+					// TODO: adjust for overhang 
+					if (shouldSnapBack) {
+						// If you're outside the bounds of the closest voxel on each axis
+						// snap back to inside and adjust - NOTE: player.velocity is no longer 
+						// an accurate measure of distance travelled in the frame
+						if (player.position[0] < closestVoxelCoord[0] - overHangDist) {
+							player.position[0] = closestVoxelCoord[0] - overHangDist;
+							player.velocity[0] = 0;
+						} else if (player.position[0] > closestVoxelCoord[0] + 1 + overHangDist) {
+							player.position[0] = closestVoxelCoord[0] + 1 + overHangDist;
+							player.velocity[0] = 0;
+						}
+						if (player.position[2] < closestVoxelCoord[2] - overHangDist) {
+							player.position[2] = closestVoxelCoord[2] - overHangDist;
+							player.velocity[2] = 0;
+						} else if (player.position[2] > closestVoxelCoord[2] + 1 + overHangDist) {
+							player.position[2] = closestVoxelCoord[2] + 1 + overHangDist;
+							player.velocity[2] = 0;
+						}
+					}
+
+					Fury.Maths.vec3Pool.return(origin);
 				}
 				// else - if not foundClosestVoxel - I guess you just fall off anyway
 				Maths.vec3Pool.return(closestVoxelCoord);
