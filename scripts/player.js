@@ -527,7 +527,6 @@ module.exports = (function(){
 						shouldSnapBack &= (VorldPhysics.raycast(hitPoint, vorld, origin, castDirection, player.box.extents[1] + 0.5) == 0);	
 					}
 
-					// TODO: adjust for overhang 
 					if (shouldSnapBack) {
 						// If you're outside the bounds of the closest voxel on each axis
 						// snap back to inside and adjust - NOTE: player.velocity is no longer 
