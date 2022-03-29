@@ -499,10 +499,8 @@ module.exports = (function(){
 				}
 
 				// Don't allow walking off edges
-				// Note this doesn't have the MC "peer over the edge" benefit / terror
-				// which we'd want if we put block placement in
 				if (isWalking && foundClosestGroundVoxel) {
-					let overHangDist = 0.25;
+					let overHangDist = 0.3;
 					let shouldSnapBack = true;
 					let origin = Fury.Maths.vec3Pool.request();
 					
