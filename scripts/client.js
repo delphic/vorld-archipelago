@@ -4,6 +4,7 @@ const { vec3, quat } = Maths;
 const Vorld = require('../vorld/core/vorld');
 const VoxelShader = require('../vorld/core/shader');
 const VorldHelper = require('./vorldHelper');
+const VorldPrimitives = require('../vorld/core/primitives');
 const Player = require('./player');
 const GUI = require('./gui');
 const Audio = require('./audio');
@@ -14,13 +15,13 @@ const Dialog = require('./gui/dialog');
 
 let scene, overlayScene, camera, cameraRatio = 16 / 9;
 let freeFlyCamera = null;
-let world = { boxes: [] }, vorld = null;
-let material, cutoutMaterial, alphaMaterial, unlitMaterial;
+let world = { boxes: [], entities: [] }, vorld = null;
+let material, cutoutMaterial, alphaMaterial, unlitMaterial, dynamicMaterial;
 let player;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 // waterColor : 0, 113, 144
 
-let debug = false; // Determines options available in various GUI settings && creative mode
+let debug = true; // Determines options available in various GUI settings && creative mode
 
 let ccc;
 let enableDayNightCycle = !debug; // Debug toggle for day night cycle (easier to test with endless day)
@@ -186,9 +187,9 @@ let start = (initialBounds, worldConfigId) => {
 			let spawnPoint = null;
 			if (!vorld.meta) {
 				vorld.meta = {};
-				if (!vorld.meta.spawnPoint) {
-					vorld.meta.spawnPoint = [12, 32, 12];
-				}
+			}
+			if (!vorld.meta.spawnPoint) {
+				vorld.meta.spawnPoint = [12, 32, 12];
 			}
 			spawnPoint = vec3.clone(vorld.meta.spawnPoint);
 			orbsPlaced = 0;
@@ -227,6 +228,36 @@ let start = (initialBounds, worldConfigId) => {
 
 	let onVorldCreated = () => { // data param is available
 		generating = false;
+
+		// HACK - based on generation id - add dynamic objects to world (which VorldHelper doesn't have access to, but arguably should (?))
+		if (vorld.meta && vorld.meta.id == "test") {
+			console.log("Is test scene, adding dynamic stuff!");
+			let GameEntity = require('./gameEntity');
+			let lightingObject = GameEntity.create();
+			let position = vec3.fromValues(0, 1, 0);
+
+			let meshConfig = VorldPrimitives.createCuboidMeshJson(-0.25, 0.25, -0.25, 0.25, -0.25, 0.25);
+			meshConfig.tileIndices = [];
+			meshConfig.tileIndices.length = meshConfig.vertices.length;
+			meshConfig.tileIndices.fill(VorldHelper.getTileIndexBufferValueForBlock("stone") || 0);
+			meshConfig.customAttributes = [{ name: "tileBuffer", source: "tileIndices", size: 1 }];
+
+			let mesh = Fury.Mesh.create(meshConfig);
+			lightingObject.so = scene.add({ mesh: mesh, material: dynamicMaterial, position: position });
+
+			lightingObject.addComponent("light-test", { 
+				update: (elapsed) => {
+					position[0] = 5 * Math.sin(GameLoop.time);
+					dynamicMaterial.lightLevel = VorldHelper.getLightAtPos(vorld, position);
+					dynamicMaterial.sunlightLevel = VorldHelper.getSunlightAtPos(vorld, position);
+					// CCC updates dynamic material with sunlight level etc
+				}
+			});
+
+			world.entities.push(lightingObject);
+			enableDayNightCycle = true;
+		}
+
 		if (!Fury.GameLoop.isRunning()) {
 			// If GameLoop paused call scene render manually to update view
 			scene.render();
@@ -242,6 +273,7 @@ let start = (initialBounds, worldConfigId) => {
 			cutoutMaterial: cutoutMaterial,
 			alphaMaterial: alphaMaterial,
 			unlitMaterial: unlitMaterial,
+			dynamicMaterial: dynamicMaterial,
 			bounds: initialBounds,
 			configId: worldConfigId
 		},
@@ -266,7 +298,7 @@ let start = (initialBounds, worldConfigId) => {
 	/* materials, startTime, timePeriod, updatePeriod, sunlightLevels, fogColors */
 	let CCC = require('./circadianCycleController');
 	ccc = CCC.create({
-		materials: [ material, cutoutMaterial, alphaMaterial], // TODO: Pass unlit shader and a multipler factor array (0.5)
+		materials: [ material, cutoutMaterial, alphaMaterial, dynamicMaterial], // TODO: Pass unlit shader and a multipler factor array (0.5)
 		startTime: 0.5,
 		timePeriod: 240,
 		sunlightLevels: CCC.lightCycle,
@@ -341,6 +373,10 @@ let loop = (elapsed) => {
 
 		for (let i = 0, l = triggerZones.length; i < l; i++) {
 			triggerZones[i].update(player);
+		}
+
+		for (let i = 0, l = world.entities.length; i < l; i++) {
+			world.entities[i].update(elapsed);
 		}
 
 		// Note after having the same tab open for a long time with multiple refreshes:
@@ -421,6 +457,11 @@ let createModeSelectMenu = () => {
 				menu.remove();
 				start(smallInitialBounds, "guassian_shaped_noise");
 			} }, 
+			{ text: "Test", callback: () => {
+				playButtonClickSfx();
+				menu.remove();
+				start(smallInitialBounds, "test");
+			} },
 			{ text: "Easy (Smaller World)", callback: () => {
 				playButtonClickSfx();
 				menu.remove();
@@ -737,6 +778,18 @@ window.addEventListener('load', () => {
 			shader: Fury.Shader.create(VoxelShader.createUnlit()),
 			texture: textureArray,
 			properties: { "fogColor": vec3.clone(skyColor), "fogDensity": 0.0025 }
+		});
+		dynamicMaterial = Fury.Material.create({
+			shader: Fury.Shader.create(VoxelShader.createDynamic()),
+			texture: textureArray,
+			properties: {
+				fogColor: vec3.clone(skyColor),
+				fogDensity: 0.005,
+				ambientMagnitude: 0.5,
+				directionalMagnitude: 0.5,
+				lightLevel: 0,
+				sunlightLevel: 0,
+			}
 		});
 
 		loadingCallback();

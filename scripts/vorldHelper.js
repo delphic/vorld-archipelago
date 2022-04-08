@@ -10,7 +10,7 @@ const VorldPrimitives = require('../vorld/core/primitives');
 module.exports = (function(){
 	let exports = {};
 
-	let scene = null, material = null, cutoutMaterial = null, alphaMaterial = null, unlitMaterial = null;
+	let scene = null, material = null, cutoutMaterial = null, alphaMaterial = null, unlitMaterial = null, dynamicMaterial = null;
 	let sceneChunkObjects = {};
 	let generationWorkerPool = WorkerPool.create({ src: 'scripts/generator-worker.js', maxWorkers: 8 });
 	let lightingWorkerPool = WorkerPool.create({ src: 'scripts/lighting-worker.js', maxWorkers: 8 });
@@ -531,6 +531,7 @@ module.exports = (function(){
 		}
 	};
 	generationConfigs["castle"] = generationConfigs["flat"]; // Reuse flat for castle test
+	generationConfigs["test"] = generationConfigs["flat"];
 
 	let lightingConfigs = {
 		"day": { fogColor: vec3.fromValues(136/255, 206/255, 235/255), fogDensity: 0.005, ambientMagnitude: 0.05, directionalMagnitude: 0.9 },
@@ -634,6 +635,7 @@ module.exports = (function(){
 				}
 			},
 			() => {
+				vorld.meta = { id: id };
 				// let elapsed = Date.now() - startTime;
 				// console.log("Generation pass took " + elapsed + "ms");
 				if (id == "castle") {
@@ -652,6 +654,9 @@ module.exports = (function(){
 						Vorld.tryMerge(vorld, data.vorld)
 						lightingPass(vorld, bounds, callback, progressDelegate);
 					});
+				} else if (id == "test") {
+					// General test scene
+					lightingPass(vorld, bounds, callback, progressDelegate);
 				} else {
 					// World decoration
 					// Determine spawn point on closest traversable local maxima to origin
@@ -692,7 +697,7 @@ module.exports = (function(){
 						}
 					}
 
-					vorld.meta = { spawnPoint: [ spawnPoint[0] + 0.5, spawnPoint[1] + 2, spawnPoint[2] + 0.5 ], portalPoints: [], portalSurfacePoints: [] };
+					vorld.meta = { id: id, spawnPoint: [ spawnPoint[0] + 0.5, spawnPoint[1] + 2, spawnPoint[2] + 0.5 ], portalPoints: [], portalSurfacePoints: [] };
 
 					// Place Exit Portal Area around spawnpoint
 					// Floor
@@ -1137,6 +1142,7 @@ module.exports = (function(){
 		cutoutMaterial = parameters.cutoutMaterial;
 		unlitMaterial = parameters.unlitMaterial;
 		alphaMaterial = parameters.alphaMaterial;
+		dynamicMaterial = parameters.dynamicMaterial;
 
 		// Apply lighting settings - arguably should be on scene and materials should have bindLighting method taking scene
 		let lightingConfig = lightingConfigs["day"];
@@ -1145,6 +1151,7 @@ module.exports = (function(){
 		material.setProperties(lightingConfig);
 		cutoutMaterial.setProperties(lightingConfig);
 		alphaMaterial.setProperties(lightingConfig);
+		dynamicMaterial.setProperties(lightingConfig);
 		unlitMaterial.setProperties({ fogColor: lightingConfig.fogColor, fogDensity: lightingConfig.fogDensity / 2 });
 		Fury.Renderer.clearColor(lightingConfig.fogColor[0], lightingConfig.fogColor[1], lightingConfig.fogColor[2], 1.0);
 
@@ -1177,6 +1184,65 @@ module.exports = (function(){
 		window.setVorldSeed = exports.setVorldSeed;
 		window.generateRandomSeed = exports.generateRandomSeed;
 	}
+
+	// Dynamic Lighting Util Methods
+	exports.getLightAtPos = (vorld, pos) => {
+		let x0 = Math.floor(pos[0] - 0.5),
+			y0 = Math.floor(pos[1] - 0.5),
+			z0 = Math.floor(pos[2] - 0.5);
+		let x1 = x0 + 1, y1 = y0 + 1, z1 = z0 + 1;
+
+		// This can probe into blocks where the light level is zero (just probe close to the ground for an example)
+		// we actually want the surface light level of that block from this direction, rather than the light value itself
+		// This is true for getSunlightAtPos too - however this is a reasonable first pass
+		return interpolatePoints(
+			Vorld.getBlockLight(vorld, x0, y0, z0),
+			Vorld.getBlockLight(vorld, x1, y0, z0),
+			Vorld.getBlockLight(vorld, x0, y1, z0),
+			Vorld.getBlockLight(vorld, x0, y0, z1),
+			Vorld.getBlockLight(vorld, x1, y1, z0),
+			Vorld.getBlockLight(vorld, x1, y0, z1),
+			Vorld.getBlockLight(vorld, x0, y1, z1),
+			Vorld.getBlockLight(vorld, x1, y1, z1),
+			pos);
+	};
+
+	exports.getSunlightAtPos = (vorld, pos) => {
+		let x0 = Math.floor(pos[0] - 0.5),
+			y0 = Math.floor(pos[1] - 0.5),
+			z0 = Math.floor(pos[2] - 0.5);
+		let x1 = x0 + 1, y1 = y0 + 1, z1 = z0 + 1;
+
+		return interpolatePoints(
+			Vorld.getBlockSunlight(vorld, x0, y0, z0),
+			Vorld.getBlockSunlight(vorld, x1, y0, z0),
+			Vorld.getBlockSunlight(vorld, x0, y1, z0),
+			Vorld.getBlockSunlight(vorld, x0, y0, z1),
+			Vorld.getBlockSunlight(vorld, x1, y1, z0),
+			Vorld.getBlockSunlight(vorld, x1, y0, z1),
+			Vorld.getBlockSunlight(vorld, x0, y1, z1),
+			Vorld.getBlockSunlight(vorld, x1, y1, z1),
+			pos);
+	};
+
+	let interpolatePoints = (x0y0z0, x1y0z0, x0y1z0, x0y0z1, x1y1z0, x1y0z1, x0y1z1, x1y1z1, pos) => {
+		let x = pos[0] - 0.5,
+			y = pos[1] - 0.5,
+			z = pos[2] - 0.5;
+		x = x - Math.floor(x);
+		y = y - Math.floor(y);
+		z = z - Math.floor(z);
+
+		let y0z0 = Maths.lerp(x0y0z0, x1y0z0, x);
+		let y0z1 = Maths.lerp(x0y0z1, x1y0z1, x);
+		let y1z0 = Maths.lerp(x0y1z0, x1y1z0, x);
+		let y1z1 = Maths.lerp(x0y1z1, x1y1z1, x);
+
+		let y0 = Maths.lerp(y0z0,y0z1, z);
+		let y1 = Maths.lerp(y1z0,y1z1, z);
+
+		return Maths.lerp(y0, y1, y);
+	};
 
 	return exports;
 })();
