@@ -21,7 +21,7 @@ let player;
 let skyColor = vec3.fromValues(136/255, 206/255, 235/255);
 // waterColor : 0, 113, 144
 
-let debug = true; // Determines options available in various GUI settings && creative mode
+let debug = false; // Determines options available in various GUI settings && creative mode
 
 let ccc;
 let enableDayNightCycle = !debug; // Debug toggle for day night cycle (easier to test with endless day)
@@ -194,12 +194,15 @@ let start = (initialBounds, worldConfigId) => {
 			spawnPoint = vec3.clone(vorld.meta.spawnPoint);
 			orbsPlaced = 0;
 
+			let quadMat = Object.create(dynamicMaterial);
+			quadMat.id = null;
+
 			let playerConfig = {
 				world: world,
 				vorld: vorld,
 				scene: scene,
 				position: spawnPoint,
-				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(VorldHelper.getTileIndexBufferValueForBlock("water")), material: alphaMaterial, position: vec3.create() }),
+				quad: overlayScene.add({ mesh: Primitives.createQuadMesh(VorldHelper.getTileIndexBufferValueForBlock("water")), material: quadMat, position: vec3.create() }),
 				orb: overlayScene.add({ mesh: Fury.Mesh.create(VorldHelper.getHeldOrbMeshData()), material: unlitMaterial, position: vec3.create() }), // HACK - should be able to hold more than just an orb
 				camera: camera,
 				config: playerMovementConfig,
@@ -237,19 +240,18 @@ let start = (initialBounds, worldConfigId) => {
 			let position = vec3.fromValues(0, 1, 0);
 
 			let meshConfig = VorldPrimitives.createCuboidMeshJson(-0.25, 0.25, -0.25, 0.25, -0.25, 0.25);
-			meshConfig.tileIndices = [];
-			meshConfig.tileIndices.length = meshConfig.vertices.length;
-			meshConfig.tileIndices.fill(VorldHelper.getTileIndexBufferValueForBlock("stone") || 0);
-			meshConfig.customAttributes = [{ name: "tileBuffer", source: "tileIndices", size: 1 }];
+			Primitives.appendTileIndices(meshConfig, VorldHelper.getTileIndexBufferValueForBlock("stone") || 0);
 
 			let mesh = Fury.Mesh.create(meshConfig);
-			lightingObject.so = scene.add({ mesh: mesh, material: dynamicMaterial, position: position });
+			let materialInstance = Object.create(dynamicMaterial);
+			materialInstance.id = null;
+			lightingObject.so = scene.add({ mesh: mesh, material: materialInstance, position: position });
 
 			lightingObject.addComponent("light-test", { 
 				update: (elapsed) => {
 					position[0] = 5 * Math.sin(GameLoop.time);
-					dynamicMaterial.lightLevel = VorldHelper.getLightAtPos(vorld, position);
-					dynamicMaterial.sunlightLevel = VorldHelper.getSunlightAtPos(vorld, position);
+					materialInstance.lightLevel = VorldHelper.getLightAtPos(vorld, position);
+					materialInstance.sunlightLevel = VorldHelper.getSunlightAtPos(vorld, position);
 					// CCC updates dynamic material with sunlight level etc
 				}
 			});
@@ -782,14 +784,7 @@ window.addEventListener('load', () => {
 		dynamicMaterial = Fury.Material.create({
 			shader: Fury.Shader.create(VoxelShader.createDynamic()),
 			texture: textureArray,
-			properties: {
-				fogColor: vec3.clone(skyColor),
-				fogDensity: 0.005,
-				ambientMagnitude: 0.5,
-				directionalMagnitude: 0.5,
-				lightLevel: 0,
-				sunlightLevel: 0,
-			}
+			properties: { alpha: true, blendSeparate: true, "fogColor": vec3.clone(skyColor), "fogDensity": 0.005, "ambientMagnitude": 0.5, "directionalMagnitude": 0.5, "lightLevel": 0, "sunlightLevel": 0 }
 		});
 
 		loadingCallback();

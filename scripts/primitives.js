@@ -32,13 +32,10 @@ module.exports = (function(){
 
 	exports.createQuadMesh = (tileIndex) => {
 		let mesh = Fury.Mesh.create(quadJson);
-		// HACK: create other buffers
-		// TODO: make this just be normal quad without having to do all the voxel stuff
+		// Manually create tile buffers
 		if (tileIndex !== undefined) {
 			mesh.tileBuffer = Fury.Renderer.createBuffer([ tileIndex, tileIndex, tileIndex, tileIndex ], 1);
 		}
-		// TODO: should query current blocks light level rather than building own buffer
-		mesh.lightBuffer = Fury.Renderer.createBuffer([ 15/16, 15/16, 15/16, 15/16 ], 1); 
 		return mesh;
 	};
 

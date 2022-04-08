@@ -42,6 +42,7 @@ module.exports = (function(){
 		let xMin = Math.floor(box.min[0]), xMax = Math.floor(box.max[0]);
 		let zMin = Math.floor(box.min[2]), zMax = Math.floor(box.max[2]);
 
+		// TODO: Refine this - really want to check to see if you're *in* a half voxel (or similar) first?
 		let y = Math.floor(origin[1]) - 1;
 		voxelCenter[1] = y + 0.5;
 
@@ -499,6 +500,7 @@ module.exports = (function(){
 				}
 
 				// Don't allow walking off edges
+				// TODO: Allow you to walk down stairs but not off them
 				if (isWalking && foundClosestGroundVoxel) {
 					let overHangDist = 0.3;
 					let shouldSnapBack = true;
@@ -724,6 +726,11 @@ module.exports = (function(){
 				waterQuad.active = Vorld.getBlock(vorld, x, y, z) == VorldHelper.blockIds["water"]; 
 				// TODO: Should check if actually water, and show different properties depending on block type but for now any non-solid block is 'water'
 				if (waterQuad.active) {
+					// HACK: When light levels are near 0 the quad becomes effectively transparent despite the shader treating alpha separately
+					// Whilst we investigate how to fix this, provide a minimum light level of 3 so there's always some obscuring (any higher looks bad at night)
+					waterQuad.material.lightLevel = Math.max(3, VorldHelper.getLightAtPos(vorld, camera.position));
+					waterQuad.material.sunlightLevel = VorldHelper.getSunlightAtPos(vorld, camera.position);
+
 					let upperY = Math.floor(camera.position[1] + 1.001 * camera.near); 
 					waterQuad.transform.scale[0] = camera.ratio; // technically overkill, as we're closer than 1
 					quat.copy(waterQuad.transform.rotation, camera.rotation);
