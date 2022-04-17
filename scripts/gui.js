@@ -48,6 +48,7 @@ module.exports = (function(){
 			}
 			element.style[names[i]] = value;
 		}
+		return element;
 	};
 
 	exports.createBox = (parent, x, y, w, h, title, content) => {
