@@ -3,9 +3,13 @@ const Fury = require('fury');
 const { Bounds, Maths, Random } = Fury;
 const { vec3 } = Maths;
 const Primitives = require('./primitives');
-const Vorld = require('../vorld/core/vorld');
-const VorldUtils = require('../vorld/core/utils');
-const VorldPrimitives = require('../vorld/core/primitives');
+const {
+	World: Vorld, 
+	Utils: VorldUtils,
+	Primitives: VorldPrimitives,
+	Analysis,
+	Generator
+}  = require('../vorld/');
 
 module.exports = (function(){
 	let exports = {};
@@ -663,12 +667,12 @@ module.exports = (function(){
 					// Add orbs to collect at other points of interest (currently just local maxima)
 					// Add trees to flat areas (currently done via low variance chunks, but this is not as good as I'd hoped
 					// Would probably be improved if the traversability map stored out flat connected areas)
-					let maximaFinder = require('../vorld/analysis/maximaFinder');
+					let maximaFinder = Analysis.MaximaFinder;
 					let maxPeaks = 10;
 					if (bounds.iMax > 15) { maxPeaks = 30; } // Larger worlds are supposed to be more difficult so increase max peaks to collect so orbs can be placed further away
 					let maxima = maximaFinder.findTraversableLocalMaxima(vorld, blockIds["water"], maxPeaks);
 
-					let heightMapAnalyser = require('../vorld/analysis/heightmapAnalyser');
+					let heightMapAnalyser = Analysis.HeightMap;
 					heightMapAnalyser.calculateMeanAndVariance(vorld.heightMap, vorld.heightMap);
 
 					if (maxima.length < 5) {
@@ -814,7 +818,7 @@ module.exports = (function(){
 					// Tree Test - spawn trees on chunks with low variance and away from the shore
 					// This kinda works but also kinda not, very flat areas next to cliffs are ignored
 					// some of the placed trees are still very close to the shore
-					const VorldFlora = require('../vorld/generation/flora');
+					const VorldFlora = Generator.Flora;
 					Random.setSeed(generationConfig.generationRules.seed);
 
 					let keys = Object.keys(vorld.heightMap);

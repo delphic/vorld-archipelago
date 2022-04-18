@@ -1,10 +1,12 @@
 const Fury = require('fury');
 const { Maths, GameLoop, Random } = Fury;
 const { vec3, quat } = Maths;
-const Vorld = require('../vorld/core/vorld');
-const VoxelShader = require('../vorld/core/shader');
+const { 
+	World: Vorld,
+	Shader: VoxelShader,
+	Primitives: VorldPrimitives 
+} = require('../vorld/');
 const VorldHelper = require('./vorldHelper');
-const VorldPrimitives = require('../vorld/core/primitives');
 const Player = require('./player');
 const GUI = require('./gui');
 const Audio = require('./audio');

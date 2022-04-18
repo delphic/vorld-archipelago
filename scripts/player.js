@@ -5,9 +5,8 @@ const { vec3, quat, vec3Pool } = Maths;
 const Audio = require('./audio');
 const Primitives = require('./primitives');
 const CharacterController = require ('./characterController.js');
-const Vorld = require('../vorld/core/vorld');
+const { World: Vorld, Physics: VorldPhysics } = require('../vorld/');
 const VorldHelper = require('./vorldHelper');
-const VorldPhysics = require('../vorld/core/physics');
 
 module.exports = (function(){
 	let exports = {};

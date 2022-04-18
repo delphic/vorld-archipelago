@@ -1,5 +1,4 @@
-let Vorld = require('../../../vorld/core/vorld');
-let VorldUtils = require('../../../vorld/core/utils');
+const { World: Vorld, Utils: VorldUtils } = require('../../../vorld/');
 
 module.exports = (function(){
 	let exports = {};
