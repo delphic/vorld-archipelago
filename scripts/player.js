@@ -5,7 +5,7 @@ const { vec3, quat, vec3Pool } = Maths;
 const Audio = require('./audio');
 const Primitives = require('./primitives');
 const CharacterController = require ('./characterController.js');
-const { World: Vorld, Physics: VorldPhysics } = require('../vorld/');
+const { Cardinal, World: Vorld, Physics: VorldPhysics } = require('../vorld/');
 const VorldHelper = require('./vorldHelper');
 
 module.exports = (function(){
@@ -780,24 +780,24 @@ module.exports = (function(){
 
 					let placement = Vorld.getBlockTypeDefinition(vorld, blockToPlace).placement;
 					
-					let up = Vorld.Cardinal.Direction.up;
-					let forward = Vorld.Cardinal.Direction.forward;
+					let up = Cardinal.Direction.up;
+					let forward = Cardinal.Direction.forward;
 					if (placement === "up_normal") {
 						let normal = vec3Pool.request();
 						vec3.zero(normal);
 						normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
-						up = Vorld.Cardinal.getDirectionFromVector(normal);
+						up = Cardinal.getDirectionFromVector(normal);
 						vec3Pool.return(normal);
 					} else if (placement === "half" || placement === "steps") {
 						let normal = vec3Pool.request();
 						vec3.zero(normal);
 						normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
-						let normalDir = Vorld.Cardinal.getDirectionFromVector(normal);
-						if (normalDir !== Vorld.Cardinal.Direction.up && normalDir !== Vorld.Cardinal.Direction.down) {
+						let normalDir = Cardinal.getDirectionFromVector(normal);
+						if (normalDir !== Cardinal.Direction.up && normalDir !== Cardinal.Direction.down) {
 							if (hitPoint[1] - Math.floor(hitPoint[1]) < 0.5) {
-								up = Vorld.Cardinal.Direction.up;
+								up = Cardinal.Direction.up;
 							} else {
-								up = Vorld.Cardinal.Direction.down;
+								up = Cardinal.Direction.down;
 							}
 						} else {
 							up = normalDir;
@@ -805,7 +805,7 @@ module.exports = (function(){
 
 						if (placement === "steps") {
 							// Forward towards the camera
-							if (normalDir !== Vorld.Cardinal.Direction.up && normalDir !== Vorld.Cardinal.Direction.down) {
+							if (normalDir !== Cardinal.Direction.up && normalDir !== Cardinal.Direction.down) {
 								vec3.zero(normal);
 								normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
 							} else {
@@ -820,7 +820,7 @@ module.exports = (function(){
 								vec3.zero(normal);
 								normal[maxAxis] = -Math.sign(cameraLookDirection[maxAxis]);
 							}
-							forward = Vorld.Cardinal.getDirectionFromVector(normal);
+							forward = Cardinal.getDirectionFromVector(normal);
 							// Invert because steps forward is not steps front (oops)
 							if (forward % 2 == 0) {
 								forward += 1;
@@ -843,7 +843,7 @@ module.exports = (function(){
 						let normal = vec3Pool.request();
 						vec3.zero(normal);
 						normal[maxAxis] = -Math.sign(cameraLookDirection[maxAxis]);
-						forward = Vorld.Cardinal.getDirectionFromVector(normal);
+						forward = Cardinal.getDirectionFromVector(normal);
 						vec3Pool.return(normal);
 					}
 
@@ -870,7 +870,7 @@ module.exports = (function(){
 						}
 					}
 
-					// console.log("Up calculated as " + Vorld.Cardinal.getDirectionDescription(up) + ", forward calculated as " + Vorld.Cardinal.getDirectionDescription(forward));
+					// console.log("Up calculated as " + Cardinal.getDirectionDescription(up) + ", forward calculated as " + Cardinal.getDirectionDescription(forward));
 					VorldHelper.addBlock(
 						vorld,
 						x,

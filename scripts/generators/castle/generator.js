@@ -1,4 +1,4 @@
-const { World: Vorld, Utils: VorldUtils } = require('../../../vorld/');
+const { Cardinal, World: Vorld, Utils: VorldUtils } = require('../../../vorld/');
 
 module.exports = (function(){
 	let exports = {};
@@ -10,7 +10,7 @@ module.exports = (function(){
 		// Alternating inverted half blocks for a steady increase
 		for (let i  = 0; y < syMax || (y == syMax && i % 2 == 0); i++) {
 			let invertBlock = i % 2 == 1;
-			Vorld.addBlock(vorld, x, y, z, halfBlock, Vorld.Cardinal.Direction.up + i % 2, Vorld.Cardinal.Direction.forward);
+			Vorld.addBlock(vorld, x, y, z, halfBlock, Cardinal.Direction.up + i % 2, Cardinal.Direction.forward);
 
 			// Make sure you have Headroom
 			for (let j = 1, n = invertBlock ? 3 : 2; j <= n; j++) {
@@ -66,8 +66,8 @@ module.exports = (function(){
 			// Add base but with steps up
 			if (y == yMin) {
 				if (x == Math.floor((xMax - xMin)/2) + xMin  && (z == zMin - 1 || z == zMax + 1)) {
-					let forward = z == zMin -1 ? Vorld.Cardinal.Direction.forward : Vorld.Cardinal.Direction.back;
-					Vorld.addBlock(vorld, x, y, z, stepBlock, Vorld.Cardinal.Direction.up, forward);
+					let forward = z == zMin -1 ? Cardinal.Direction.forward : Cardinal.Direction.back;
+					Vorld.addBlock(vorld, x, y, z, stepBlock, Cardinal.Direction.up, forward);
 				} else {
 					Vorld.addBlock(vorld, x, y, z, cornerBlock);
 				}
@@ -79,14 +79,14 @@ module.exports = (function(){
 					if (y < yMin + 7) {
 						Vorld.addBlock(vorld, x, y, z, cornerBlock);
 					} else {
-						let up = Vorld.Cardinal.Direction.up
-						let forward = Vorld.Cardinal.Direction.forward; 
+						let up = Cardinal.Direction.up
+						let forward = Cardinal.Direction.forward; 
 						if (x == xMin - 1) {
-							forward = Vorld.Cardinal.Direction.right;
+							forward = Cardinal.Direction.right;
 						} else if (x == xMax + 1) {
-							forward = Vorld.Cardinal.Direction.left;
+							forward = Cardinal.Direction.left;
 						} else if (z == zMax + 1) {
-							forward = Vorld.Cardinal.Direction.back;
+							forward = Cardinal.Direction.back;
 						}
 						Vorld.addBlock(vorld, x, y, z, stepBlock, up, forward);
 					}
@@ -112,7 +112,7 @@ module.exports = (function(){
 				if ((y + 3 - yMin) % 5 == 0) {
 					Vorld.addBlock(vorld, x, y, z, halfBlock);
 				} else {
-					Vorld.addBlock(vorld, x, y, z, halfBlock, Vorld.Cardinal.Direction.down);
+					Vorld.addBlock(vorld, x, y, z, halfBlock, Cardinal.Direction.down);
 				}
 			}
 			// Walls
@@ -150,14 +150,14 @@ module.exports = (function(){
 							Vorld.addBlock(vorld, x, y, z, halfBlock);
 						} else {
 							// And 'supported' with step blocks
-							let up = Vorld.Cardinal.Direction.down;
-							let forward = Vorld.Cardinal.Direction.forward; 
+							let up = Cardinal.Direction.down;
+							let forward = Cardinal.Direction.forward; 
 							if (x == xMin - 1) {
-								forward = Vorld.Cardinal.Direction.right;
+								forward = Cardinal.Direction.right;
 							} else if (x == xMax + 1) {
-								forward = Vorld.Cardinal.Direction.left;
+								forward = Cardinal.Direction.left;
 							} else if (z == zMax + 1) {
-								forward = Vorld.Cardinal.Direction.back;
+								forward = Cardinal.Direction.back;
 							}
 							Vorld.addBlock(vorld, x, y, z, stepBlock, up, forward);
 						}
