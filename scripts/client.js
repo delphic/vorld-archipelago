@@ -3,8 +3,10 @@ const { Maths, GameLoop, Random } = Fury;
 const { vec3, quat } = Maths;
 const { 
 	World: Vorld,
+	Lighting: VorldLighting,
 	Shader: VoxelShader,
-	Primitives: VorldPrimitives 
+	Primitives: VorldPrimitives,
+	Updater: VorldUpdater
 } = require('../vorld/');
 const VorldHelper = require('./vorldHelper');
 const Player = require('./player');
@@ -122,7 +124,7 @@ let onBlockPlaced = (block, x, y, z) => {
 						// HACK: Only use vorld helper to add last block as it'll trigger the remeshing and we just want to do that once
 						VorldHelper.addBlock(vorld, points[i][0], points[i][1], points[i][2], blockId);
 					} else {
-						Vorld.addBlock(vorld, points[i][0], points[i][1], points[i][2], blockId);
+						VorldUpdater.addBlock(vorld, points[i][0], points[i][1], points[i][2], blockId);
 					}
 				}
 				portalTrigger = TriggerZone.create(Fury.Bounds.create({ min: min, max: max }), () => {
@@ -252,8 +254,8 @@ let start = (initialBounds, worldConfigId) => {
 			lightingObject.addComponent("light-test", { 
 				update: (elapsed) => {
 					position[0] = 5 * Math.sin(GameLoop.time);
-					materialInstance.lightLevel = VorldHelper.getLightAtPos(vorld, position);
-					materialInstance.sunlightLevel = VorldHelper.getSunlightAtPos(vorld, position);
+					materialInstance.lightLevel = VorldLighting.getLightAtPos(vorld, position);
+					materialInstance.sunlightLevel = VorldLighting.getSunlightAtPos(vorld, position);
 					// CCC updates dynamic material with sunlight level etc
 				}
 			});

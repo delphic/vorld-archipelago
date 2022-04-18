@@ -1,4 +1,4 @@
-const { Cardinal, World: Vorld, Utils: VorldUtils } = require('../../../vorld/');
+const { Cardinal, World: Vorld, Updater: VorldUpdater, Utils: VorldUtils } = require('../../../vorld/');
 
 module.exports = (function(){
 	let exports = {};
@@ -10,12 +10,12 @@ module.exports = (function(){
 		// Alternating inverted half blocks for a steady increase
 		for (let i  = 0; y < syMax || (y == syMax && i % 2 == 0); i++) {
 			let invertBlock = i % 2 == 1;
-			Vorld.addBlock(vorld, x, y, z, halfBlock, Cardinal.Direction.up + i % 2, Cardinal.Direction.forward);
+			VorldUpdater.addBlock(vorld, x, y, z, halfBlock, Cardinal.Direction.up + i % 2, Cardinal.Direction.forward);
 
 			// Make sure you have Headroom
 			for (let j = 1, n = invertBlock ? 3 : 2; j <= n; j++) {
 				if (Vorld.getBlock(vorld, x, y+j, z)) {
-					Vorld.addBlock(vorld, x, y+j, z, 0);
+					VorldUpdater.addBlock(vorld, x, y+j, z, 0);
 				}
 			}
 
@@ -67,17 +67,17 @@ module.exports = (function(){
 			if (y == yMin) {
 				if (x == Math.floor((xMax - xMin)/2) + xMin  && (z == zMin - 1 || z == zMax + 1)) {
 					let forward = z == zMin -1 ? Cardinal.Direction.forward : Cardinal.Direction.back;
-					Vorld.addBlock(vorld, x, y, z, stepBlock, Cardinal.Direction.up, forward);
+					VorldUpdater.addBlock(vorld, x, y, z, stepBlock, Cardinal.Direction.up, forward);
 				} else {
-					Vorld.addBlock(vorld, x, y, z, cornerBlock);
+					VorldUpdater.addBlock(vorld, x, y, z, cornerBlock);
 				}
 			} else {
 				if (z == Math.floor((zMax - zMin)/2) + zMin && (x == xMin-1 || x == xMax + 1) && y == yMin + 1) {
-					Vorld.addBlock(vorld, x, y, z, halfBlock);
+					VorldUpdater.addBlock(vorld, x, y, z, halfBlock);
 				} else if (((x == xMin || x == xMax) && ((z == zMin - 1) || (z == zMax + 1))) 
 					|| ((x == xMin - 1 || x == xMax + 1) && (z == zMin || z == zMax))) {
 					if (y < yMin + 7) {
-						Vorld.addBlock(vorld, x, y, z, cornerBlock);
+						VorldUpdater.addBlock(vorld, x, y, z, cornerBlock);
 					} else {
 						let up = Cardinal.Direction.up
 						let forward = Cardinal.Direction.forward; 
@@ -88,7 +88,7 @@ module.exports = (function(){
 						} else if (z == zMax + 1) {
 							forward = Cardinal.Direction.back;
 						}
-						Vorld.addBlock(vorld, x, y, z, stepBlock, up, forward);
+						VorldUpdater.addBlock(vorld, x, y, z, stepBlock, up, forward);
 					}
 				}
 			}
@@ -110,26 +110,26 @@ module.exports = (function(){
 				&& !(isOnXMidPoint && isOnZEdge && y <= yMin + 5)) { // Not a wall with a door!
 				// Don't do anything we want windows!
 				if ((y + 3 - yMin) % 5 == 0) {
-					Vorld.addBlock(vorld, x, y, z, halfBlock);
+					VorldUpdater.addBlock(vorld, x, y, z, halfBlock);
 				} else {
-					Vorld.addBlock(vorld, x, y, z, halfBlock, Cardinal.Direction.down);
+					VorldUpdater.addBlock(vorld, x, y, z, halfBlock, Cardinal.Direction.down);
 				}
 			}
 			// Walls
 			else if (((x == xMin || x == xMax) || (z == zMin || z == zMax)) && y < yMax - 2) {
 				if ((x == xMin || x == xMax) && (z == zMin || z == zMax)) {
-					Vorld.addBlock(vorld, x, y, z, cornerBlock);
+					VorldUpdater.addBlock(vorld, x, y, z, cornerBlock);
 				} else {
 					if ((y - yMin) % 5 == 0 || (y > yMax - 5)) {
-						Vorld.addBlock(vorld, x, y, z, cornerBlock);
+						VorldUpdater.addBlock(vorld, x, y, z, cornerBlock);
 					} else {
-						Vorld.addBlock(vorld, x, y, z, wallBlock);
+						VorldUpdater.addBlock(vorld, x, y, z, wallBlock);
 					}
 				}
 			} 
 			// Inter floors
 			else if (y > yMin && (y - yMin) % 5 == 0 && y < yMax - 5) {
-				Vorld.addBlock(vorld, x, y, z, floorBlock);
+				VorldUpdater.addBlock(vorld, x, y, z, floorBlock);
 			}
 		});
 
@@ -141,13 +141,13 @@ module.exports = (function(){
 				if (!((x == xMin - 1 || x == xMax + 1) && (z == zMin - 1 || z == zMax + 1))) {
 					if (y == yMax -2) {
 						// Add a ring
-						Vorld.addBlock(vorld, x, y, z, cornerBlock);
+						VorldUpdater.addBlock(vorld, x, y, z, cornerBlock);
 					} else if (
 						(x % 2 != 0 && (z == zMin - 1 || z == zMax + 1))
 						|| (z % 2 != 0 && (x == xMin - 1 || x == xMax + 1))) {
 						if (y == yMax - 1) {
 							// Topped with half blocks
-							Vorld.addBlock(vorld, x, y, z, halfBlock);
+							VorldUpdater.addBlock(vorld, x, y, z, halfBlock);
 						} else {
 							// And 'supported' with step blocks
 							let up = Cardinal.Direction.down;
@@ -159,12 +159,12 @@ module.exports = (function(){
 							} else if (z == zMax + 1) {
 								forward = Cardinal.Direction.back;
 							}
-							Vorld.addBlock(vorld, x, y, z, stepBlock, up, forward);
+							VorldUpdater.addBlock(vorld, x, y, z, stepBlock, up, forward);
 						}
 					}
 				}
 			} else if (y == yMax -3) {
-				Vorld.addBlock(vorld, x, y, z, cornerBlock);
+				VorldUpdater.addBlock(vorld, x, y, z, cornerBlock);
 			}
 		});
 

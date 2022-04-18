@@ -8,7 +8,8 @@ const {
 	Utils: VorldUtils,
 	Primitives: VorldPrimitives,
 	Analysis,
-	Generator
+	Generator,
+	Updater: VorldUpdater
 }  = require('../vorld/');
 
 module.exports = (function(){
@@ -709,19 +710,19 @@ module.exports = (function(){
 						for (let k = -3; k <= 2; k++) {
 							if (i == 0 && k != -3) {
 								// Line guiding to portal
-								Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1], spawnPoint[2] + k, blockIds["stone"]);
+								VorldUpdater.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1], spawnPoint[2] + k, blockIds["stone"]);
 							} else {
 								// Rest of floor
-								Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1], spawnPoint[2] + k, blockIds["stone_blocks"]);
+								VorldUpdater.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1], spawnPoint[2] + k, blockIds["stone_blocks"]);
 							}
 							// Convert beneath to soil if it wasn't already
-							Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] - 1, spawnPoint[2] + k, blockIds["soil"]);
+							VorldUpdater.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] - 1, spawnPoint[2] + k, blockIds["soil"]);
 						}
 					}
 					// Back wall
 					for (let i = -1; i <= 1; i++) {
 						for (let j = 0; j <= 3; j++) {
-							Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 3, blockIds["stone_blocks"]);
+							VorldUpdater.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 3, blockIds["stone_blocks"]);
 						}
 					}
 					// Arch
@@ -729,15 +730,15 @@ module.exports = (function(){
 						for (let j = 1; j <= 3; j++) {
 							if (i != 0) {
 								if (j != 3) {
-									Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2, blockIds["orb_pedistal"]);
+									VorldUpdater.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2, blockIds["orb_pedistal"]);
 								} else {
-									Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2, blockIds["stone_half"]);
+									VorldUpdater.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2, blockIds["stone_half"]);
 								}
 							} else {
 								if (j < 3) {
 									vorld.meta.portalSurfacePoints.push([ spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2]);
 								} else {
-									Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2, blockIds["stone_blocks"]);
+									VorldUpdater.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + j, spawnPoint[2] - 2, blockIds["stone_blocks"]);
 								}
 							}
 						}
@@ -747,7 +748,7 @@ module.exports = (function(){
 					for (let i = -2; i <= 2; i++) {
 						for (let k = 0; k <= 2; k++) {
 							if ((Math.abs(i) == 2 && k == 2) || (Math.abs(i) == 1 && k == 0)) {
-								Vorld.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + 1, spawnPoint[2] + k, blockIds["orb_pedistal"]);
+								VorldUpdater.addBlock(vorld, spawnPoint[0] + i, spawnPoint[1] + 1, spawnPoint[2] + k, blockIds["orb_pedistal"]);
 								vorld.meta.portalPoints.push([ spawnPoint[0]+i, spawnPoint[1]+2, spawnPoint[2]+k]);
 							}
 						}
@@ -801,8 +802,8 @@ module.exports = (function(){
 					// Spawn the orbs *after* the portal
 					for (let i = 0, l = pickedPoints.length; i < l; i++) {
 						// console.log("Spawned orb at " + JSON.stringify(pickedPoints[i]));
-						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], blockIds["orb_pedistal"]);
-						Vorld.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 2, pickedPoints[i][2], blockIds["orb"]);
+						VorldUpdater.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 1, pickedPoints[i][2], blockIds["orb_pedistal"]);
+						VorldUpdater.addBlock(vorld, pickedPoints[i][0], pickedPoints[i][1] + 2, pickedPoints[i][2], blockIds["orb"]);
 					}
 
 					let clashesWithPoints = (point, radius, points) => {
@@ -855,7 +856,7 @@ module.exports = (function(){
 									if (y > 1 && Random.value() < chanceOfGrass // Above water level
 										&& Vorld.getBlock(vorld, x, y, z) == 0 // Only in empty space
 										&& Vorld.getBlock(vorld, x, y - 1, z) == blockIds["grass"]) { // Only on grass
-										Vorld.addBlock(vorld, x, y, z, blockIds["long_grass"]);
+										VorldUpdater.addBlock(vorld, x, y, z, blockIds["long_grass"]);
 									}
 								}
 							}
@@ -879,7 +880,7 @@ module.exports = (function(){
 					};
 					let buildWall = (x, y, z) => {
 						// TODO: Better walls
-						Vorld.addBlock(vorld, x, y, z, blockIds["stone"]);
+						VorldUpdater.addBlock(vorld, x, y, z, blockIds["stone"]);
 					};
 					let xMin = expandedBounds.iMin * vorld.chunkSize + vorld.chunkSize - 1,
 						xMax = xMin,
@@ -980,7 +981,7 @@ module.exports = (function(){
 		chunkIndices[2] = Math.floor(z / vorld.chunkSize); 
 		let key = chunkIndices[0] + "_" + chunkIndices[1] + "_" + chunkIndices[2];
 		// ^^ TODO: Vorld Utils
-		Vorld.addBlock(vorld, x, y, z, block, up, forward);
+		VorldUpdater.addBlock(vorld, x, y, z, block, up, forward);
 		// TODO: Maybe addBlock could take an out for blocks/chunks modified
 		// Or we could mark chunks dirty and on remesh set them clean
 
@@ -1110,7 +1111,7 @@ module.exports = (function(){
 		// Check for long grass and remove if necessary
 		if (Vorld.getBlock(vorld, x, y, z) == blockIds["grass"] 
 			&& Vorld.getBlock(vorld, x, y + 1, z) == blockIds["long_grass"]) {
-				Vorld.addBlock(vorld, x, y + 1, z, 0);
+				VorldUpdater.addBlock(vorld, x, y + 1, z, 0);
 		}
 
 		// Check horizontally adjacent blocks for water
@@ -1188,65 +1189,6 @@ module.exports = (function(){
 		window.setVorldSeed = exports.setVorldSeed;
 		window.generateRandomSeed = exports.generateRandomSeed;
 	}
-
-	// Dynamic Lighting Util Methods
-	exports.getLightAtPos = (vorld, pos) => {
-		let x0 = Math.floor(pos[0] - 0.5),
-			y0 = Math.floor(pos[1] - 0.5),
-			z0 = Math.floor(pos[2] - 0.5);
-		let x1 = x0 + 1, y1 = y0 + 1, z1 = z0 + 1;
-
-		// This can probe into blocks where the light level is zero (just probe close to the ground for an example)
-		// we actually want the surface light level of that block from this direction, rather than the light value itself
-		// This is true for getSunlightAtPos too - however this is a reasonable first pass
-		return interpolatePoints(
-			Vorld.getBlockLight(vorld, x0, y0, z0),
-			Vorld.getBlockLight(vorld, x1, y0, z0),
-			Vorld.getBlockLight(vorld, x0, y1, z0),
-			Vorld.getBlockLight(vorld, x0, y0, z1),
-			Vorld.getBlockLight(vorld, x1, y1, z0),
-			Vorld.getBlockLight(vorld, x1, y0, z1),
-			Vorld.getBlockLight(vorld, x0, y1, z1),
-			Vorld.getBlockLight(vorld, x1, y1, z1),
-			pos);
-	};
-
-	exports.getSunlightAtPos = (vorld, pos) => {
-		let x0 = Math.floor(pos[0] - 0.5),
-			y0 = Math.floor(pos[1] - 0.5),
-			z0 = Math.floor(pos[2] - 0.5);
-		let x1 = x0 + 1, y1 = y0 + 1, z1 = z0 + 1;
-
-		return interpolatePoints(
-			Vorld.getBlockSunlight(vorld, x0, y0, z0),
-			Vorld.getBlockSunlight(vorld, x1, y0, z0),
-			Vorld.getBlockSunlight(vorld, x0, y1, z0),
-			Vorld.getBlockSunlight(vorld, x0, y0, z1),
-			Vorld.getBlockSunlight(vorld, x1, y1, z0),
-			Vorld.getBlockSunlight(vorld, x1, y0, z1),
-			Vorld.getBlockSunlight(vorld, x0, y1, z1),
-			Vorld.getBlockSunlight(vorld, x1, y1, z1),
-			pos);
-	};
-
-	let interpolatePoints = (x0y0z0, x1y0z0, x0y1z0, x0y0z1, x1y1z0, x1y0z1, x0y1z1, x1y1z1, pos) => {
-		let x = pos[0] - 0.5,
-			y = pos[1] - 0.5,
-			z = pos[2] - 0.5;
-		x = x - Math.floor(x);
-		y = y - Math.floor(y);
-		z = z - Math.floor(z);
-
-		let y0z0 = Maths.lerp(x0y0z0, x1y0z0, x);
-		let y0z1 = Maths.lerp(x0y0z1, x1y0z1, x);
-		let y1z0 = Maths.lerp(x0y1z0, x1y1z0, x);
-		let y1z1 = Maths.lerp(x0y1z1, x1y1z1, x);
-
-		let y0 = Maths.lerp(y0z0,y0z1, z);
-		let y1 = Maths.lerp(y1z0,y1z1, z);
-
-		return Maths.lerp(y0, y1, y);
-	};
 
 	return exports;
 })();

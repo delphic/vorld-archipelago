@@ -5,7 +5,7 @@ const { vec3, quat, vec3Pool } = Maths;
 const Audio = require('./audio');
 const Primitives = require('./primitives');
 const CharacterController = require ('./characterController.js');
-const { Cardinal, World: Vorld, Physics: VorldPhysics } = require('../vorld/');
+const { Cardinal, World: Vorld, Lighting: VorldLighting, Physics: VorldPhysics } = require('../vorld/');
 const VorldHelper = require('./vorldHelper');
 
 module.exports = (function(){
@@ -727,8 +727,8 @@ module.exports = (function(){
 				if (waterQuad.active) {
 					// HACK: When light levels are near 0 the quad becomes effectively transparent despite the shader treating alpha separately
 					// Whilst we investigate how to fix this, provide a minimum light level of 3 so there's always some obscuring (any higher looks bad at night)
-					waterQuad.material.lightLevel = Math.max(3, VorldHelper.getLightAtPos(vorld, camera.position));
-					waterQuad.material.sunlightLevel = VorldHelper.getSunlightAtPos(vorld, camera.position);
+					waterQuad.material.lightLevel = Math.max(3, VorldLighting.getLightAtPos(vorld, camera.position));
+					waterQuad.material.sunlightLevel = VorldLighting.getSunlightAtPos(vorld, camera.position);
 
 					let upperY = Math.floor(camera.position[1] + 1.001 * camera.near); 
 					waterQuad.transform.scale[0] = camera.ratio; // technically overkill, as we're closer than 1
