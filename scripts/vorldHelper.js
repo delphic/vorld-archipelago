@@ -18,9 +18,7 @@ module.exports = (function(){
 
 	let scene = null, material = null, cutoutMaterial = null, alphaMaterial = null, unlitMaterial = null, dynamicMaterial = null;
 	let sceneChunkObjects = {};
-	let generationWorkerPool = WorkerPool.create({ src: 'scripts/generator-worker.js', maxWorkers: 8 });
-	let lightingWorkerPool = WorkerPool.create({ src: 'scripts/lighting-worker.js', maxWorkers: 8 });
-	let mesherWorkerPool = WorkerPool.create({ src: 'scripts/mesher-worker.js', maxWorkers: 4 });
+	let workerPool = WorkerPool.create({ src: 'scripts/vorld-worker.js', maxWorkers: 8 });
 	let boundsCache = {};
 
 	let halfCubeJson = VorldPrimitives.createCuboidMeshJson(0.0, 1.0, 0.0, 0.5, 0.0, 1.0);
@@ -626,11 +624,13 @@ module.exports = (function(){
 		let generationConfig = generationConfigs[id];
 		// let startTime = Date.now();
 
+		workerPool.updateMaxWorkerCount(8);
 		performWorkOnBounds(
-			generationWorkerPool,
+			workerPool,
 			bounds,
 			1,
 			(sectionBounds) => {
+				generationConfig.jobType = "terrain";
 				generationConfig.bounds = sectionBounds;
 				return generationConfig;
 			},
@@ -911,8 +911,9 @@ module.exports = (function(){
 
 	let lightingPass = (vorld, bounds, callback, progressDelegate) => {
 		// let startTime = Date.now();
+		workerPool.updateMaxWorkerCount(8);
 		performWorkOnBounds(
-			lightingWorkerPool,
+			workerPool,
 			bounds, 
 			7, // Maybe re-test on larger set, on the small set this is going to be affected by empty chunks
 			(sectionBounds) => {
@@ -924,7 +925,7 @@ module.exports = (function(){
 					sectionBounds.jMax + 1,
 					sectionBounds.kMin - 1,
 					sectionBounds.kMax + 1);
-				return { vorld: slice, bounds: sectionBounds };
+				return { jobType: "lighting", vorld: slice, bounds: sectionBounds };
 			}, 
 			(data, count, total) => {
 				// count is number of sections completed not number of progress callbacks 
@@ -942,11 +943,13 @@ module.exports = (function(){
 	};
 	
 	let meshVorld = (vorld, bounds, callback, progressDelegate) => {
+		workerPool.updateMaxWorkerCount(4);
 		performWorkOnBounds(
-			mesherWorkerPool,
+			workerPool,
 			bounds,
 			3,
 			(sectionBounds) => {
+				meshingConfig.jobType = "meshing";
 				meshingConfig.bounds = sectionBounds;
 				meshingConfig.vorld = Vorld.createSlice(
 					vorld,
@@ -1049,7 +1052,7 @@ module.exports = (function(){
 
 		let pendingMeshData = [];
 		// Could potentially do this on main thread instead.
-		performWorkOnBounds(mesherWorkerPool, boundsCache, 1,
+		performWorkOnBounds(workerPool, boundsCache, 1,
 			(sectionBounds) => {
 				meshingConfig.bounds = sectionBounds;
 				meshingConfig.vorld = Vorld.createSlice(
@@ -1096,7 +1099,7 @@ module.exports = (function(){
 				// The Remeshening
 				for (let i = 0, l = pendingMeshData.length; i < l; i++) {
 					let data = pendingMeshData[i];
-					// TODO: This logic is duplicated between generation meshing ands remeshening
+					// TODO: This logic is duplicated between generation meshing and remeshening
 					let key = data.chunkIndices[0] + "_" + data.chunkIndices[1] + "_" + data.chunkIndices[2]; // TODO: Move this to Vorld.helper method
 					let mesh = Fury.Mesh.create(data.mesh);
 					let position = vec3.clone(data.chunkIndices);

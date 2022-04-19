@@ -26,6 +26,9 @@ let WorkerPool = module.exports = (function() {
 		returnWorker: function(worker) {
 			this.workerInUse[worker.workerIndex] = false;
 			this.inUseWorkerCount--;
+		},
+		updateMaxWorkerCount: function(count) {
+			this.maxWorkers = count;
 		}
 	};
 
