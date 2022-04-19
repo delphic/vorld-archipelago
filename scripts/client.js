@@ -1,7 +1,8 @@
 const Fury = require('fury');
 const { Maths, GameLoop, Random } = Fury;
 const { vec3, quat } = Maths;
-const { 
+const {
+	BlockConfig,
 	World: Vorld,
 	Lighting: VorldLighting,
 	Shader: VoxelShader,
@@ -89,7 +90,7 @@ let orbsToWin = 4; // TODO: Pass to vorld helper as number to spawn
 let portalTrigger = null;
 
 let onBlockPlaced = (block, x, y, z) => {
-	let blockDef = Vorld.getBlockTypeDefinition(vorld, block);
+	let blockDef = BlockConfig.getBlockTypeDefinition(vorld, block);
 	
 	Audio.play({ uri: VorldHelper.buildSfxMaterialUri(blockDef.sfxMat, "add", Random.roll(1, 4)), mixer: Audio.mixers["sfx"] });
 	// TODO: If placed underwater / removing another block should also play removal sound?
@@ -140,7 +141,7 @@ let onBlockPlaced = (block, x, y, z) => {
 };
 
 let onBlockRemoved = (block, x, y, z) => {
-	let blockDef = Vorld.getBlockTypeDefinition(vorld, block);
+	let blockDef = BlockConfig.getBlockTypeDefinition(vorld, block);
 	Audio.play({ uri: VorldHelper.buildSfxMaterialUri(blockDef.sfxMat, "remove", Random.roll(1, 4)), mixer: Audio.mixers["sfx"] });
 	// TODO: if water filling the space play splash?
 
@@ -254,8 +255,8 @@ let start = (initialBounds, worldConfigId) => {
 			lightingObject.addComponent("light-test", { 
 				update: (elapsed) => {
 					position[0] = 5 * Math.sin(GameLoop.time);
-					materialInstance.lightLevel = VorldLighting.getLightAtPos(vorld, position);
-					materialInstance.sunlightLevel = VorldLighting.getSunlightAtPos(vorld, position);
+					materialInstance.lightLevel = VorldLighting.interpolateLight(vorld, position);
+					materialInstance.sunlightLevel = VorldLighting.interpolateSunlight(vorld, position);
 					// CCC updates dynamic material with sunlight level etc
 				}
 			});

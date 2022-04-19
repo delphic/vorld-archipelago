@@ -5,7 +5,7 @@ const { vec3, quat, vec3Pool } = Maths;
 const Audio = require('./audio');
 const Primitives = require('./primitives');
 const CharacterController = require ('./characterController.js');
-const { Cardinal, World: Vorld, Lighting: VorldLighting, Physics: VorldPhysics } = require('../vorld/');
+const { BlockConfig, Cardinal, World: Vorld, Lighting: VorldLighting, Physics: VorldPhysics } = require('../vorld/');
 const VorldHelper = require('./vorldHelper');
 
 module.exports = (function(){
@@ -494,7 +494,7 @@ module.exports = (function(){
 						lastGroundedVoxelMaterial = "water";
 					} else {
 						let groundBlock = Vorld.getBlock(vorld, closestVoxelCoord[0], closestVoxelCoord[1], closestVoxelCoord[2]);
-						lastGroundedVoxelMaterial = Vorld.getBlockTypeDefinition(vorld, groundBlock).sfxMat;
+						lastGroundedVoxelMaterial = BlockConfig.getBlockTypeDefinition(vorld, groundBlock).sfxMat;
 					}
 				}
 
@@ -641,7 +641,7 @@ module.exports = (function(){
 					let closestVoxelCoord = Maths.vec3Pool.request();
 					if (tryGetClosestGroundVoxelCoords(closestVoxelCoord, vorld, player.box)) {
 						let groundBlock = Vorld.getBlock(vorld, closestVoxelCoord[0], closestVoxelCoord[1], closestVoxelCoord[2]);
-						lastGroundedVoxelMaterial = Vorld.getBlockTypeDefinition(vorld, groundBlock).sfxMat;
+						lastGroundedVoxelMaterial = BlockConfig.getBlockTypeDefinition(vorld, groundBlock).sfxMat;
 					}
 					Maths.vec3Pool.return(closestVoxelCoord);
 				}
@@ -727,8 +727,8 @@ module.exports = (function(){
 				if (waterQuad.active) {
 					// HACK: When light levels are near 0 the quad becomes effectively transparent despite the shader treating alpha separately
 					// Whilst we investigate how to fix this, provide a minimum light level of 3 so there's always some obscuring (any higher looks bad at night)
-					waterQuad.material.lightLevel = Math.max(3, VorldLighting.getLightAtPos(vorld, camera.position));
-					waterQuad.material.sunlightLevel = VorldLighting.getSunlightAtPos(vorld, camera.position);
+					waterQuad.material.lightLevel = Math.max(3, VorldLighting.interpolateLight(vorld, camera.position));
+					waterQuad.material.sunlightLevel = VorldLighting.interpolateSunlight(vorld, camera.position);
 
 					let upperY = Math.floor(camera.position[1] + 1.001 * camera.near); 
 					waterQuad.transform.scale[0] = camera.ratio; // technically overkill, as we're closer than 1
@@ -778,7 +778,7 @@ module.exports = (function(){
 						}
 					}
 
-					let placement = Vorld.getBlockTypeDefinition(vorld, blockToPlace).placement;
+					let placement = BlockConfig.getBlockTypeDefinition(vorld, blockToPlace).placement;
 					
 					let up = Cardinal.Direction.up;
 					let forward = Cardinal.Direction.forward;

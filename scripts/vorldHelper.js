@@ -8,6 +8,7 @@ const {
 	Utils: VorldUtils,
 	Primitives: VorldPrimitives,
 	Analysis,
+	BlockConfig,
 	Generator,
 	Updater: VorldUpdater
 }  = require('../vorld/');
@@ -999,7 +1000,7 @@ module.exports = (function(){
 		// and so would effect mesh faces and or AO on existing faces.
 
 		/* Attempt at calculating the chunks changed
-		let blockDef = Vorld.getBlockTypeDefinition(vorld, block); 
+		let blockDef = BlockConfig.getBlockTypeDefinition(vorld, block); 
 		let light = blockDef ? blockDef.light : 0;
 		if (!block || (blockDef && !blockDef.isOpaque)) {
 			// Allows propogration of light where potentially there was none before
