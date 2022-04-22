@@ -56,8 +56,8 @@ let playerPrefs = {
 	leftKey: "a",
 	backKey: "s",
 	rightKey: "d",
-	upKey: "e",
-	downKey: "q",
+	upKey: "Space",
+	downKey: "Shift",
 	jumpKey: "Space",
 	walkKey: "Shift"
 };
@@ -422,7 +422,7 @@ let createControlsPrompt = (onClose) => {
 		"Use left click to interact with objects.",
 		"Use right click to place held objects.",
 		"Use Space to jump.",
-		"When swimming use E to rise and Q and fall, but if you're touching the bottom you must jump!",
+		"When swimming use Space to rise and Shift to fall.",
 		"Press F11 to toggle full-screen." ];
 	let dialog = Dialog.create(GUI.root, "Controls", text, "Ok", () => {
 		playButtonClickSfx();
