@@ -763,8 +763,11 @@ window.addEventListener('load', () => {
 		let scale = Math.ceil(targetWidth / image.width);  
 		let upscaled = Fury.Utils.createScaledImage({ image: image, scale: scale });
 		let textureSize = upscaled.width, textureCount = Math.round(upscaled.height / upscaled.width);
-		let textureArray = Fury.Renderer.createTextureArray(upscaled, textureSize, textureSize, textureCount, "pixel", true);
-		let nearestFilteredTextureArray = Fury.Renderer.createTextureArray(upscaled, textureSize, textureSize, textureCount, "low", true);
+		let textureConfig = { source: upscaled, width: textureSize, height: textureSize, imageCount: textureCount, clamp: true };
+		textureConfig.quality = "pixel";
+		let textureArray = Fury.Texture.createTextureArray(textureConfig);
+		textureConfig.quality = "low";
+		let nearestFilteredTextureArray = Fury.Texture.createTextureArray(textureConfig);
 
 		material = Fury.Material.create({
 			shader: shader,
