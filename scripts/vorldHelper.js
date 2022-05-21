@@ -553,6 +553,8 @@ module.exports = (function(){
 
 		let nextWorkerId = 0;
 		let progress = [];
+		let startTimes = [];
+		let executionRatio = 0;
 
 		let i = iMin, k = kMin;
 
@@ -562,7 +564,7 @@ module.exports = (function(){
 			}
 
 			let totalProgress = generatedSectionsCount;
-			if (data.id !== undefined) { // We're only tracking incremental progress on lighting - other workers do not pass back id 
+			if (data.id !== undefined) {
 				if (data.progress !== undefined) {
 					progress[data.id] = data.progress;
 				}
@@ -576,8 +578,14 @@ module.exports = (function(){
 			
 			messageCallback(data, totalProgress, totalSectionsToGenerate);
 			if (data.complete) {
+				let elapsed = Date.now() - startTimes[data.id];
+				if (debug) {
+					let ratio = data.duration / elapsed;
+					let n = generatedSectionsCount;
+					executionRatio = ((n - 1) * executionRatio / n) + ratio / n;
+				}
 				if (generatedSectionsCount >= totalSectionsToGenerate && completeCallback) {
-					completeCallback();
+					completeCallback((executionRatio * 100).toFixed(2));
 				} else {
 					tryStartNextWorker();
 				}
@@ -616,6 +624,7 @@ module.exports = (function(){
 				}
 			};
 			config.id = nextWorkerId++;
+			startTimes[config.id] = Date.now();
 			worker.postMessage(config);
 		};
 
@@ -643,11 +652,11 @@ module.exports = (function(){
 					Vorld.tryMerge(vorld, data.vorld);
 				}
 			},
-			() => {
+			(efficiency) => {
 				vorld.meta = { id: id };
 				if (debug) {
 					let elapsed = Date.now() - startTime;
-					console.log("Generation pass took " + elapsed + "ms");
+					console.log("Generation pass took " + elapsed + "ms (" + efficiency + "%)");
 				}
 				if (id == "castle") {
 					// Castle Generator TEST
@@ -940,10 +949,10 @@ module.exports = (function(){
 					Vorld.tryMerge(vorld, data.vorld);
 				}
 			},
-			() => {
+			(efficiency) => {
 				if (debug) {
 					let elapsed = Date.now() - startTime;
-					console.log("Lighting pass took " + elapsed + "ms");	
+					console.log("Lighting pass took " + elapsed + "ms (" + efficiency + "%)");	
 				}
 				meshVorld(vorld, bounds, callback, progressDelegate);
 			});
@@ -983,10 +992,10 @@ module.exports = (function(){
 					sceneChunkObjects[key].push(scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true }));
 				}
 			},
-			() => {
+			(efficiency) => {
 				if (debug) {
 					let elapsed = Date.now() - startTime;
-					console.log("Meshing pass took " + elapsed + "ms");	
+					console.log("Meshing pass took " + elapsed + "ms (" + efficiency + "%)");	
 				}
 				callback();
 			});
