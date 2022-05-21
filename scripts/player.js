@@ -431,12 +431,24 @@ module.exports = (function(){
 				let targetZ = player.velocity[2] + airAcceleration * elapsed * inputVector[2];
 
 				let maxAirSpeedSqr = player.config.airMaxMovementSpeed * player.config.airMaxMovementSpeed;
-				let canAccelerate = targetX * targetX + targetZ * targetZ < maxAirSpeedSqr;
+				let targetAirSpeedSqr = targetX * targetX + targetZ * targetZ;
+				let canAccelerate = targetAirSpeedSqr < maxAirSpeedSqr;
 				if (canAccelerate || Math.abs(targetX) < Math.abs(player.velocity[0])) {
 					player.velocity[0] = targetX;
 				}
 				if (canAccelerate || Math.abs(targetZ) < Math.abs(player.velocity[2])) {
 					player.velocity[2] = targetZ;
+				}
+				
+				if (!(player.velocity[0] == targetX && player.velocity[2] == targetZ)) {
+					let speedThresholdSqr = Math.max(player.config.maxRunSpeed * player.config.maxRunSpeed, maxAirSpeedSqr);
+					let currentAirSpeedSqr = player.velocity[0] * player.velocity[0] + player.velocity[2] * player.velocity[2];
+					if (currentAirSpeedSqr < speedThresholdSqr) {
+						// Allow redirection of air movement below run speed (or max air speed if higher)
+						let mod = Math.sqrt(currentAirSpeedSqr) / Math.sqrt(targetAirSpeedSqr);
+						player.velocity[0] = mod * targetX;
+						player.velocity[2] = mod * targetZ; 
+					}
 				}
 			} else {
 				// TODO: Move in water grounded logic here
