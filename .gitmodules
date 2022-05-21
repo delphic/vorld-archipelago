@@ -1,6 +1,0 @@
-[submodule "vorld"]
-	path = vorld
-	url = https://github.com/delphic/vorld.git
-[submodule "fury"]
-	path = fury
-	url = https://github.com/delphic/Fury.git

@@ -1,4 +1,4 @@
-const { Cardinal, World: Vorld, Updater: VorldUpdater, Utils: VorldUtils } = require('../../../vorld/');
+const { Cardinal, World: Vorld, Updater: VorldUpdater, Utils: VorldUtils } = require('vorld');
 
 module.exports = (function(){
 	let exports = {};

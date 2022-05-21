@@ -1,6 +1,6 @@
 const { Maths, Physics } = require('fury');
 const { vec3 } = Maths;
-const { Physics: VPhysics } = require('../vorld/');
+const { Physics: VPhysics } = require('vorld');
 
 module.exports = (() => {
 	let exports = {};

@@ -11,7 +11,7 @@ const {
 	BlockConfig,
 	Generator,
 	Updater: VorldUpdater
-}  = require('../vorld/');
+}  = require('vorld');
 
 module.exports = (function(){
 	let exports = {};

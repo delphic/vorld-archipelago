@@ -5,7 +5,7 @@ const { vec3, quat, vec3Pool } = Maths;
 const Audio = require('./audio');
 const Primitives = require('./primitives');
 const CharacterController = require ('./characterController.js');
-const { BlockConfig, Cardinal, World: Vorld, Lighting: VorldLighting, Physics: VorldPhysics } = require('../vorld/');
+const { BlockConfig, Cardinal, World: Vorld, Lighting: VorldLighting, Physics: VorldPhysics } = require('vorld');
 const VorldHelper = require('./vorldHelper');
 
 module.exports = (function(){
@@ -439,7 +439,7 @@ module.exports = (function(){
 				if (canAccelerate || Math.abs(targetZ) < Math.abs(player.velocity[2])) {
 					player.velocity[2] = targetZ;
 				}
-				
+
 				if (!(player.velocity[0] == targetX && player.velocity[2] == targetZ)) {
 					let speedThresholdSqr = Math.max(player.config.maxRunSpeed * player.config.maxRunSpeed, maxAirSpeedSqr);
 					let currentAirSpeedSqr = player.velocity[0] * player.velocity[0] + player.velocity[2] * player.velocity[2];

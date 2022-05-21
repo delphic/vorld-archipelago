@@ -8,7 +8,7 @@ const {
 	Shader: VoxelShader,
 	Primitives: VorldPrimitives,
 	Updater: VorldUpdater
-} = require('../vorld/');
+} = require('vorld');
 const VorldHelper = require('./vorldHelper');
 const Player = require('./player');
 const GUI = require('./gui');
