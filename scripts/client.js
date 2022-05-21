@@ -282,7 +282,8 @@ let start = (initialBounds, worldConfigId) => {
 			unlitMaterial: unlitMaterial,
 			dynamicMaterial: dynamicMaterial,
 			bounds: initialBounds,
-			configId: worldConfigId
+			configId: worldConfigId,
+			debug: debug
 		},
 		onVorldCreated,
 		(stage, count, total) => {

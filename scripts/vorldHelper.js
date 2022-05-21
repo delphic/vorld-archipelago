@@ -16,6 +16,7 @@ const {
 module.exports = (function(){
 	let exports = {};
 
+	let debug;
 	let scene = null, material = null, cutoutMaterial = null, alphaMaterial = null, unlitMaterial = null, dynamicMaterial = null;
 	let sceneChunkObjects = {};
 	let workerPool = WorkerPool.create({ src: 'scripts/vorld-worker.js', maxWorkers: 8 });
@@ -436,6 +437,8 @@ module.exports = (function(){
 		// TODO: Add fence post mesh and block (provide full collision box)
 		// TODO: Add ladder & vegatation / vines using cutout
 	];
+	// ^^ You know this is sent in every webworker call - and the mesh data is not completely insignificant, 
+	// but it's only needed for the meshing workers might be better with an id lookup
 
 	let meshingConfig = {
 		// TODO: Update Atlas to array of tile ids (e.g. stone, soil, grass_top, grass_side etc)
@@ -622,7 +625,7 @@ module.exports = (function(){
 	let generate = (bounds, id, callback, progressDelegate) => {
 		let vorld = Vorld.create({ blockConfig: blockConfig });
 		let generationConfig = generationConfigs[id];
-		// let startTime = Date.now();
+		let startTime = Date.now();
 
 		workerPool.updateMaxWorkerCount(8);
 		performWorkOnBounds(
@@ -642,8 +645,10 @@ module.exports = (function(){
 			},
 			() => {
 				vorld.meta = { id: id };
-				// let elapsed = Date.now() - startTime;
-				// console.log("Generation pass took " + elapsed + "ms");
+				if (debug) {
+					let elapsed = Date.now() - startTime;
+					console.log("Generation pass took " + elapsed + "ms");
+				}
 				if (id == "castle") {
 					// Castle Generator TEST
 					// TODO: generation should be multi-pass, first terrain, then buildings, then meshing
@@ -910,7 +915,7 @@ module.exports = (function(){
 	};
 
 	let lightingPass = (vorld, bounds, callback, progressDelegate) => {
-		// let startTime = Date.now();
+		let startTime = Date.now();
 		workerPool.updateMaxWorkerCount(8);
 		performWorkOnBounds(
 			workerPool,
@@ -936,13 +941,16 @@ module.exports = (function(){
 				}
 			},
 			() => {
-				// let elapsed = Date.now() - startTime;
-				// console.log("Lighting pass took " + elapsed + "ms");
+				if (debug) {
+					let elapsed = Date.now() - startTime;
+					console.log("Lighting pass took " + elapsed + "ms");	
+				}
 				meshVorld(vorld, bounds, callback, progressDelegate);
 			});
 	};
 	
 	let meshVorld = (vorld, bounds, callback, progressDelegate) => {
+		let startTime = Date.now();
 		workerPool.updateMaxWorkerCount(4);
 		performWorkOnBounds(
 			workerPool,
@@ -975,7 +983,13 @@ module.exports = (function(){
 					sceneChunkObjects[key].push(scene.add({ mesh: mesh, material: chunkMaterial, position: position, static: true }));
 				}
 			},
-			callback);
+			() => {
+				if (debug) {
+					let elapsed = Date.now() - startTime;
+					console.log("Meshing pass took " + elapsed + "ms");	
+				}
+				callback();
+			});
 	};
 
 	exports.addBlock = (vorld, x, y, z, block, up, forward, callback) => {
@@ -1146,6 +1160,7 @@ module.exports = (function(){
 	};
 
 	exports.init = (parameters, callback, progressDelegate) => {
+		debug = parameters.debug;
 		scene = parameters.scene;
 		material = parameters.material;
 		cutoutMaterial = parameters.cutoutMaterial;
