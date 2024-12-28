@@ -7,7 +7,7 @@
 	"homepage": "https://delphic.me.uk/vorld-archipelago",
 	"dependencies": {
 		"fury": "npm:fury-js@^0.1",
-		"vorld": "^0.5"
+		"vorld": "^0.5.3"
 	},
 	"private": true
 }
