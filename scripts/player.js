@@ -1,7 +1,7 @@
 // Player Module
 const Fury = require('fury');
 const { GameLoop, Input, Physics, Maths, Random } = Fury;
-const { vec3, quat, vec3Pool } = Maths;
+const { vec3, quat } = Maths;
 const Audio = require('./audio');
 const Primitives = require('./primitives');
 const CharacterController = require ('./characterController.js');
@@ -34,8 +34,8 @@ module.exports = (function(){
 	let tryGetClosestGroundVoxelCoords = (out, vorld, box) => {
 		// Searches the voxels directly below the box
 		let closestSqrDistance = Number.POSITIVE_INFINITY;
-		let origin = Maths.vec3Pool.request();
-		let voxelCenter = Maths.vec3Pool.request();
+		let origin = Maths.vec3.Pool.request();
+		let voxelCenter = Maths.vec3.Pool.request();
 
 		vec3.set(origin, box.center[0], box.min[1], box.center[2]);
 		let xMin = Math.floor(box.min[0]), xMax = Math.floor(box.max[0]);
@@ -68,8 +68,8 @@ module.exports = (function(){
 			}
 		}
 
-		Maths.vec3Pool.return(origin);
-		Maths.vec3Pool.return(voxelCenter);
+		vec3.Pool.return(origin);
+		vec3.Pool.return(voxelCenter);
 
 		return closestSqrDistance != Number.POSITIVE_INFINITY;
 	};
@@ -116,7 +116,7 @@ module.exports = (function(){
 
 		vec3.copy(camera.position, player.position);
 		quat.fromEuler(camera.rotation, 0, 180, 0); // Set look for player forward
-		vec3.scaleAndAdd(camera.position, camera.position, Maths.vec3Y, cameraOffset);
+		vec3.scaleAndAdd(camera.position, camera.position, Maths.vec3.Y, cameraOffset);
 
 		// Camera Tint Quad
 		let waterQuad = parameters.quad;
@@ -152,8 +152,8 @@ module.exports = (function(){
 		}
 		let blockIndex = 0; // TODO: UI to control & console option to toggle block placement (or equipable object)
 		let castInCameraLookDirection = (vorld, camera, castDistance, hitDelegate, failureDelegate) => {
-			let hitPoint = Maths.vec3Pool.request();
-			let cameraLookDirection = Maths.vec3Pool.request();
+			let hitPoint = vec3.Pool.request();
+			let cameraLookDirection = vec3.Pool.request();
 
 			camera.getLookDirection(cameraLookDirection);
 			if (VorldPhysics.raycast(hitPoint, vorld, camera.position, cameraLookDirection, castDistance)) {
@@ -162,8 +162,8 @@ module.exports = (function(){
 				failureDelegate();
 			}
 
-			Maths.vec3Pool.return(hitPoint);
-			Maths.vec3Pool.return(cameraLookDirection);
+			vec3.Pool.return(hitPoint);
+			vec3.Pool.return(cameraLookDirection);
 		};
 
 		let blockPreviewMesh, blockPreview;
@@ -196,8 +196,8 @@ module.exports = (function(){
 
 		let detectInput = (elapsed) => {
 			// Calculate Local Axes
-			vec3.transformQuat(localX, Maths.vec3X, camera.rotation);
-			vec3.transformQuat(localZ, Maths.vec3Z, camera.rotation);
+			vec3.transformQuat(localX, Maths.vec3.X, camera.rotation);
+			vec3.transformQuat(localZ, Maths.vec3.Z, camera.rotation);
 			vec3.copy(localGroundX, localX);
 			vec3.copy(localGroundZ, localZ);
 			localGroundZ[1] = localGroundX[1] = 0;
@@ -328,7 +328,7 @@ module.exports = (function(){
 			}
 
 			// Directly rotate camera
-			Maths.quatRotate(camera.rotation, camera.rotation, ry, Maths.vec3Y);
+			Maths.quat.rotate(camera.rotation, camera.rotation, ry, Maths.vec3.Y);
 			let clampAngle = 0.5 * Math.PI - verticalApproachClampAngleDegrees * Math.PI/180;
 			let lastVerticalLookAngle = verticalLookAngle;
 			verticalLookAngle = Fury.Maths.clamp(verticalLookAngle + rx, -clampAngle, clampAngle);
@@ -499,7 +499,7 @@ module.exports = (function(){
 			// Also stop walking off edges
 			if (grounded) 
 			{
-				let closestVoxelCoord = Maths.vec3Pool.request();
+				let closestVoxelCoord = vec3.Pool.request();
 				let foundClosestGroundVoxel = tryGetClosestGroundVoxelCoords(closestVoxelCoord, vorld, player.box);
 				if (foundClosestGroundVoxel) {
 					if (isInWater) {
@@ -515,26 +515,26 @@ module.exports = (function(){
 				if (isWalking && foundClosestGroundVoxel) {
 					let overHangDist = 0.3;
 					let shouldSnapBack = true;
-					let origin = Fury.Maths.vec3Pool.request();
+					let origin = Fury.vec3.Pool.request();
 					
 					if (shouldSnapBack) {
-						vec3.scaleAndAdd(origin, player.position, Maths.vec3X, overHangDist);
-						vec3.scaleAndAdd(origin, origin, Maths.vec3Z, overHangDist);
+						vec3.scaleAndAdd(origin, player.position, Maths.vec3.X, overHangDist);
+						vec3.scaleAndAdd(origin, origin, Maths.vec3.Z, overHangDist);
 						shouldSnapBack &= (VorldPhysics.raycast(hitPoint, vorld, origin, castDirection, player.box.extents[1] + 0.5) == 0);
 					}
 					if (shouldSnapBack) {
-						vec3.scaleAndAdd(origin, player.position, Maths.vec3X, overHangDist);
-						vec3.scaleAndAdd(origin, origin, Maths.vec3Z, -overHangDist);
+						vec3.scaleAndAdd(origin, player.position, Maths.vec3.X, overHangDist);
+						vec3.scaleAndAdd(origin, origin, Maths.vec3.Z, -overHangDist);
 						shouldSnapBack &= (VorldPhysics.raycast(hitPoint, vorld, origin, castDirection, player.box.extents[1] + 0.5) == 0);
 					}
 					if (shouldSnapBack) {
-						vec3.scaleAndAdd(origin, player.position, Maths.vec3Z, overHangDist);
-						vec3.scaleAndAdd(origin, origin, Maths.vec3X, -overHangDist);
+						vec3.scaleAndAdd(origin, player.position, Maths.vec3.Z, overHangDist);
+						vec3.scaleAndAdd(origin, origin, Maths.vec3.X, -overHangDist);
 						shouldSnapBack &= (VorldPhysics.raycast(hitPoint, vorld, origin, castDirection, player.box.extents[1] + 0.5) == 0);
 					}
 					if (shouldSnapBack) {
-						vec3.scaleAndAdd(origin, player.position, Maths.vec3X, -overHangDist);
-						vec3.scaleAndAdd(origin, origin, Maths.vec3Z, -overHangDist);
+						vec3.scaleAndAdd(origin, player.position, Maths.vec3.X, -overHangDist);
+						vec3.scaleAndAdd(origin, origin, Maths.vec3.Z, -overHangDist);
 						shouldSnapBack &= (VorldPhysics.raycast(hitPoint, vorld, origin, castDirection, player.box.extents[1] + 0.5) == 0);	
 					}
 
@@ -558,10 +558,10 @@ module.exports = (function(){
 						}
 					}
 
-					Fury.Maths.vec3Pool.return(origin);
+					Fury.vec3.Pool.return(origin);
 				}
 				// else - if not foundClosestVoxel - I guess you just fall off anyway
-				Maths.vec3Pool.return(closestVoxelCoord);
+				vec3.Pool.return(closestVoxelCoord);
 			}
 
 			// Footsteps
@@ -650,12 +650,12 @@ module.exports = (function(){
 				if (!grounded) {
 					// Landed! (May jump immediately though)
 					// Re-determine grounded voxel (as it'll be out of date)
-					let closestVoxelCoord = Maths.vec3Pool.request();
+					let closestVoxelCoord = vec3.Pool.request();
 					if (tryGetClosestGroundVoxelCoords(closestVoxelCoord, vorld, player.box)) {
 						let groundBlock = Vorld.getBlock(vorld, closestVoxelCoord[0], closestVoxelCoord[1], closestVoxelCoord[2]);
 						lastGroundedVoxelMaterial = BlockConfig.getBlockTypeDefinition(vorld, groundBlock).sfxMat;
 					}
-					Maths.vec3Pool.return(closestVoxelCoord);
+					vec3.Pool.return(closestVoxelCoord);
 				}
 
 				if (!grounded && lastGroundedTime - lastJumpAttemptTime < coyoteTime) {
@@ -724,7 +724,7 @@ module.exports = (function(){
 			// Arguably the change due to falling if there is any, we should just do,
 			// as that should always be smooth
 			vec3.copy(cameraTargetPosition, player.position);
-			vec3.scaleAndAdd(cameraTargetPosition, cameraTargetPosition, Maths.vec3Y, cameraOffset);
+			vec3.scaleAndAdd(cameraTargetPosition, cameraTargetPosition, Maths.vec3.Y, cameraOffset);
 			if (vec3.squaredLength(cameraTargetPosition) < 0.1) {
 				vec3.copy(camera.position, cameraTargetPosition);
 			} else {
@@ -745,21 +745,21 @@ module.exports = (function(){
 					let upperY = Math.floor(camera.position[1] + 1.001 * camera.near); 
 					waterQuad.transform.scale[0] = camera.ratio; // technically overkill, as we're closer than 1
 					quat.copy(waterQuad.transform.rotation, camera.rotation);
-					let targetPoint = vec3Pool.request();
-					vec3.transformQuat(targetPoint, Maths.vec3Z, camera.rotation);
+					let targetPoint = vec3.Pool.request();
+					vec3.transformQuat(targetPoint, Maths.vec3.Z, camera.rotation);
 					vec3.scaleAndAdd(waterQuad.transform.position, camera.position, targetPoint, - 1.001 * camera.near); 
 
 					if (upperY != y && !Vorld.getBlock(vorld, x, upperY, z)) {
 						// Top of near clip plane could be outside the water need to adjust so the quad only covers the appropriate screen area
 						// Move in camera localY until the top vertices are at upperY
 						let localY = targetPoint; // Reuse target point vec3
-						vec3.transformQuat(localY, Maths.vec3Y, camera.rotation);
+						vec3.transformQuat(localY, Maths.vec3.Y, camera.rotation);
 						let currentY = waterQuad.transform.position[1] + 0.5 * waterQuad.transform.scale[1] * localY[1];
 						let distanceToMove = (upperY - currentY) * localY[1];
 						vec3.scaleAndAdd(waterQuad.transform.position, waterQuad.transform.position, localY, distanceToMove);
 					}
 
-					vec3Pool.return(targetPoint);
+					vec3.Pool.return(targetPoint);
 				}
 			}
 
@@ -795,13 +795,13 @@ module.exports = (function(){
 					let up = Cardinal.Direction.up;
 					let forward = Cardinal.Direction.forward;
 					if (placement === "up_normal") {
-						let normal = vec3Pool.request();
+						let normal = vec3.Pool.request();
 						vec3.zero(normal);
 						normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
 						up = Cardinal.getDirectionFromVector(normal);
-						vec3Pool.return(normal);
+						vec3.Pool.return(normal);
 					} else if (placement === "half" || placement === "steps") {
-						let normal = vec3Pool.request();
+						let normal = vec3.Pool.request();
 						vec3.zero(normal);
 						normal[hitAxis] = -Math.sign(cameraLookDirection[hitAxis]);
 						let normalDir = Cardinal.getDirectionFromVector(normal);
@@ -840,7 +840,7 @@ module.exports = (function(){
 								forward -= 1;
 							}
 						}
-						vec3Pool.return(normal);
+						vec3.Pool.return(normal);
 					} else if (placement === "front_facing") {
 						// Point forward towards camera 
 						let maxAxis = 0;
@@ -852,11 +852,11 @@ module.exports = (function(){
 								maxAxisValue = Math.abs(cameraLookDirection[i]);
 							}
 						}
-						let normal = vec3Pool.request();
+						let normal = vec3.Pool.request();
 						vec3.zero(normal);
 						normal[maxAxis] = -Math.sign(cameraLookDirection[maxAxis]);
 						forward = Cardinal.getDirectionFromVector(normal);
-						vec3Pool.return(normal);
+						vec3.Pool.return(normal);
 					}
 
 					let x = Math.floor(hitPoint[0]), y =  Math.floor(hitPoint[1]), z = Math.floor(hitPoint[2]);
@@ -867,14 +867,14 @@ module.exports = (function(){
 						blockInventory.splice(blockIndex, 1); // Remove placed block
 						// HACK: Disable the held orb
 						if (blockToPlace == VorldHelper.blockIds["orb"] && heldOrb) {
-							heldOrbTargetPosition = vec3Pool.request();
+							heldOrbTargetPosition = vec3.Pool.request();
 							heldOrbTargetPosition[0] = x;
 							heldOrbTargetPosition[1] = y;
 							heldOrbTargetPosition[2] = z;
 							callback = () => {
 								// NOTE: if the remesh takes less time than the lerp then it'll just disappear mid-flight
 								if (heldOrbTargetPosition) {
-									vec3Pool.return(heldOrbTargetPosition);
+									vec3.Pool.return(heldOrbTargetPosition);
 									heldOrbTargetPosition = null;
 									heldOrb.active = false;
 								}
@@ -923,7 +923,7 @@ module.exports = (function(){
 							if (blockToRemove == VorldHelper.blockIds["orb"] && heldOrb) {
 								callback = () => {
 									if (heldOrbTargetPosition) { // Currently lerping
-										vec3Pool.return(heldOrbTargetPosition);
+										vec3.Pool.return(heldOrbTargetPosition);
 										heldOrbTargetPosition = null;
 									}
 									heldOrb.active = true;
@@ -974,24 +974,24 @@ module.exports = (function(){
 				if (heldOrbTargetPosition != null) {
 					vec3.lerp(heldOrb.transform.position, heldOrbTargetPosition, heldOrb.transform.position, 0.5);
 				} else {
-					let targetPoint = vec3Pool.request();
+					let targetPoint = vec3.Pool.request();
 					vec3.scaleAndAdd(targetPoint, camera.position, localGroundZ, -0.75); // The fact you're facing in the negative z direction continues to annoy
 					// Orb model is in voxel space so translate by -0.5
-					vec3.scaleAndAdd(targetPoint, targetPoint, Maths.vec3One, -0.5);
+					vec3.scaleAndAdd(targetPoint, targetPoint, Maths.vec3.ONE, -0.5);
 					// Now bring it down and to the right slightly for a more natural 'hold' position
-					vec3.scaleAndAdd(targetPoint, targetPoint, Maths.vec3Y, -0.5);
+					vec3.scaleAndAdd(targetPoint, targetPoint, Maths.vec3.Y, -0.5);
 					vec3.scaleAndAdd(targetPoint, targetPoint, localGroundX, 0.4); 
 					// Now lerp towards the point to give it some relative motion
 					vec3.lerp(heldOrb.transform.position, heldOrb.transform.position, targetPoint, 0.5);
 					
-					vec3Pool.return(targetPoint);
+					vec3.Pool.return(targetPoint);
 				}
 			}
 		};
 
 		player.teleport = (pos) => {
 			vec3.copy(player.position, pos);
-			vec3.scaleAndAdd(camera.position, player.position, Maths.vec3Y, cameraOffset); 
+			vec3.scaleAndAdd(camera.position, player.position, Maths.vec3.Y, cameraOffset); 
 			vec3.zero(player.velocity);
 		};
 

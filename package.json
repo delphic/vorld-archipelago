@@ -6,11 +6,8 @@
 	"license": "MIT",
 	"homepage": "https://delphic.me.uk/vorld-archipelago",
 	"dependencies": {
-		"fury": "delphic/fury",
-		"vorld": "delphic/vorld"
+		"fury": "npm:fury-js@^0.1",
+		"vorld": "^0.5"
 	},
-	"private": true,
-	"devDependencies": {
-		"eslint": "^8.11.0"
-	}
+	"private": true
 }

@@ -4,7 +4,7 @@ module.exports = (function(){
 	let exports = {};
 
 	let cubeWireframeJson = {
-		vertices: [
+		positions: [
 			0.0, 0.0, 0.0,
 			0.0, 1.0, 0.0,
 			1.0, 1.0, 0.0,
@@ -18,9 +18,9 @@ module.exports = (function(){
 	};
 
 	let quadJson = {
-		vertices: [ -0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.5, 0.5, 0.0, -0.5, 0.5, 0.0 ],
+		positions: [ -0.5, -0.5, 0.0, 0.5, -0.5, 0.0, 0.5, 0.5, 0.0, -0.5, 0.5, 0.0 ],
 		normals: [ 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0, 0.0, 0.0, 1.0 ],
-		textureCoordinates: [ 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0 ],
+		uvs: [ 0.0, 0.0, 1.0, 0.0, 1.0, 1.0, 0.0, 1.0 ],
 		indices: [ 0, 1, 2, 0, 2, 3 ]
 	};
 
@@ -40,7 +40,7 @@ module.exports = (function(){
 	};
 
 	exports.appendTileIndices = (json, tileIndex) => {
-		let vertexCount = Math.floor(json.vertices.length / 3);
+		let vertexCount = Math.floor(json.positions.length / 3);
 		json.tileIndices = [];
 		for (let i = 0; i < vertexCount; i++) {
 			json.tileIndices[i] = tileIndex;
@@ -52,7 +52,7 @@ module.exports = (function(){
 	};
 
 	exports.appendLightBake = (json, lightLevel, sunlightLevel) => {
-		let vertexCount = Math.floor(json.vertices.length / 3);
+		let vertexCount = Math.floor(json.positions.length / 3);
 		json.lightBake = [];
 		for (let i = 0; i < vertexCount; i++) {
 			json.lightBake[i] = lightLevel + (sunlightLevel/16);
