@@ -247,6 +247,9 @@ let start = (initialBounds, worldConfigId) => {
 			let meshConfig = VorldPrimitives.createCuboidMeshJson(-0.25, 0.25, -0.25, 0.25, -0.25, 0.25);
 			Primitives.appendTileIndices(meshConfig, VorldHelper.getTileIndexBufferValueForBlock("stone") || 0);
 
+
+			// NOTE: if you update vorld submodule then add lightLevel and sunlightLevel to scene object instance
+			// and remove the cloning of the material per instance 
 			let mesh = Fury.Mesh.create(meshConfig);
 			let materialInstance = Object.create(dynamicMaterial);
 			materialInstance.id = null;
@@ -433,7 +436,7 @@ let createControlsPrompt = (onClose) => {
 };
 
 let createAboutPrompt = (onClose) => {
-	let text = [ "Created by <a href=\"https://twitter.com/_delph\">@_delph</a> for 7DFPS 2021.",
+	let text = [ "Created by <a href=\"https://bsky.app/profile/delphic.bsky.social\">delphic</a> for 7DFPS 2021.",
 		"The game procedurally generates a different world each time you play!",
 		"Source available on <a href=\"https://github.com/delphic/vorld-archipelago\">github</a>." ];
 	let dialog = Dialog.create(GUI.root, "About", text, "Ok", () => {
@@ -446,7 +449,7 @@ let createAboutPrompt = (onClose) => {
 let createThanksForPlayingPrompt = () => {
 	let text = [ "Thanks for playing!", 
 		"A different world is generated each time you play so why not play again?",
-		"Created by <a href=\"https://twitter.com/_delph\">@_delph</a> for 7DFPS 2021." ];
+		"Created by <a href=\"https://bsky.app/profile/delphic.bsky.social\">delphic</a> for 7DFPS 2021." ];
 		let dialog = Dialog.create(GUI.root, "Congratulations", text, "Main Menu", () => {
 			playButtonClickSfx();
 			dialog.remove();
@@ -795,6 +798,8 @@ window.addEventListener('load', () => {
 			texture: textureArray,
 			properties: { alpha: true, blendSeparate: true, "fogColor": vec3.clone(skyColor), "fogDensity": 0.005, "ambientMagnitude": 0.5, "directionalMagnitude": 0.5, "lightLevel": 0, "sunlightLevel": 0 }
 		});
+		// NOTE: if you update vorld submodule then remove lightLevel and sunlightLevel here, add them to scene object instance
+		// and remove the cloning of the material per instance 
 
 		loadingCallback();
 	};

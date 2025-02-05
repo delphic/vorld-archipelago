@@ -240,6 +240,9 @@ module.exports = (function(){
 		}
 	};
 
+	// Note - will not work with updated Fury
+	// vertices -> positions, textureCoordinates -> uvs
+	// TODO: Move to Mesh module (note this combines definitions / configs not meshes themselves)
 	let meshCombine = (meshes) => {
 		let result = { vertices: [], normals: [], textureCoordinates: [], indices: [] };
 		for (let i = 0, l = meshes.length; i < l; i++) {
