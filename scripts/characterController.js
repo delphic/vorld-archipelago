@@ -34,51 +34,6 @@ module.exports = (() => {
 		return exports;
 	})();
 
-	let voxelBoxes = (function(){
-		// Not a proper pool
-		let boxes = [];
-		let exports = {};
-		let nextIndex = 0;
-
-		for (let i = 0; i < 20; i++) {
-			boxes[i] = Physics.Box.create({ min: vec3.create(), max: vec3.create() });
-		}
-
-		let requestBox = (x, y, z) => {
-			if (nextIndex < boxes.length) {
-				let result = boxes[nextIndex++];
-				vec3.set(result.min, x, y, z);
-				vec3.set(result.max, x+1, y+1, z+1);
-				nextIndex++;
-				return result;
-			}
-			return boxes[nextIndex++] = Physics.Box.create({ min: vec3.fromValues(x, y, z), max: vec3.fromValues(x+1, y+1, z+1) });
-		};
-
-		// Quick and dirty sweep, create AABBs for solid voxels
-		exports.sweep = (out, vorld, sweepBox) => {
-			let xMin = Math.floor(sweepBox.min[0]);
-			let xMax = Math.floor(sweepBox.max[0]);
-			let yMin = Math.floor(sweepBox.min[1]);
-			let yMax = Math.floor(sweepBox.max[1]);
-			let zMin = Math.floor(sweepBox.min[2]);
-			let zMax = Math.floor(sweepBox.max[2]);
-
-			for (let x = xMin; x <= xMax; x++) {
-				for (let y = yMin; y <= yMax; y++) {
-					for (let z = zMin; z <= zMax; z++) {
-						// TODO: Layers would be nice
-						VPhysics.appendAABBsForBlock(out, vorld, x, y, z, requestBox);
-					}
-				}
-			}
-			// Reset counter - only one sweep is valid at a time 
-			nextIndex = 0;
-		};
-
-		return exports;
-	})();
-
 	let playerCollisionInfo = CollisionInfo.create();
 	let collisionInfoCache = CollisionInfo.create();
 	let relevantBoxes = []; // Array used to store sub-set of boxes to consider for XZ calculations
@@ -137,7 +92,7 @@ module.exports = (() => {
 
 			// Add voxel boxes
 			if (vorld) {
-				voxelBoxes.sweep(out, vorld, sweepBox);
+				VPhysics.sweep(out, vorld, sweepBox);
 			}
 		}; 
 	})();
@@ -273,8 +228,8 @@ module.exports = (() => {
 		controller.moveXZ = (contacts, velocity, elapsed, inputVector) => {
 			vec3.copy(lastPosition, playerPosition);
 			vec3.copy(targetPosition, playerPosition);
-			vec3.scaleAndAdd(targetPosition, targetPosition, Maths.vec3X, velocity[0] * elapsed);
-			vec3.scaleAndAdd(targetPosition, targetPosition, Maths.vec3Z, velocity[2] * elapsed);
+			vec3.scaleAndAdd(targetPosition, targetPosition, Maths.vec3.X, velocity[0] * elapsed);
+			vec3.scaleAndAdd(targetPosition, targetPosition, Maths.vec3.Z, velocity[2] * elapsed);
 
 			// As we might be checking collision repeatedly sweep out maximal set first
 			sweepForRevelantBoxes(relevantBoxes, vorld, world.boxes, playerBox, targetPosition, playerPosition, controller.stepHeight);

@@ -145,7 +145,7 @@ let Audio = module.exports = (function(){
 		if (forward) {
 			setNodeOrientation(panner, forward);
 		} else {
-			setNodeOrientation(panner, Maths.vec3Z);
+			setNodeOrientation(panner, Maths.vec3.Z);
 		}
 		setNodePosition(panner, position);
 

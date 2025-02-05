@@ -33,16 +33,16 @@ let FreeFlyCamera = module.exports = (function(){
 		freeFlyCamera.update = (elapsed) => {
 			let q = camera.rotation;
 			let p = camera.position;
-			Maths.quatLocalAxes(q, localx, localy, localz);
+			Maths.quat.localAxes(q, localx, localy, localz);
 			
 			if (Input.mouseDown(2)) {
 				let xRotation = Input.MouseDelta[0] * rotateRate*elapsed;
 				let yRotation = Input.MouseDelta[1] * rotateRate*elapsed;
-				Maths.quatRotate(q, q, -xRotation, Maths.vec3Y);
+				Maths.quat.rotate(q, q, -xRotation, Maths.vec3.Y);
 		
 				let roll = getRoll(q);
 				let clampAngle = 10 * Math.PI/180;
-				if (Math.sign(roll) == Math.sign(yRotation) || Math.abs(roll - yRotation) < 0.5*Math.PI - clampAngle) {
+				if (Math.sign(roll) == Math.sign(yRotation) || Math.abs(roll - yRotation) < 0.5 * Math.PI - clampAngle) {
 					quat.rotateX(q, q, -yRotation);
 				}
 			}

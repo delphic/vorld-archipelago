@@ -1,6 +1,5 @@
-const WorkerPool = require('./workerPool');
 const Fury = require('fury');
-const { Bounds, Maths, Random } = Fury;
+const { Bounds, Maths, Random, WorkerPool } = Fury;
 const { vec3 } = Maths;
 const Primitives = require('./primitives');
 const {
@@ -28,7 +27,7 @@ module.exports = (function(){
 
 	// Combined pair of cubes - top quad halved on lower, no bottom on upper - TODO: single quad at back
 	let stepJson = {
-		vertices: [ 
+		positions: [ 
 			// base
 			// forward
 			0.0, 0.0, 1.0,
@@ -146,7 +145,7 @@ module.exports = (function(){
 			-1.0, 0.0, 0.0,
 			-1.0, 0.0, 0.0
 		],
-		textureCoordinates: [
+		uvs: [
 			// base
 			// forward
 			0.0, 0.0,
@@ -244,13 +243,13 @@ module.exports = (function(){
 	// vertices -> positions, textureCoordinates -> uvs
 	// TODO: Move to Mesh module (note this combines definitions / configs not meshes themselves)
 	let meshCombine = (meshes) => {
-		let result = { vertices: [], normals: [], textureCoordinates: [], indices: [] };
+		let result = { positions: [], normals: [], uvs: [], indices: [] };
 		for (let i = 0, l = meshes.length; i < l; i++) {
 			let mesh = meshes[i];
-			let indexOffset = result.vertices.length / 3;
-			arrayCombine(result.vertices, mesh.vertices);
+			let indexOffset = result.positions.length / 3;
+			arrayCombine(result.positions, mesh.positions);
 			arrayCombine(result.normals, mesh.normals);
-			arrayCombine(result.textureCoordinates, mesh.textureCoordinates);
+			arrayCombine(result.uvs, mesh.uvs);
 			for (let index = 0, n = mesh.indices.length; index < n; index++) {
 				result.indices.push(mesh.indices[index] + indexOffset);
 			}
@@ -632,7 +631,7 @@ module.exports = (function(){
 		};
 
 		while (workerPool.isWorkerAvailable() && tryStartNextWorker()) { /* Try make next worker! */ }
-	}; 
+	};
 
 	let generate = (bounds, id, callback, progressDelegate) => {
 		let vorld = Vorld.create({ blockConfig: blockConfig });
@@ -1005,7 +1004,7 @@ module.exports = (function(){
 	};
 
 	exports.addBlock = (vorld, x, y, z, block, up, forward, callback) => {
-		let chunkIndices = Maths.vec3Pool.request();
+		let chunkIndices = vec3.Pool.request();
 		chunkIndices[0] = Math.floor(x / vorld.chunkSize);
 		chunkIndices[1] = Math.floor(y / vorld.chunkSize);
 		chunkIndices[2] = Math.floor(z / vorld.chunkSize); 
@@ -1074,7 +1073,7 @@ module.exports = (function(){
 		boundsCache.kMin = Math.floor(zMin / vorld.chunkSize);
 		boundsCache.kMax = Math.floor(zMax / vorld.chunkSize);
 
-		Maths.vec3Pool.return(chunkIndices);
+		vec3.Pool.return(chunkIndices);
 
 		let pendingMeshData = [];
 		// Could potentially do this on main thread instead.
